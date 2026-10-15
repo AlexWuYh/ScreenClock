@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ScreenClock</string>
+    <string name="settings">设置</string>
+    <string name="back">返回</string>
+    <string name="section_display">显示</string>
+    <string name="hour_mode">小时制</string>
+    <string name="hour_mode_system">跟随系统</string>
+    <string name="hour_mode_12">12 小时</string>
+    <string name="hour_mode_24">24 小时</string>
+    <string name="theme">主题</string>
+    <string name="theme_flip">翻页</string>
+    <string name="theme_tube">灯管</string>
+    <string name="show_date">显示日期</string>
+    <string name="section_weather">天气</string>
+    <string name="show_weather">显示天气</string>
+    <string name="weather_off">已关闭</string>
+    <string name="weather_use_location">使用当前位置</string>
+    <string name="weather_here">当前位置</string>
+    <string name="weather_search_hint">城市</string>
+    <string name="weather_search">搜索</string>
+    <string name="weather_not_found">没找到</string>
+    <string name="weather_unavailable">暂时拿不到天气</string>
+    <string name="weather_updated">更新于 %1$s</string>
+    <string name="weather_no_permission">没有大致位置权限，仍可搜索城市</string>
+    <string name="weather_no_location">暂时拿不到位置</string>
+    <string name="section_burnin">防烧屏</string>
+    <string name="burnin_enable">开启防烧屏</string>
+    <string name="burnin_idle">无操作多久后启动</string>
+    <string name="burnin_run">每次运行多久</string>
+    <string name="burnin_minutes">%1$d 分钟</string>
+    <string name="burnin_seconds">%1$d 秒</string>
+    <string name="burnin_minutes_seconds">%1$d 分 %2$d 秒</string>
+    <string name="section_about">关于</string>
+    <string name="weather_credit">天气数据来自 Open-Meteo</string>
+</resources>

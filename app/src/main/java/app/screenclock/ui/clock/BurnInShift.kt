@@ -1,0 +1,71 @@
+package app.screenclock.ui.clock
+
+import android.os.SystemClock
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.dp
+import app.screenclock.domain.burnin.BurnInMotion
+import app.screenclock.domain.burnin.BurnInOffset
+import app.screenclock.domain.burnin.BurnInPhase
+import app.screenclock.domain.burnin.burnInMotion
+import app.screenclock.domain.burnin.driftOffset
+import app.screenclock.domain.burnin.wanderOffset
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+
+/**
+ * Moves the current theme without changing its digits.
+ * Drift updates about once a second. The screensaver follows frames, and only while it is running.
+ */
+@Composable
+internal fun BurnInShift(
+    phase: BurnInPhase,
+    paused: Boolean,
+    anchorMillis: Long,
+    expanded: Boolean,
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.Center,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val travel = if (expanded) 24.dp else 12.dp
+    val travelPx = with(LocalDensity.current) { travel.toPx() }
+    val motion = burnInMotion(phase, paused)
+    val anchor = rememberUpdatedState(anchorMillis)
+    var offset by remember { mutableStateOf(BurnInOffset(0f, 0f)) }
+    LaunchedEffect(motion, travelPx) {
+        when (motion) {
+            BurnInMotion.Still -> offset = BurnInOffset(0f, 0f)
+            BurnInMotion.Drift -> while (isActive) {
+                offset = driftOffset(SystemClock.elapsedRealtime())
+                delay(DRIFT_FRAME_MILLIS)
+            }
+            BurnInMotion.Wander -> while (isActive) {
+                val elapsed = SystemClock.elapsedRealtime() - anchor.value
+                offset = wanderOffset(elapsed, travelPx, travelPx)
+                withFrameNanos { }
+            }
+        }
+    }
+    Box(
+        modifier = modifier.graphicsLayer {
+            translationX = offset.xPx
+            translationY = offset.yPx
+        },
+        contentAlignment = contentAlignment,
+        content = content,
+    )
+}
+
+private const val DRIFT_FRAME_MILLIS: Long = 1_000L
