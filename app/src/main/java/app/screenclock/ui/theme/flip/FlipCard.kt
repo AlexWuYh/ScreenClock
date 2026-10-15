@@ -1,5 +1,9 @@
 package app.screenclock.ui.theme.flip
 
+import android.graphics.Paint
+import android.graphics.Path
+import android.graphics.Rect
+import android.graphics.Typeface
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
@@ -27,14 +31,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.LineHeightStyle
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
-import androidx.compose.material3.Text
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.screenclock.domain.time.FLIP_DURATION_MILLIS
 import app.screenclock.domain.time.flipFrame
@@ -42,6 +41,9 @@ import app.screenclock.ui.Digit
 import app.screenclock.ui.Flap
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+
+private const val GLYPH_PROBE = "88"
+private const val GLYPH_PROBE_SIZE = 100f
 
 @Composable
 internal fun FlipCard(
@@ -187,34 +189,45 @@ private fun BoxScope.Glyph(
     cardHeight: Dp,
     digitColor: Color,
 ) {
-    val fontSize = with(LocalDensity.current) { (cardHeight * 0.86f).toSp() }
-    Box(
+    val argb = digitColor.toArgb()
+    Canvas(
         modifier = Modifier
             .fillMaxWidth()
             .height(cardHeight)
             .align(if (top) Alignment.TopCenter else Alignment.BottomCenter),
     ) {
-        Text(
-            text = digits,
-            color = digitColor,
-            fontSize = fontSize,
-            fontFamily = FontFamily.SansSerif,
-            fontWeight = FontWeight.Medium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            softWrap = false,
-            style = TextStyle(
-                fontFeatureSettings = "tnum",
-                lineHeight = fontSize,
-                lineHeightStyle = LineHeightStyle(
-                    alignment = LineHeightStyle.Alignment.Center,
-                    trim = LineHeightStyle.Trim.Both,
-                ),
-            ),
-            modifier = Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth(),
+        // Text clips once the glyph is larger than the font atlas. A path stays whole on a tablet.
+        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            textSize = GLYPH_PROBE_SIZE
+            fontFeatureSettings = "tnum"
+            hinting = Paint.HINTING_OFF
+            style = Paint.Style.FILL
+            color = argb
+        }
+        val probe = Rect()
+        paint.getTextBounds(GLYPH_PROBE, 0, GLYPH_PROBE.length, probe)
+        if (probe.width() <= 0 || probe.height() <= 0) return@Canvas
+        val fit = glyphFit(
+            cardWidth = size.width,
+            cardHeight = size.height,
+            inkWidth = maxOf(probe.width().toFloat(), paint.measureText(GLYPH_PROBE)),
+            inkHeight = probe.height().toFloat(),
+            measuredSize = paint.textSize,
         )
+        paint.textSize = GLYPH_PROBE_SIZE * fit.sizeScale
+        val scaled = Rect()
+        paint.getTextBounds(GLYPH_PROBE, 0, GLYPH_PROBE.length, scaled)
+        val baseline = fit.inkTop - scaled.top
+        val x = (size.width - paint.measureText(digits)) / 2f
+        val path = Path()
+        paint.getTextPath(digits, 0, digits.length, x, baseline, path)
+        val canvas = drawContext.canvas.nativeCanvas
+        if (path.isEmpty) {
+            canvas.drawText(digits, x, baseline, paint)
+        } else {
+            canvas.drawPath(path, paint)
+        }
     }
 }
 

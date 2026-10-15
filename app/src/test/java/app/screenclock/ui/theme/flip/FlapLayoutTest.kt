@@ -58,4 +58,22 @@ class FlapLayoutTest {
     fun cornerIsEightPercentOfTheShortSide() {
         assertEquals(0.08f, FLAP_CORNER_FRACTION, 0f)
     }
+
+    @Test
+    fun honorTabletKeepsTheFlapsInsideTheSafeArea() {
+        val density = 249f / 160f
+        val landscapeWidth = 2560f / density - 64f
+        val landscapeHeight = 1600f / density - 64f - 56f
+        val landscape = flapLayout(landscapeWidth, landscapeHeight, stacked = false, reserveSide = 0f)
+        assertFalse(landscape.stacked)
+        assertTrue(landscape.cardWidth * 2f + landscape.gap <= landscapeWidth + 0.05f)
+        assertTrue(landscape.cardHeight <= landscapeHeight + 0.05f)
+
+        val portraitWidth = 1600f / density - 64f
+        val portraitHeight = 2560f / density - 64f - 56f
+        val portrait = flapLayout(portraitWidth, portraitHeight, stacked = true, reserveSide = 0f)
+        assertTrue(portrait.stacked)
+        assertTrue(portrait.cardHeight * 2f + portrait.gap <= portraitHeight + 0.05f)
+        assertTrue(portrait.cardWidth <= portraitWidth + 0.05f)
+    }
 }
