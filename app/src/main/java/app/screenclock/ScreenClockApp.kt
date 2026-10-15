@@ -1,10 +1,14 @@
 package app.screenclock
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -19,11 +23,13 @@ import app.screenclock.ui.Ink
 import app.screenclock.ui.clock.AppDestination
 import app.screenclock.ui.clock.ClockShell
 import app.screenclock.ui.clock.ClockViewModel
+import app.screenclock.ui.focus.FocusScreen
 import app.screenclock.ui.settings.SettingsScreen
 
 @Composable
 fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val focusKnown by viewModel.focusKnown.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val weatherPanel by viewModel.weatherPanel.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInPrefs.collectAsStateWithLifecycle()
@@ -50,8 +56,15 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
             onSurface = Cream,
         ),
     ) {
-        when (destination) {
+        if (!focusKnown) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Ink),
+            )
+        } else when (destination) {
             AppDestination.Clock -> ClockShell(viewModel)
+            AppDestination.Focus -> FocusScreen(viewModel)
             AppDestination.Settings -> SettingsScreen(
                 face = clock?.face,
                 dateLine = clock?.dateLine,

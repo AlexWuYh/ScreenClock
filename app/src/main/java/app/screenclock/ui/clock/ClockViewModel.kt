@@ -10,6 +10,7 @@ import android.text.format.DateFormat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import app.screenclock.data.burnin.BurnInRepository
+import app.screenclock.data.focus.FocusRepository
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
 import app.screenclock.data.weather.CoarseLocator
@@ -25,6 +26,8 @@ import app.screenclock.domain.burnin.burnInTick
 import app.screenclock.domain.burnin.burnInTouch
 import app.screenclock.domain.burnin.freshBurnInClock
 import app.screenclock.domain.burnin.millisUntilBurnInEdge
+import app.screenclock.domain.focus.focusEndEpochMillis
+import app.screenclock.domain.focus.storedFocusEnd
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
@@ -62,6 +65,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 enum class AppDestination {
     Clock,
     Settings,
+    Focus,
 }
 
 data class ClockUiState(
@@ -95,6 +99,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepository = SettingsRepository(application)
     private val weatherRepository = WeatherRepository(application)
     private val burnInRepository = BurnInRepository(application)
+    private val focusRepository = FocusRepository(application)
     private val weatherClient = OpenMeteoClient()
     private val locator: CoarseLocator = AndroidCoarseLocator(application)
 
@@ -120,10 +125,18 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val burnInState = MutableStateFlow(freshBurnInClock(enabled = false, nowMillis = 0L))
     val burnInSession: StateFlow<BurnInClock> = burnInState.asStateFlow()
 
+    private val focusEndState = MutableStateFlow<Long?>(null)
+    val focusEnd: StateFlow<Long?> = focusEndState.asStateFlow()
+
+    private val focusKnownState = MutableStateFlow(false)
+    val focusKnown: StateFlow<Boolean> = focusKnownState.asStateFlow()
+
     private var refreshJob: Job? = null
     private var searchJob: Job? = null
     private var burnInJob: Job? = null
     private var burnInPlaced = false
+    private var pendingFocusEnd: Long? = null
+    private var awaitFocusClear = false
 
     init {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
@@ -162,6 +175,9 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         refreshWeatherIfNeeded()
         viewModelScope.launch {
             burnInRepository.preferences.collect { prefs -> placeBurnIn(prefs) }
+        }
+        viewModelScope.launch {
+            focusRepository.endEpochMillis.collect { stored -> placeFocus(stored) }
         }
     }
 
@@ -206,7 +222,51 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         setBurnInPagePaused(false)
     }
 
-    /** Settings, and later focus or ceremony, share this hold. */
+    fun openFocus() {
+        onBurnInContact()
+        setBurnInPagePaused(true)
+        chromeState.value = ChromeState()
+        destinationState.value = AppDestination.Focus
+    }
+
+    /** Leaves the duration picker. A running session stays until it is abandoned. */
+    fun closeFocusPicker() {
+        if (focusEndState.value != null) return
+        destinationState.value = AppDestination.Clock
+        setBurnInPagePaused(false)
+    }
+
+    fun startFocus(minutes: Int) {
+        val end = focusEndEpochMillis(System.currentTimeMillis(), minutes)
+        pendingFocusEnd = end
+        awaitFocusClear = false
+        focusEndState.value = end
+        destinationState.value = AppDestination.Focus
+        setBurnInPagePaused(true)
+        viewModelScope.launch {
+            try {
+                focusRepository.setEnd(end)
+            } catch (_: IOException) {
+                if (pendingFocusEnd != end) return@launch
+                pendingFocusEnd = null
+                focusEndState.value = null
+                destinationState.value = AppDestination.Clock
+                setBurnInPagePaused(false)
+            }
+        }
+    }
+
+    /** Long-press cancel and the tap after zero both clear the stored end. */
+    fun abandonFocus() {
+        pendingFocusEnd = null
+        awaitFocusClear = true
+        focusEndState.value = null
+        destinationState.value = AppDestination.Clock
+        setBurnInPagePaused(false)
+        viewModelScope.launch { focusRepository.clear() }
+    }
+
+    /** Settings and focus share this hold. Ceremony will use it too. */
     fun setBurnInPagePaused(paused: Boolean) {
         val next = burnInSetPagePaused(burnInState.value, paused, elapsedNow())
         if (next == burnInState.value) return
@@ -391,6 +451,31 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
                 burnInState.value = updated
             }
         }
+    }
+
+    private fun placeFocus(stored: Long?) {
+        val incoming = storedFocusEnd(stored)
+        val pending = pendingFocusEnd
+        if (pending != null) {
+            if (incoming != pending) {
+                focusKnownState.value = true
+                return
+            }
+            pendingFocusEnd = null
+        }
+        if (awaitFocusClear) {
+            if (incoming != null) {
+                focusKnownState.value = true
+                return
+            }
+            awaitFocusClear = false
+        }
+        focusEndState.value = incoming
+        if (incoming != null && destinationState.value != AppDestination.Settings) {
+            destinationState.value = AppDestination.Focus
+            setBurnInPagePaused(true)
+        }
+        focusKnownState.value = true
     }
 
     private fun elapsedNow(): Long = SystemClock.elapsedRealtime()

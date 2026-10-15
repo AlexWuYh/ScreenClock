@@ -15,23 +15,27 @@ data class FlapLayout(
 )
 
 /**
- * Portrait stacks the two flaps. Landscape puts them in one row.
- * The gap stays a fraction of card width, including after the pair is scaled to fit.
+ * Portrait stacks the flaps. Landscape puts them in one row.
+ * [count] is 2 for the home clock, and 2 or 3 for a countdown.
+ * The gap stays a fraction of card width, including after the row is scaled to fit.
  */
 fun flapLayout(
     width: Float,
     height: Float,
     stacked: Boolean,
     reserveSide: Float,
+    count: Int = 2,
 ): FlapLayout {
     require(width > 0f && height > 0f) { "flap area must be positive" }
+    require(count >= 1) { "flap count must be positive" }
     val side = reserveSide.coerceAtLeast(0f)
     val innerWidth = (width - side).coerceAtLeast(1f)
+    val gaps = (count - 1).coerceAtLeast(0)
     return if (stacked) {
         var cardWidth = innerWidth
         var cardHeight = cardWidth / FLAP_ASPECT
         var gap = cardWidth * FLAP_GAP_FRACTION
-        val totalHeight = cardHeight * 2f + gap
+        val totalHeight = cardHeight * count + gap * gaps
         if (totalHeight > height) {
             val scale = height / totalHeight
             cardWidth *= scale
@@ -43,7 +47,7 @@ fun flapLayout(
         var cardHeight = height.coerceAtLeast(1f)
         var cardWidth = cardHeight * FLAP_ASPECT
         var gap = cardWidth * FLAP_GAP_FRACTION
-        val totalWidth = cardWidth * 2f + gap
+        val totalWidth = cardWidth * count + gap * gaps
         if (totalWidth > innerWidth) {
             val scale = innerWidth / totalWidth
             cardWidth *= scale

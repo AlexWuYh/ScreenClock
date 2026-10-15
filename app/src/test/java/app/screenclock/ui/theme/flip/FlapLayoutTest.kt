@@ -35,6 +35,19 @@ class FlapLayoutTest {
     }
 
     @Test
+    fun threeFlapsFitPortraitAndLandscape() {
+        val portrait = flapLayout(width = 360f, height = 640f, stacked = true, reserveSide = 0f, count = 3)
+        val portraitUsed = portrait.cardHeight * 3f + portrait.gap * 2f
+        assertTrue(portraitUsed <= 640f + 0.05f)
+        assertEquals(FLAP_GAP_FRACTION, portrait.gap / portrait.cardWidth, 0.001f)
+
+        val landscape = flapLayout(width = 800f, height = 360f, stacked = false, reserveSide = 0f, count = 3)
+        val landscapeUsed = landscape.cardWidth * 3f + landscape.gap * 2f
+        assertTrue(landscapeUsed <= 800f + 0.05f)
+        assertEquals(FLAP_ASPECT, landscape.cardWidth / landscape.cardHeight, 0.001f)
+    }
+
+    @Test
     fun portraitStacksAndLandscapeSharesOneRow() {
         assertTrue(clockStacked(width = 360f, height = 640f))
         assertFalse(clockStacked(width = 800f, height = 360f))

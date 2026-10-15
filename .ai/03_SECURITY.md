@@ -10,7 +10,7 @@
 | `ACCESS_COARSE_LOCATION` | 用户打开「使用当前位置」时再申请 | 保持手动城市，不反复弹窗 |
 | 其他 | v1 不申请 | — |
 
-不要申请精确定位、后台定位、通知、精确闹钟、前台服务、常驻唤醒锁。专注页的常亮只用窗口标志 `FLAG_KEEP_SCREEN_ON`，离开该页就清除。
+不要申请精确定位、后台定位、通知、精确闹钟、前台服务、常驻唤醒锁。专注的常亮只用窗口标志 `FLAG_KEEP_SCREEN_ON`，只在倒计时和完成态处于前台时加上，选择时长时不加，离开该页就清除。
 
 ## 网络
 
@@ -47,7 +47,7 @@
 
 ## 本地数据
 
-- 设置：DataStore 文件 `clock_settings`。现在有小时制 `hour_mode`、日期开关 `show_date`、主题 `theme`、配色 `colorway`（目前只有墨黑），天气开关、是否使用当前位置、一个城市和一份缓存，以及防烧屏开关 `burnin_enabled`、无操作时长 `burnin_idle_millis`、运行时长 `burnin_run_millis`。屏保进行到哪一步不落盘。专注结束时刻留到 M5，不提前写入。防烧屏不申请新权限，不改系统亮度，不加唤醒锁。
+- 设置：DataStore 文件 `clock_settings`。现在有小时制 `hour_mode`、日期开关 `show_date`、主题 `theme`、配色 `colorway`（目前只有墨黑），天气开关、是否使用当前位置、一个城市和一份缓存，以及防烧屏开关 `burnin_enabled`、无操作时长 `burnin_idle_millis`、运行时长 `burnin_run_millis`。屏保进行到哪一步不落盘。专注结束时刻是 `focus_end_epoch_millis`，只在一次专注进行中存在。防烧屏不申请新权限，不改系统亮度，不加唤醒锁。
 - 纪念日：应用私有目录里的一个 JSON 文件，上限 30 条。
 - 不做账号，不做上传。系统自动备份可以包含这些偏好；里面没有密钥。
 

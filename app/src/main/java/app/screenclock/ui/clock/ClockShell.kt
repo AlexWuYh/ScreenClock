@@ -9,7 +9,9 @@ import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -161,12 +163,25 @@ fun ClockShell(viewModel: ClockViewModel) {
                     .padding(horizontal = 24.dp, vertical = 12.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                TextButton(onClick = viewModel::openSettings) {
-                    Text(
-                        text = stringResource(R.string.settings),
-                        color = Cream,
-                        fontSize = 18.sp,
-                    )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    TextButton(onClick = viewModel::openSettings) {
+                        Text(
+                            text = stringResource(R.string.settings),
+                            color = Cream,
+                            fontSize = 18.sp,
+                        )
+                    }
+                    TextButton(onClick = viewModel::openFocus) {
+                        Text(
+                            text = stringResource(R.string.focus),
+                            color = Cream,
+                            fontSize = 18.sp,
+                        )
+                    }
                 }
             }
         }
