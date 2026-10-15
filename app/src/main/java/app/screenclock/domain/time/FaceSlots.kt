@@ -15,10 +15,16 @@ fun footerLine(weatherLine: String?, occasionLine: String?): String? {
 }
 
 /** TalkBack string for the whole clock. Blank slots are left out. */
-fun clockContentDescription(dateLine: String?, spokenTime: String, weatherLine: String?): String {
+fun clockContentDescription(
+    dateLine: String?,
+    spokenTime: String,
+    weatherLine: String?,
+    occasionLine: String? = null,
+): String {
     return listOfNotNull(
         dateLine?.takeIf { it.isNotBlank() },
         spokenTime,
         weatherLine?.takeIf { it.isNotBlank() },
+        occasionLine?.takeIf { it.isNotBlank() },
     ).joinToString("，")
 }

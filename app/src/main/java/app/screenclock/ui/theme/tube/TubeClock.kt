@@ -56,6 +56,7 @@ internal fun TubeClock(
     expanded: Boolean,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    onOccasionClick: (() -> Unit)? = null,
 ) {
     ClockScaffold(
         face = face,
@@ -64,6 +65,7 @@ internal fun TubeClock(
         occasionLine = occasionLine,
         expanded = expanded,
         modifier = modifier,
+        onOccasionClick = onOccasionClick,
     ) { stacked, cardWidth, cardHeight, gap ->
         TubeGroups(
             hour = face.hourDigits,

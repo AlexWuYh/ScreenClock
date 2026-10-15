@@ -33,8 +33,10 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -57,6 +59,8 @@ fun ClockShell(viewModel: ClockViewModel) {
     val chrome by viewModel.chrome.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInSession.collectAsStateWithLifecycle()
+    val occasionLine by viewModel.occasionLine.collectAsStateWithLifecycle()
+    val pinnedOccasionId by viewModel.pinnedOccasionId.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val activity = checkNotNull(LocalActivity.current) {
         "ClockShell must run inside an Activity"
@@ -97,8 +101,10 @@ fun ClockShell(viewModel: ClockViewModel) {
     val weatherLine = formatWeatherLine(clock?.weather, showRange = slot == ClockWidth.Expanded)
     val description = when {
         face == null -> ""
-        else -> clockContentDescription(dateLine, face.spoken, weatherLine)
+        else -> clockContentDescription(dateLine, face.spoken, weatherLine, occasionLine)
     }
+    val openOccasionLabel = stringResource(R.string.occasion_open)
+    val openId = pinnedOccasionId?.takeIf { !occasionLine.isNullOrBlank() }
     val animate = Settings.Global.getFloat(
         context.contentResolver,
         Settings.Global.ANIMATOR_DURATION_SCALE,
@@ -135,6 +141,14 @@ fun ClockShell(viewModel: ClockViewModel) {
                         viewModel.onClockActivate(System.currentTimeMillis())
                         true
                     }
+                    if (openId != null) {
+                        customActions = listOf(
+                            CustomAccessibilityAction(openOccasionLabel) {
+                                viewModel.openCeremony(openId, fromList = false)
+                                true
+                            },
+                        )
+                    }
                 },
             contentAlignment = Alignment.Center,
         ) {
@@ -145,9 +159,12 @@ fun ClockShell(viewModel: ClockViewModel) {
                     face = face,
                     dateLine = dateLine,
                     weatherLine = weatherLine,
-                    occasionLine = null,
+                    occasionLine = occasionLine,
                     expanded = slot == ClockWidth.Expanded,
                     animate = animate,
+                    onOccasionClick = openId?.let { id ->
+                        { viewModel.openCeremony(id, fromList = false) }
+                    },
                     modifier = Modifier
                         .fillMaxSize()
                         .clearAndSetSemantics { },
@@ -178,6 +195,13 @@ fun ClockShell(viewModel: ClockViewModel) {
                     TextButton(onClick = viewModel::openFocus) {
                         Text(
                             text = stringResource(R.string.focus),
+                            color = Cream,
+                            fontSize = 18.sp,
+                        )
+                    }
+                    TextButton(onClick = { viewModel.openOccasions(fromSettings = false) }) {
+                        Text(
+                            text = stringResource(R.string.occasion),
                             color = Cream,
                             fontSize = 18.sp,
                         )

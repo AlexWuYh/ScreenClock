@@ -1,5 +1,7 @@
 package app.screenclock
 
+import android.view.WindowManager
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,22 +10,31 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.screenclock.domain.bedside.keepScreenOn
+import app.screenclock.domain.bedside.nightDimActive
+import app.screenclock.domain.bedside.warmActive
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Ink
+import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
+import app.screenclock.ui.ceremony.CeremonyScreen
 import app.screenclock.ui.clock.AppDestination
 import app.screenclock.ui.clock.ClockShell
 import app.screenclock.ui.clock.ClockViewModel
 import app.screenclock.ui.focus.FocusScreen
+import app.screenclock.ui.nightWarmTint
+import app.screenclock.ui.occasion.OccasionScreen
 import app.screenclock.ui.settings.SettingsScreen
 
 @Composable
@@ -33,18 +44,65 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val weatherPanel by viewModel.weatherPanel.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInPrefs.collectAsStateWithLifecycle()
+    val bedside by viewModel.bedside.collectAsStateWithLifecycle()
+    val minuteOfDay by viewModel.minuteOfDay.collectAsStateWithLifecycle()
+    val plugged by viewModel.plugged.collectAsStateWithLifecycle()
+    val focusEnd by viewModel.focusEnd.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = LocalActivity.current
+    val resumeTick = remember { mutableIntStateOf(0) }
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START -> viewModel.setBurnInHostHidden(false)
                 Lifecycle.Event.ON_STOP -> viewModel.setBurnInHostHidden(true)
-                Lifecycle.Event.ON_RESUME -> viewModel.onForeground()
+                Lifecycle.Event.ON_RESUME -> {
+                    viewModel.onForeground()
+                    resumeTick.intValue = resumeTick.intValue + 1
+                }
                 else -> Unit
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+    val nightOn = nightDimActive(
+        bedside.dimEnabled,
+        minuteOfDay,
+        bedside.startHour,
+        bedside.endHour,
+    )
+    val warmOn = warmActive(nightOn, bedside.warmEnabled)
+    val screenOn = keepScreenOn(
+        focusHolding = destination == AppDestination.Focus && focusEnd != null,
+        chargeEnabled = bedside.chargeKeepAwake,
+        plugged = plugged,
+    )
+    val resumeGeneration = resumeTick.intValue
+    DisposableEffect(activity, nightOn, resumeGeneration) {
+        val window = activity?.window
+        if (window != null) {
+            val params = window.attributes
+            params.screenBrightness = if (nightOn) {
+                NIGHT_DIM_BRIGHTNESS
+            } else {
+                WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
+            }
+            window.attributes = params
+        }
+        // The next effect writes the brightness. Clearing here would flash on resume.
+        onDispose { }
+    }
+    DisposableEffect(activity, screenOn) {
+        val window = activity?.window
+        if (window != null) {
+            if (screenOn) {
+                window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            } else {
+                window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            }
+        }
+        onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -56,44 +114,63 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
             onSurface = Cream,
         ),
     ) {
-        if (!focusKnown) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Ink),
-            )
-        } else when (destination) {
-            AppDestination.Clock -> ClockShell(viewModel)
-            AppDestination.Focus -> FocusScreen(viewModel)
-            AppDestination.Settings -> SettingsScreen(
-                face = clock?.face,
-                dateLine = clock?.dateLine,
-                hourMode = clock?.hourMode ?: HourMode.FollowSystem,
-                theme = clock?.theme ?: ClockThemeId.Flip,
-                colorway = clock?.colorway ?: ColorwayId.InkBlack,
-                showDate = clock?.showDate ?: true,
-                onHourMode = viewModel::setHourMode,
-                onTheme = viewModel::setTheme,
-                onShowDate = viewModel::setShowDate,
-                onBack = viewModel::closeSettings,
-                weatherEnabled = clock?.weatherEnabled ?: false,
-                useLocation = clock?.useLocation ?: false,
-                cityLabel = clock?.cityLabel,
-                weather = clock?.weather,
-                panel = weatherPanel,
-                onWeatherEnabled = viewModel::setWeatherEnabled,
-                onUseLocation = viewModel::setUseLocation,
-                onLocate = viewModel::useCurrentLocation,
-                onLocationDenied = viewModel::onLocationDenied,
-                onSearch = viewModel::searchCity,
-                onSelectCity = viewModel::selectCity,
-                burnInEnabled = burnIn.enabled,
-                burnInIdleMillis = burnIn.idleMillis,
-                burnInRunMillis = burnIn.runMillis,
-                onBurnInEnabled = viewModel::setBurnInEnabled,
-                onBurnInIdleMillis = viewModel::setBurnInIdleMillis,
-                onBurnInRunMillis = viewModel::setBurnInRunMillis,
-            )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .then(if (warmOn) Modifier.nightWarmTint() else Modifier),
+        ) {
+            if (!focusKnown) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Ink),
+                )
+            } else when (destination) {
+                AppDestination.Clock -> ClockShell(viewModel)
+                AppDestination.Focus -> FocusScreen(viewModel)
+                AppDestination.Occasions -> OccasionScreen(viewModel)
+                AppDestination.Ceremony -> CeremonyScreen(viewModel)
+                AppDestination.Settings -> SettingsScreen(
+                    face = clock?.face,
+                    dateLine = clock?.dateLine,
+                    hourMode = clock?.hourMode ?: HourMode.FollowSystem,
+                    theme = clock?.theme ?: ClockThemeId.Flip,
+                    colorway = clock?.colorway ?: ColorwayId.InkBlack,
+                    showDate = clock?.showDate ?: true,
+                    onHourMode = viewModel::setHourMode,
+                    onTheme = viewModel::setTheme,
+                    onShowDate = viewModel::setShowDate,
+                    onBack = viewModel::closeSettings,
+                    weatherEnabled = clock?.weatherEnabled ?: false,
+                    useLocation = clock?.useLocation ?: false,
+                    cityLabel = clock?.cityLabel,
+                    weather = clock?.weather,
+                    panel = weatherPanel,
+                    onWeatherEnabled = viewModel::setWeatherEnabled,
+                    onUseLocation = viewModel::setUseLocation,
+                    onLocate = viewModel::useCurrentLocation,
+                    onLocationDenied = viewModel::onLocationDenied,
+                    onSearch = viewModel::searchCity,
+                    onSelectCity = viewModel::selectCity,
+                    burnInEnabled = burnIn.enabled,
+                    burnInIdleMillis = burnIn.idleMillis,
+                    burnInRunMillis = burnIn.runMillis,
+                    onBurnInEnabled = viewModel::setBurnInEnabled,
+                    onBurnInIdleMillis = viewModel::setBurnInIdleMillis,
+                    onBurnInRunMillis = viewModel::setBurnInRunMillis,
+                    nightDimEnabled = bedside.dimEnabled,
+                    nightStartHour = bedside.startHour,
+                    nightEndHour = bedside.endHour,
+                    nightWarmEnabled = bedside.warmEnabled,
+                    chargeKeepAwake = bedside.chargeKeepAwake,
+                    onNightDimEnabled = viewModel::setNightDimEnabled,
+                    onNightStartHour = viewModel::setNightStartHour,
+                    onNightEndHour = viewModel::setNightEndHour,
+                    onNightWarmEnabled = viewModel::setNightWarmEnabled,
+                    onChargeKeepAwake = viewModel::setChargeKeepAwake,
+                    onOpenOccasions = { viewModel.openOccasions(fromSettings = true) },
+                )
+            }
         }
     }
 }

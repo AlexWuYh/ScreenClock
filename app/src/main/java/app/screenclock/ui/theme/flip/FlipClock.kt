@@ -28,6 +28,7 @@ internal fun FlipClock(
     expanded: Boolean,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    onOccasionClick: (() -> Unit)? = null,
 ) {
     val finish = flipFinish(colorway)
     ClockScaffold(
@@ -37,6 +38,7 @@ internal fun FlipClock(
         occasionLine = occasionLine,
         expanded = expanded,
         modifier = modifier,
+        onOccasionClick = onOccasionClick,
     ) { stacked, cardWidth, cardHeight, gap ->
         FlapPair(
             hour = face.hourDigits,

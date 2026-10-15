@@ -116,6 +116,17 @@ fun SettingsScreen(
     onBurnInEnabled: (Boolean) -> Unit,
     onBurnInIdleMillis: (Long) -> Unit,
     onBurnInRunMillis: (Long) -> Unit,
+    nightDimEnabled: Boolean,
+    nightStartHour: Int,
+    nightEndHour: Int,
+    nightWarmEnabled: Boolean,
+    chargeKeepAwake: Boolean,
+    onNightDimEnabled: (Boolean) -> Unit,
+    onNightStartHour: (Int) -> Unit,
+    onNightEndHour: (Int) -> Unit,
+    onNightWarmEnabled: (Boolean) -> Unit,
+    onChargeKeepAwake: (Boolean) -> Unit,
+    onOpenOccasions: () -> Unit,
 ) {
     BackHandler(onBack = onBack)
     Column(
@@ -240,6 +251,21 @@ fun SettingsScreen(
             onIdleMillis = onBurnInIdleMillis,
             onRunMillis = onBurnInRunMillis,
         )
+        Spacer(modifier = Modifier.height(28.dp))
+        NightSection(
+            dimEnabled = nightDimEnabled,
+            startHour = nightStartHour,
+            endHour = nightEndHour,
+            warmEnabled = nightWarmEnabled,
+            chargeKeepAwake = chargeKeepAwake,
+            onDimEnabled = onNightDimEnabled,
+            onStartHour = onNightStartHour,
+            onEndHour = onNightEndHour,
+            onWarmEnabled = onNightWarmEnabled,
+            onChargeKeepAwake = onChargeKeepAwake,
+        )
+        Spacer(modifier = Modifier.height(28.dp))
+        OccasionSection(onOpen = onOpenOccasions)
         Spacer(modifier = Modifier.height(28.dp))
         AboutCredit()
     }
@@ -688,6 +714,141 @@ private fun runDurationText(millis: Long): String {
         minutes > 0 && seconds == 0 -> stringResource(R.string.burnin_minutes, minutes)
         minutes > 0 -> stringResource(R.string.burnin_minutes_seconds, minutes, seconds)
         else -> stringResource(R.string.burnin_seconds, seconds)
+    }
+}
+
+@Composable
+private fun NightSection(
+    dimEnabled: Boolean,
+    startHour: Int,
+    endHour: Int,
+    warmEnabled: Boolean,
+    chargeKeepAwake: Boolean,
+    onDimEnabled: (Boolean) -> Unit,
+    onStartHour: (Int) -> Unit,
+    onEndHour: (Int) -> Unit,
+    onWarmEnabled: (Boolean) -> Unit,
+    onChargeKeepAwake: (Boolean) -> Unit,
+) {
+    Text(
+        text = stringResource(R.string.section_night),
+        color = Cream,
+        fontSize = 14.sp,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    SettingSwitch(
+        label = stringResource(R.string.night_dim),
+        checked = dimEnabled,
+        onCheckedChange = onDimEnabled,
+    )
+    if (dimEnabled) {
+        Text(
+            text = stringResource(R.string.night_hint),
+            color = Info,
+            fontSize = 14.sp,
+        )
+        HourStep(
+            label = stringResource(R.string.night_start),
+            hour = startHour,
+            onHour = onStartHour,
+        )
+        HourStep(
+            label = stringResource(R.string.night_end),
+            hour = endHour,
+            onHour = onEndHour,
+        )
+    }
+    SettingSwitch(
+        label = stringResource(R.string.night_warm),
+        checked = warmEnabled,
+        onCheckedChange = onWarmEnabled,
+    )
+    SettingSwitch(
+        label = stringResource(R.string.charge_keep_awake),
+        checked = chargeKeepAwake,
+        onCheckedChange = onChargeKeepAwake,
+    )
+}
+
+@Composable
+private fun SettingSwitch(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = Cream,
+            fontSize = 18.sp,
+            modifier = Modifier.weight(1f),
+        )
+        Switch(
+            checked = checked,
+            onCheckedChange = null,
+            modifier = Modifier.clearAndSetSemantics { },
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = Ink,
+                checkedTrackColor = Cream,
+                uncheckedThumbColor = Cream,
+                uncheckedTrackColor = ChromeBar,
+                uncheckedBorderColor = Info,
+            ),
+        )
+    }
+}
+
+@Composable
+private fun HourStep(label: String, hour: Int, onHour: (Int) -> Unit) {
+    val shown = ((hour % 24) + 24) % 24
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = label,
+            color = Info,
+            fontSize = 14.sp,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = { onHour((shown + 23) % 24) }) {
+            Text(text = stringResource(R.string.night_earlier), color = Cream, fontSize = 16.sp)
+        }
+        Text(
+            text = stringResource(R.string.night_hour, shown),
+            color = Cream,
+            fontSize = 18.sp,
+        )
+        TextButton(onClick = { onHour((shown + 1) % 24) }) {
+            Text(text = stringResource(R.string.night_later), color = Cream, fontSize = 16.sp)
+        }
+    }
+}
+
+@Composable
+private fun OccasionSection(onOpen: () -> Unit) {
+    Text(
+        text = stringResource(R.string.section_occasion),
+        color = Cream,
+        fontSize = 14.sp,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(modifier = Modifier.height(4.dp))
+    TextButton(onClick = onOpen) {
+        Text(
+            text = stringResource(R.string.occasion),
+            color = Cream,
+            fontSize = 18.sp,
+        )
     }
 }
 

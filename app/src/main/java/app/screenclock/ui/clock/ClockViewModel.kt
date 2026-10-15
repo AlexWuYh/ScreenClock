@@ -1,7 +1,13 @@
 package app.screenclock.ui.clock
 
 import android.app.Application
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.database.ContentObserver
+import android.os.BatteryManager
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -9,13 +15,18 @@ import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.screenclock.data.bedside.BedsideRepository
 import app.screenclock.data.burnin.BurnInRepository
 import app.screenclock.data.focus.FocusRepository
+import app.screenclock.data.occasion.OccasionRepository
+import app.screenclock.data.occasion.SixTailCalendar
+import app.screenclock.data.occasion.statutoryHolidayName
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
 import app.screenclock.data.weather.CoarseLocator
 import app.screenclock.data.weather.OpenMeteoClient
 import app.screenclock.data.weather.WeatherRepository
+import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPhase
 import app.screenclock.domain.burnin.BurnInPreferences
@@ -28,6 +39,27 @@ import app.screenclock.domain.burnin.freshBurnInClock
 import app.screenclock.domain.burnin.millisUntilBurnInEdge
 import app.screenclock.domain.focus.focusEndEpochMillis
 import app.screenclock.domain.focus.storedFocusEnd
+import app.screenclock.domain.occasion.CeremonyFace
+import app.screenclock.domain.occasion.OCCASION_LIMIT
+import app.screenclock.domain.occasion.Occasion
+import app.screenclock.domain.occasion.OccasionDraft
+import app.screenclock.domain.occasion.OccasionKind
+import app.screenclock.domain.occasion.OccasionRow
+import app.screenclock.domain.occasion.addOccasionItem
+import app.screenclock.domain.occasion.canKeep
+import app.screenclock.domain.occasion.canPin
+import app.screenclock.domain.occasion.ceremonyFace
+import app.screenclock.domain.occasion.deleteOccasionItem
+import app.screenclock.domain.occasion.formatSolarDate
+import app.screenclock.domain.occasion.nextOccurrence
+import app.screenclock.domain.occasion.normalizeMessage
+import app.screenclock.domain.occasion.normalizeTitle
+import app.screenclock.domain.occasion.occasionRows
+import app.screenclock.domain.occasion.pinOccasion as pinOneOccasion
+import app.screenclock.domain.occasion.pinnedOccasionLine
+import app.screenclock.domain.occasion.previewText
+import app.screenclock.domain.occasion.refreshPins
+import app.screenclock.domain.occasion.unpinOccasion as unpinOneOccasion
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
@@ -45,7 +77,9 @@ import app.screenclock.domain.weather.coordinateOk
 import app.screenclock.domain.weather.normalizeCityQuery
 import app.screenclock.domain.weather.shouldFetchWeather
 import java.io.IOException
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.util.UUID
 import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -59,6 +93,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -66,6 +102,8 @@ enum class AppDestination {
     Clock,
     Settings,
     Focus,
+    Occasions,
+    Ceremony,
 }
 
 data class ClockUiState(
@@ -99,7 +137,10 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepository = SettingsRepository(application)
     private val weatherRepository = WeatherRepository(application)
     private val burnInRepository = BurnInRepository(application)
+    private val bedsideRepository = BedsideRepository(application)
     private val focusRepository = FocusRepository(application)
+    private val occasionRepository = OccasionRepository(application.filesDir)
+    private val occasionCalendar = SixTailCalendar
     private val weatherClient = OpenMeteoClient()
     private val locator: CoarseLocator = AndroidCoarseLocator(application)
 
@@ -122,6 +163,15 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val burnInPrefsState = MutableStateFlow(BurnInPreferences())
     val burnInPrefs: StateFlow<BurnInPreferences> = burnInPrefsState.asStateFlow()
 
+    private val bedsideState = MutableStateFlow(BedsidePreferences())
+    val bedside: StateFlow<BedsidePreferences> = bedsideState.asStateFlow()
+
+    private val minuteOfDayState = MutableStateFlow(minuteOfDay(LocalDateTime.now()))
+    val minuteOfDay: StateFlow<Int> = minuteOfDayState.asStateFlow()
+
+    private val pluggedState = MutableStateFlow(false)
+    val plugged: StateFlow<Boolean> = pluggedState.asStateFlow()
+
     private val burnInState = MutableStateFlow(freshBurnInClock(enabled = false, nowMillis = 0L))
     val burnInSession: StateFlow<BurnInClock> = burnInState.asStateFlow()
 
@@ -131,12 +181,24 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val focusKnownState = MutableStateFlow(false)
     val focusKnown: StateFlow<Boolean> = focusKnownState.asStateFlow()
 
+    private val occasionLock = Mutex()
+    private val occasionsState = MutableStateFlow<List<Occasion>>(emptyList())
+    private val occasionRowsState = MutableStateFlow<List<OccasionRow>>(emptyList())
+    val occasionRows: StateFlow<List<OccasionRow>> = occasionRowsState.asStateFlow()
+    private val occasionLineState = MutableStateFlow<String?>(null)
+    val occasionLine: StateFlow<String?> = occasionLineState.asStateFlow()
+    private val pinnedOccasionIdState = MutableStateFlow<String?>(null)
+    val pinnedOccasionId: StateFlow<String?> = pinnedOccasionIdState.asStateFlow()
+
     private var refreshJob: Job? = null
     private var searchJob: Job? = null
     private var burnInJob: Job? = null
     private var burnInPlaced = false
     private var pendingFocusEnd: Long? = null
     private var awaitFocusClear = false
+    @Volatile private var occasionsReady = false
+    private var occasionsFromSettings = false
+    private var ceremony: CeremonySession? = null
 
     init {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
@@ -153,6 +215,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         addCloseable {
             application.contentResolver.unregisterContentObserver(observer)
         }
+        watchBattery(application)
         viewModelScope.launch {
             combine(
                 settingsRepository.settings,
@@ -167,18 +230,64 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             while (isActive) {
                 val now = LocalDateTime.now()
                 minute.value = displayMinute(now)
+                minuteOfDayState.value = minuteOfDay(now)
                 withTimeoutOrNull(millisUntilNextMinute(now)) {
                     refresh.first()
                 }
             }
         }
         refreshWeatherIfNeeded()
+        viewModelScope.launch(Dispatchers.IO) {
+            occasionCalendar.leapMonthEver(1)
+        }
+        viewModelScope.launch {
+            val loaded = withContext(Dispatchers.IO) { occasionRepository.load() }
+            occasionLock.withLock {
+                val now = minute.value
+                val refreshed = refreshPins(loaded, now.toLocalDate(), occasionCalendar)
+                occasionsState.value = refreshed
+                publishOccasions(now)
+                if (refreshed != loaded) persistOccasions(refreshed)
+                occasionsReady = true
+            }
+        }
+        viewModelScope.launch {
+            minute.collect { shown ->
+                occasionLock.withLock {
+                    if (!occasionsReady) return@withLock
+                    val refreshed = refreshPins(occasionsState.value, shown.toLocalDate(), occasionCalendar)
+                    val changed = refreshed != occasionsState.value
+                    if (changed) occasionsState.value = refreshed
+                    publishOccasions(shown)
+                    if (changed) persistOccasions(refreshed)
+                }
+            }
+        }
         viewModelScope.launch {
             burnInRepository.preferences.collect { prefs -> placeBurnIn(prefs) }
         }
         viewModelScope.launch {
             focusRepository.endEpochMillis.collect { stored -> placeFocus(stored) }
         }
+        viewModelScope.launch {
+            bedsideRepository.preferences.collect { bedsideState.value = it }
+        }
+    }
+
+    private fun watchBattery(app: Application) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                pluggedState.value = isPlugged(intent)
+            }
+        }
+        val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
+        val sticky = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            app.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            app.registerReceiver(receiver, filter)
+        }
+        pluggedState.value = isPlugged(sticky)
+        addCloseable { app.unregisterReceiver(receiver) }
     }
 
     /**
@@ -256,6 +365,157 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun openOccasions(fromSettings: Boolean) {
+        onBurnInContact()
+        occasionsFromSettings = fromSettings
+        setBurnInPagePaused(true)
+        chromeState.value = ChromeState()
+        destinationState.value = AppDestination.Occasions
+    }
+
+    fun closeOccasions() {
+        if (occasionsFromSettings) {
+            destinationState.value = AppDestination.Settings
+        } else {
+            destinationState.value = AppDestination.Clock
+            setBurnInPagePaused(false)
+        }
+    }
+
+    /**
+     * Opens the fullscreen countdown for a future or today's date.
+     * The occurrence date stays fixed until the user leaves, so a finished yearly date does not jump a year.
+     */
+    fun openCeremony(id: String, fromList: Boolean) {
+        val item = occasionsState.value.find { it.id == id } ?: return
+        val next = nextOccurrence(minute.value.toLocalDate(), item, occasionCalendar)
+        val date = next.date ?: return
+        if (!canPin(next.status)) return
+        ceremony = CeremonySession(id = id, occurrence = date, returnToList = fromList)
+        setBurnInPagePaused(true)
+        chromeState.value = ChromeState()
+        destinationState.value = AppDestination.Ceremony
+    }
+
+    fun closeCeremony() {
+        val session = ceremony
+        if (session == null) {
+            if (destinationState.value == AppDestination.Ceremony) {
+                destinationState.value = AppDestination.Clock
+                setBurnInPagePaused(false)
+            }
+            return
+        }
+        ceremony = null
+        if (session.returnToList) {
+            destinationState.value = AppDestination.Occasions
+        } else {
+            destinationState.value = AppDestination.Clock
+            setBurnInPagePaused(false)
+        }
+    }
+
+    fun ceremonyNow(now: LocalDateTime): CeremonyFace? {
+        val session = ceremony ?: return null
+        val item = occasionsState.value.find { it.id == session.id } ?: return null
+        return ceremonyFace(
+            title = item.title,
+            message = item.message,
+            solarLabel = formatSolarDate(session.occurrence),
+            now = now,
+            occurrence = session.occurrence,
+        )
+    }
+
+    fun ceremonyDate(): LocalDate? {
+        val session = ceremony ?: return null
+        if (occasionsState.value.none { it.id == session.id }) return null
+        return session.occurrence
+    }
+
+    fun occasionPreview(draft: OccasionDraft): String {
+        return previewText(nextOccurrence(minute.value.toLocalDate(), draft, occasionCalendar))
+    }
+
+    fun occasionCanSave(draft: OccasionDraft): Boolean {
+        if (!occasionsReady) return false
+        if (normalizeTitle(draft.title) == null) return false
+        if (occasionsState.value.size >= OCCASION_LIMIT) return false
+        return canKeep(nextOccurrence(minute.value.toLocalDate(), draft, occasionCalendar).status)
+    }
+
+    fun occasionLeapAllowed(month: Int): Boolean = occasionCalendar.leapMonthEver(month)
+
+    /** Returns false when the title, the date, or the 30-item cap rejects the draft. */
+    fun addOccasion(draft: OccasionDraft): Boolean {
+        if (!occasionCanSave(draft)) return false
+        val title = normalizeTitle(draft.title) ?: return false
+        val item = Occasion(
+            id = UUID.randomUUID().toString(),
+            title = title,
+            kind = draft.kind,
+            year = if (draft.kind == OccasionKind.SolarOnce) draft.year else null,
+            month = draft.month,
+            day = draft.day,
+            leap = draft.kind == OccasionKind.LunarYearly && draft.leap,
+            message = normalizeMessage(draft.message),
+            pinned = false,
+        )
+        viewModelScope.launch {
+            occasionLock.withLock {
+                if (!occasionsReady) return@withLock
+                if (!canKeep(nextOccurrence(minute.value.toLocalDate(), item, occasionCalendar).status)) {
+                    return@withLock
+                }
+                val added = addOccasionItem(occasionsState.value, item) ?: return@withLock
+                occasionsState.value = added
+                publishOccasions(minute.value)
+                persistOccasions(added)
+            }
+        }
+        return true
+    }
+
+    fun deleteOccasion(id: String) {
+        viewModelScope.launch {
+            occasionLock.withLock {
+                if (!occasionsReady) return@withLock
+                val next = deleteOccasionItem(occasionsState.value, id)
+                if (next == occasionsState.value) return@withLock
+                occasionsState.value = next
+                publishOccasions(minute.value)
+                persistOccasions(next)
+            }
+        }
+    }
+
+    fun pinOccasion(id: String) {
+        viewModelScope.launch {
+            occasionLock.withLock {
+                if (!occasionsReady) return@withLock
+                val now = minute.value
+                val next = pinOneOccasion(occasionsState.value, id, now.toLocalDate(), occasionCalendar)
+                if (next == occasionsState.value) return@withLock
+                occasionsState.value = next
+                publishOccasions(now)
+                persistOccasions(next)
+            }
+        }
+    }
+
+    fun unpinOccasion(id: String) {
+        viewModelScope.launch {
+            occasionLock.withLock {
+                if (!occasionsReady) return@withLock
+                val next = unpinOneOccasion(occasionsState.value, id)
+                if (next == occasionsState.value) return@withLock
+                occasionsState.value = next
+                publishOccasions(minute.value)
+                persistOccasions(next)
+            }
+        }
+    }
+
     /** Long-press cancel and the tap after zero both clear the stored end. */
     fun abandonFocus() {
         pendingFocusEnd = null
@@ -266,7 +526,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { focusRepository.clear() }
     }
 
-    /** Settings and focus share this hold. Ceremony will use it too. */
+    /** Settings, focus, the occasion list, and ceremony share this hold. */
     fun setBurnInPagePaused(paused: Boolean) {
         val next = burnInSetPagePaused(burnInState.value, paused, elapsedNow())
         if (next == burnInState.value) return
@@ -292,6 +552,26 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setBurnInRunMillis(runMillis: Long) {
         viewModelScope.launch { burnInRepository.setRunMillis(runMillis) }
+    }
+
+    fun setNightDimEnabled(enabled: Boolean) {
+        viewModelScope.launch { bedsideRepository.setDimEnabled(enabled) }
+    }
+
+    fun setNightStartHour(hour: Int) {
+        viewModelScope.launch { bedsideRepository.setStartHour(hour) }
+    }
+
+    fun setNightEndHour(hour: Int) {
+        viewModelScope.launch { bedsideRepository.setEndHour(hour) }
+    }
+
+    fun setNightWarmEnabled(enabled: Boolean) {
+        viewModelScope.launch { bedsideRepository.setWarmEnabled(enabled) }
+    }
+
+    fun setChargeKeepAwake(enabled: Boolean) {
+        viewModelScope.launch { bedsideRepository.setChargeKeepAwake(enabled) }
     }
 
     /** System clock or 12/24 setting changed. The minute loop reads the clock again. */
@@ -471,11 +751,21 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             awaitFocusClear = false
         }
         focusEndState.value = incoming
-        if (incoming != null && destinationState.value != AppDestination.Settings) {
+        val blocked = destinationState.value == AppDestination.Settings ||
+            destinationState.value == AppDestination.Occasions ||
+            destinationState.value == AppDestination.Ceremony
+        if (incoming != null && !blocked) {
             destinationState.value = AppDestination.Focus
             setBurnInPagePaused(true)
         }
         focusKnownState.value = true
+    }
+
+    private fun minuteOfDay(time: LocalDateTime): Int = time.hour * 60 + time.minute
+
+    private fun isPlugged(intent: Intent?): Boolean {
+        if (intent == null) return false
+        return intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
     }
 
     private fun elapsedNow(): Long = SystemClock.elapsedRealtime()
@@ -529,7 +819,12 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     ): ClockUiState {
         return ClockUiState(
             face = formatFaceTime(shown.hour, shown.minute, prefs.hourMode, systemIs24Hour),
-            dateLine = if (prefs.showDate) formatDateLine(shown.toLocalDate()) else null,
+            dateLine = if (prefs.showDate) {
+                val today = shown.toLocalDate()
+                formatDateLine(today, statutoryHolidayName(today))
+            } else {
+                null
+            },
             hourMode = prefs.hourMode,
             showDate = prefs.showDate,
             theme = prefs.theme,
@@ -540,4 +835,27 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             weather = if (weather.enabled) weather.cache else null,
         )
     }
+
+    private fun publishOccasions(now: LocalDateTime) {
+        val items = occasionsState.value
+        val today = now.toLocalDate()
+        occasionRowsState.value = occasionRows(items, today, occasionCalendar)
+        occasionLineState.value = pinnedOccasionLine(items, now, occasionCalendar)
+        pinnedOccasionIdState.value = items.firstOrNull { it.pinned }?.id
+    }
+
+    /** A failed write keeps the list in memory. The next edit tries the file again. */
+    private suspend fun persistOccasions(items: List<Occasion>) {
+        try {
+            withContext(Dispatchers.IO) { occasionRepository.save(items) }
+        } catch (_: IOException) {
+            // The in-memory list stays. The next edit writes the file again.
+        }
+    }
+
+    private data class CeremonySession(
+        val id: String,
+        val occurrence: LocalDate,
+        val returnToList: Boolean,
+    )
 }

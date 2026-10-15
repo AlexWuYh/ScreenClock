@@ -1,0 +1,123 @@
+package app.screenclock.data.occasion
+
+import app.screenclock.data.weather.JsonValue
+import app.screenclock.data.weather.parseJson
+import app.screenclock.domain.occasion.OCCASION_LIMIT
+import app.screenclock.domain.occasion.Occasion
+import app.screenclock.domain.occasion.OccasionKind
+import app.screenclock.domain.occasion.normalizeMessage
+import app.screenclock.domain.occasion.normalizeTitle
+
+internal fun encodeOccasions(items: List<Occasion>): String {
+    val body = items.joinToString(separator = ",") { encodeItem(it) }
+    return "{\"items\":[$body]}"
+}
+
+internal fun decodeOccasions(text: String): List<Occasion> {
+    val root = parseJson(text) as? JsonValue.Obj ?: return emptyList()
+    val items = root.fields["items"] as? JsonValue.Arr ?: return emptyList()
+    val decoded = ArrayList<Occasion>(items.items.size)
+    for (value in items.items) {
+        val item = decodeItem(value) ?: continue
+        if (decoded.any { it.id == item.id }) continue
+        decoded += item
+        if (decoded.size == OCCASION_LIMIT) break
+    }
+    return decoded
+}
+
+private fun encodeItem(item: Occasion): String {
+    val fields = ArrayList<String>(9)
+    fields += "\"id\":${jsonString(item.id)}"
+    fields += "\"title\":${jsonString(item.title)}"
+    fields += "\"kind\":${jsonString(kindWire(item.kind))}"
+    if (item.kind == OccasionKind.SolarOnce && item.year != null) {
+        fields += "\"year\":${item.year}"
+    }
+    fields += "\"month\":${item.month}"
+    fields += "\"day\":${item.day}"
+    fields += "\"leap\":${item.leap && item.kind == OccasionKind.LunarYearly}"
+    fields += "\"message\":${jsonString(item.message)}"
+    fields += "\"pinned\":${item.pinned}"
+    return "{${fields.joinToString(",")}}"
+}
+
+private fun decodeItem(value: JsonValue): Occasion? {
+    val obj = value as? JsonValue.Obj ?: return null
+    val id = obj.fields["id"].asString()?.takeIf { it.isNotBlank() } ?: return null
+    val title = normalizeTitle(obj.fields["title"].asString() ?: return null) ?: return null
+    val kind = kindOf(obj.fields["kind"].asString()) ?: return null
+    val month = obj.fields["month"].asInt() ?: return null
+    val day = obj.fields["day"].asInt() ?: return null
+    if (month < 0) return null
+    val leap = obj.fields["leap"].asBoolean() ?: false
+    val year = obj.fields["year"].asInt()
+    if (kind == OccasionKind.SolarOnce && year == null) return null
+    val message = normalizeMessage(obj.fields["message"].asString() ?: "")
+    val pinned = obj.fields["pinned"].asBoolean() ?: false
+    return Occasion(
+        id = id,
+        title = title,
+        kind = kind,
+        year = if (kind == OccasionKind.SolarOnce) year else null,
+        month = month,
+        day = day,
+        leap = kind == OccasionKind.LunarYearly && leap,
+        message = message,
+        pinned = pinned,
+    )
+}
+
+private fun kindWire(kind: OccasionKind): String {
+    return when (kind) {
+        OccasionKind.SolarOnce -> "solar_once"
+        OccasionKind.SolarYearly -> "solar_yearly"
+        OccasionKind.LunarYearly -> "lunar_yearly"
+    }
+}
+
+private fun kindOf(raw: String?): OccasionKind? {
+    return when (raw) {
+        "solar_once" -> OccasionKind.SolarOnce
+        "solar_yearly" -> OccasionKind.SolarYearly
+        "lunar_yearly" -> OccasionKind.LunarYearly
+        else -> null
+    }
+}
+
+private fun jsonString(value: String): String {
+    val out = StringBuilder(value.length + 2)
+    out.append('"')
+    for (char in value) {
+        when (char) {
+            '\\' -> out.append("\\\\")
+            '"' -> out.append("\\\"")
+            '\n' -> out.append("\\n")
+            '\r' -> out.append("\\r")
+            '\t' -> out.append("\\t")
+            else -> if (char < ' ') {
+                out.append("\\u")
+                out.append(char.code.toString(16).padStart(4, '0'))
+            } else {
+                out.append(char)
+            }
+        }
+    }
+    out.append('"')
+    return out.toString()
+}
+
+private fun JsonValue?.asString(): String? {
+    return (this as? JsonValue.Str)?.value
+}
+
+private fun JsonValue?.asBoolean(): Boolean? {
+    return (this as? JsonValue.Bool)?.value
+}
+
+private fun JsonValue?.asInt(): Int? {
+    val number = (this as? JsonValue.Num)?.value ?: return null
+    if (!number.isFinite() || number % 1.0 != 0.0) return null
+    if (number < Int.MIN_VALUE.toDouble() || number > Int.MAX_VALUE.toDouble()) return null
+    return number.toInt()
+}

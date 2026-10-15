@@ -10,7 +10,11 @@
 | `ACCESS_COARSE_LOCATION` | 用户打开「使用当前位置」时再申请 | 保持手动城市，不反复弹窗 |
 | 其他 | v1 不申请 | — |
 
-不要申请精确定位、后台定位、通知、精确闹钟、前台服务、常驻唤醒锁。专注的常亮只用窗口标志 `FLAG_KEEP_SCREEN_ON`，只在倒计时和完成态处于前台时加上，选择时长时不加，离开该页就清除。
+不要申请精确定位、后台定位、通知、精确闹钟、前台服务、常驻唤醒锁。不改 `Settings.System` 的亮度。
+
+常亮只用窗口标志 `FLAG_KEEP_SCREEN_ON`，只在 `ScreenClockApp` 里设置一次，不加唤醒锁。专注只在倒计时和完成态要求常亮，选择时长时不要求。仪式不要求。充电常亮是另一条：开关打开，且粘性广播 `ACTION_BATTERY_CHANGED` 的 `EXTRA_PLUGGED` 不为 0（USB、交流电、无线，含充满但仍插着）。离开专注时，若充电仍要求常亮，不清除标志。这条广播按系统广播动态注册，API 33 起带 `RECEIVER_NOT_EXPORTED`，不新增权限。
+
+夜间变暗只写本窗口的 `screenBrightness`。关了或不在窗口内时恢复 `BRIGHTNESS_OVERRIDE_NONE`。回到前台再写一次。屏保不因此变亮。暖色是内容上的颜色矩阵，不是新权限，也不是系统色温。
 
 ## 网络
 
@@ -47,8 +51,8 @@
 
 ## 本地数据
 
-- 设置：DataStore 文件 `clock_settings`。现在有小时制 `hour_mode`、日期开关 `show_date`、主题 `theme`、配色 `colorway`（目前只有墨黑），天气开关、是否使用当前位置、一个城市和一份缓存，以及防烧屏开关 `burnin_enabled`、无操作时长 `burnin_idle_millis`、运行时长 `burnin_run_millis`。屏保进行到哪一步不落盘。专注结束时刻是 `focus_end_epoch_millis`，只在一次专注进行中存在。防烧屏不申请新权限，不改系统亮度，不加唤醒锁。
-- 纪念日：应用私有目录里的一个 JSON 文件，上限 30 条。
+- 设置：DataStore 文件 `clock_settings`。现在有小时制 `hour_mode`、日期开关 `show_date`、主题 `theme`、配色 `colorway`（目前只有墨黑），天气开关、是否使用当前位置、一个城市和一份缓存，以及防烧屏开关 `burnin_enabled`、无操作时长 `burnin_idle_millis`、运行时长 `burnin_run_millis`。屏保进行到哪一步不落盘。专注结束时刻是 `focus_end_epoch_millis`，只在一次专注进行中存在。床头键是 `night_dim_enabled`、`night_dim_start_hour`、`night_dim_end_hour`、`night_warm`、`charge_keep_awake`，默认都关（钟点默认 22 和 7）。插没插电不写入磁盘。防烧屏和床头都不申请新权限，不改系统亮度，不加唤醒锁。
+- 纪念日：应用私有目录里的 `occasions.json`，上限 30 条。不进 DataStore。
 - 不做账号，不做上传。系统自动备份可以包含这些偏好；里面没有密钥。
 
 ## 依赖与供应链

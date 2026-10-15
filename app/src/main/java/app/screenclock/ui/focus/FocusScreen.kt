@@ -1,14 +1,12 @@
 package app.screenclock.ui.focus
 
 import android.provider.Settings
-import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -19,7 +17,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
@@ -38,10 +35,8 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -82,9 +77,8 @@ import app.screenclock.ui.Cream
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
 import app.screenclock.ui.clock.ClockViewModel
-import app.screenclock.ui.theme.flip.FlipCard
-import app.screenclock.ui.theme.flip.clockStacked
-import app.screenclock.ui.theme.flip.flapLayout
+import app.screenclock.ui.theme.flip.FlipFlaps
+import app.screenclock.ui.theme.flip.focusFlapKey
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -299,7 +293,6 @@ private fun FocusCountdown(
         1f,
     ) > 0f
     val pad = if (expanded) 32.dp else 16.dp
-    KeepScreenOn()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -345,74 +338,16 @@ private fun FocusCountdown(
             },
         contentAlignment = Alignment.Center,
     ) {
-        FocusFlaps(
+        FlipFlaps(
             groups = face.groups,
             animate = animate,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(pad)
                 .clearAndSetSemantics { },
+            keyOf = { index -> focusFlapKey(face.groups.size, index) },
         )
     }
 }
 
-@Composable
-private fun KeepScreenOn() {
-    val activity = checkNotNull(LocalActivity.current) {
-        "KeepScreenOn must run inside an Activity"
-    }
-    DisposableEffect(activity) {
-        activity.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        onDispose { activity.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
-    }
-}
 
-@Composable
-private fun FocusFlaps(
-    groups: List<String>,
-    animate: Boolean,
-    modifier: Modifier = Modifier,
-) {
-    BoxWithConstraints(
-        modifier = modifier,
-        contentAlignment = Alignment.Center,
-    ) {
-        val count = groups.size.coerceAtLeast(1)
-        val stacked = clockStacked(maxWidth.value, maxHeight.value)
-        val layout = flapLayout(
-            width = maxWidth.value.coerceAtLeast(1f),
-            height = maxHeight.value.coerceAtLeast(1f),
-            stacked = stacked,
-            reserveSide = 0f,
-            count = count,
-        )
-        val card = Modifier.size(layout.cardWidth.dp, layout.cardHeight.dp)
-        if (stacked) {
-            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                groups.forEachIndexed { index, digits ->
-                    if (index > 0) Spacer(modifier = Modifier.height(layout.gap.dp))
-                    key(flapSlot(count, index)) {
-                        FlipCard(digits, animate, card)
-                    }
-                }
-            }
-        } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                groups.forEachIndexed { index, digits ->
-                    if (index > 0) Spacer(modifier = Modifier.width(layout.gap.dp))
-                    key(flapSlot(count, index)) {
-                        FlipCard(digits, animate, card)
-                    }
-                }
-            }
-        }
-    }
-}
-
-private fun flapSlot(count: Int, index: Int): String {
-    val names = if (count >= 3) listOf("h", "m", "s") else listOf("m", "s")
-    return names.getOrElse(index) { index.toString() }
-}

@@ -14,4 +14,9 @@ class DateLineTest {
     fun octoberFourteenthIsWednesday() {
         assertEquals("10月14日 周三", formatDateLine(LocalDate.of(2026, 10, 14)))
     }
+
+    @Test
+    fun aHolidayNameIsAppendedWhenOneIsSupplied() {
+        assertEquals("10月1日 周四 · 国庆节", formatDateLine(LocalDate.of(2026, 10, 1), "国庆节"))
+    }
 }

@@ -36,5 +36,9 @@ class ClockThemeTest {
             "10月1日 周四，14点30分，晴 18°",
             clockContentDescription("10月1日 周四", "14点30分", "晴 18°"),
         )
+        assertEquals(
+            "10月1日 周四，14点30分，距妈妈生日 86 天",
+            clockContentDescription("10月1日 周四", "14点30分", null, "距妈妈生日 86 天"),
+        )
     }
 }

@@ -1,5 +1,6 @@
 package app.screenclock.ui.theme
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,6 +33,7 @@ internal fun ClockScaffold(
     occasionLine: String?,
     expanded: Boolean,
     modifier: Modifier = Modifier,
+    onOccasionClick: (() -> Unit)? = null,
     digits: @Composable (stacked: Boolean, cardWidth: Dp, cardHeight: Dp, gap: Dp) -> Unit,
 ) {
     val pad = if (expanded) 32.dp else 16.dp
@@ -78,14 +80,50 @@ internal fun ClockScaffold(
             }
             if (footer != null) {
                 Spacer(modifier = Modifier.height(16.dp))
-                InfoLine(footer, infoSize)
+                FooterLine(
+                    weatherLine = weatherLine,
+                    occasionLine = occasionLine,
+                    size = infoSize,
+                    onOccasionClick = onOccasionClick,
+                )
             }
         }
     }
 }
 
 @Composable
-private fun InfoLine(text: String, size: androidx.compose.ui.unit.TextUnit) {
+private fun FooterLine(
+    weatherLine: String?,
+    occasionLine: String?,
+    size: androidx.compose.ui.unit.TextUnit,
+    onOccasionClick: (() -> Unit)?,
+) {
+    val weather = weatherLine?.takeIf { it.isNotBlank() }
+    val occasion = occasionLine?.takeIf { it.isNotBlank() }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        if (weather != null) {
+            InfoLine(weather, size)
+        }
+        if (weather != null && occasion != null) {
+            InfoLine(" · ", size)
+        }
+        if (occasion != null) {
+            val click = if (onOccasionClick != null) {
+                Modifier.clickable(onClick = onOccasionClick)
+            } else {
+                Modifier
+            }
+            InfoLine(occasion, size, click)
+        }
+    }
+}
+
+@Composable
+private fun InfoLine(
+    text: String,
+    size: androidx.compose.ui.unit.TextUnit,
+    modifier: Modifier = Modifier,
+) {
     Text(
         text = text,
         color = Info,
@@ -93,5 +131,6 @@ private fun InfoLine(text: String, size: androidx.compose.ui.unit.TextUnit) {
         fontSize = size,
         maxLines = 1,
         softWrap = false,
+        modifier = modifier,
     )
 }
