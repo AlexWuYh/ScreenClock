@@ -187,6 +187,10 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val occasionRows: StateFlow<List<OccasionRow>> = occasionRowsState.asStateFlow()
     private val occasionLineState = MutableStateFlow<String?>(null)
     val occasionLine: StateFlow<String?> = occasionLineState.asStateFlow()
+    private val leapMonthsState = MutableStateFlow<Set<Int>>(emptySet())
+    val leapMonths: StateFlow<Set<Int>> = leapMonthsState.asStateFlow()
+    private val wallClockGenerationState = MutableStateFlow(0)
+    val wallClockGeneration: StateFlow<Int> = wallClockGenerationState.asStateFlow()
     private val pinnedOccasionIdState = MutableStateFlow<String?>(null)
     val pinnedOccasionId: StateFlow<String?> = pinnedOccasionIdState.asStateFlow()
 
@@ -237,11 +241,17 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         refreshWeatherIfNeeded()
-        viewModelScope.launch(Dispatchers.IO) {
-            occasionCalendar.leapMonthEver(1)
+        val leapMonthsJob = viewModelScope.launch(Dispatchers.IO) {
+            val months = buildSet {
+                for (month in 1..12) {
+                    if (occasionCalendar.leapMonthEver(month)) add(month)
+                }
+            }
+            leapMonthsState.value = months
         }
         viewModelScope.launch {
             val loaded = withContext(Dispatchers.IO) { occasionRepository.load() }
+            leapMonthsJob.join()
             occasionLock.withLock {
                 val now = minute.value
                 val refreshed = refreshPins(loaded, now.toLocalDate(), occasionCalendar)
@@ -444,8 +454,6 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         return canKeep(nextOccurrence(minute.value.toLocalDate(), draft, occasionCalendar).status)
     }
 
-    fun occasionLeapAllowed(month: Int): Boolean = occasionCalendar.leapMonthEver(month)
-
     /** Returns false when the title, the date, or the 30-item cap rejects the draft. */
     fun addOccasion(draft: OccasionDraft): Boolean {
         if (!occasionCanSave(draft)) return false
@@ -574,10 +582,11 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { bedsideRepository.setChargeKeepAwake(enabled) }
     }
 
-    /** System clock or 12/24 setting changed. The minute loop reads the clock again. */
+    /** System clock changed, or the app returned to the front. Ceremony waits start over. */
     fun onTimeChanged() {
         publishSystemHourFormat()
         refresh.tryEmit(Unit)
+        wallClockGenerationState.value = wallClockGenerationState.value + 1
     }
 
     /** App is in front. Weather refresh stays off the minute loop. */

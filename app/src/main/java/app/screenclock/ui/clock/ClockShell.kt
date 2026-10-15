@@ -1,10 +1,5 @@
 package app.screenclock.ui.clock
 
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
-import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
@@ -24,7 +19,6 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -76,24 +70,6 @@ fun ClockShell(viewModel: ClockViewModel) {
         val remaining = hideAt - System.currentTimeMillis()
         if (remaining > 0L) delay(remaining)
         viewModel.onChromeTick(System.currentTimeMillis())
-    }
-    DisposableEffect(context) {
-        val receiver = object : BroadcastReceiver() {
-            override fun onReceive(context: Context, intent: Intent) {
-                viewModel.onTimeChanged()
-            }
-        }
-        val filter = IntentFilter().apply {
-            addAction(Intent.ACTION_TIME_CHANGED)
-            addAction(Intent.ACTION_TIMEZONE_CHANGED)
-            addAction(Intent.ACTION_DATE_CHANGED)
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
-        } else {
-            context.registerReceiver(receiver, filter)
-        }
-        onDispose { context.unregisterReceiver(receiver) }
     }
 
     val face = clock?.face

@@ -1,5 +1,10 @@
 package app.screenclock
 
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.Build
 import android.view.WindowManager
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
@@ -13,6 +18,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -50,7 +56,26 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val focusEnd by viewModel.focusEnd.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = LocalActivity.current
+    val context = LocalContext.current
     val resumeTick = remember { mutableIntStateOf(0) }
+    DisposableEffect(context, viewModel) {
+        val receiver = object : BroadcastReceiver() {
+            override fun onReceive(context: Context, intent: Intent) {
+                viewModel.onTimeChanged()
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(Intent.ACTION_TIME_CHANGED)
+            addAction(Intent.ACTION_TIMEZONE_CHANGED)
+            addAction(Intent.ACTION_DATE_CHANGED)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            context.registerReceiver(receiver, filter)
+        }
+        onDispose { context.unregisterReceiver(receiver) }
+    }
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {

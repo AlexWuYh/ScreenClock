@@ -185,7 +185,8 @@ private fun OccasionEditor(
     var day by rememberSaveable { mutableIntStateOf(1) }
     var leap by rememberSaveable { mutableStateOf(false) }
     val kind = OccasionKind.entries.find { it.name == kindName } ?: OccasionKind.SolarYearly
-    val leapAllowed = kind == OccasionKind.LunarYearly && viewModel.occasionLeapAllowed(month)
+    val leapMonths by viewModel.leapMonths.collectAsStateWithLifecycle()
+    val leapAllowed = kind == OccasionKind.LunarYearly && month in leapMonths
     val leapValue = leap && leapAllowed
     val dayMax = occasionDayMax(kind, year, month)
     val dayValue = day.coerceIn(1, dayMax)

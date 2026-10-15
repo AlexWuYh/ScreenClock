@@ -40,6 +40,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.domain.occasion.CeremonyMode
 import app.screenclock.domain.occasion.millisUntilCeremonyTick
@@ -63,7 +64,9 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     val face = viewModel.ceremonyNow(now)
     val occurrence = viewModel.ceremonyDate()
-    LaunchedEffect(occurrence) {
+    val generation by viewModel.wallClockGeneration.collectAsStateWithLifecycle()
+    // delay follows uptime, so sleep and a changed clock have to start a new wait.
+    LaunchedEffect(occurrence, generation) {
         if (occurrence == null) return@LaunchedEffect
         while (isActive) {
             val current = LocalDateTime.now()

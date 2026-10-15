@@ -69,6 +69,22 @@ fun occasionLine(item: Occasion, now: LocalDateTime, calendar: LunarCalendar): S
     }
 }
 
+data class OccasionBarParts(val lead: String, val count: String)
+
+private val occasionCountSuffix = Regex(""" \d+ (天|小时)$""")
+
+/**
+ * Splits a bar so the title can shrink and the trailing day or hour count stays.
+ * Today has no count. The two pieces join back into [line].
+ */
+fun occasionBarParts(line: String): OccasionBarParts {
+    val match = occasionCountSuffix.find(line) ?: return OccasionBarParts(line, "")
+    return OccasionBarParts(
+        lead = line.substring(0, match.range.first),
+        count = line.substring(match.range.first),
+    )
+}
+
 /** Solar once uses the real length of that month. A yearly February may be the 29th. Lunar days stop at 30. */
 fun occasionDayMax(kind: OccasionKind, year: Int, month: Int): Int {
     if (month !in 1..12) return 30

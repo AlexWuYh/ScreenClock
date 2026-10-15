@@ -4,17 +4,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.screenclock.domain.occasion.occasionBarParts
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.footerLine
 import app.screenclock.ui.Info
@@ -43,6 +48,7 @@ internal fun ClockScaffold(
         modifier = modifier.padding(pad),
         contentAlignment = Alignment.Center,
     ) {
+        val boardWidth = maxWidth
         val lineBlock = if (expanded) 56.dp else 44.dp
         val dateBlock = if (dateLine != null) lineBlock else 0.dp
         val footerBlock = if (footer != null) lineBlock else 0.dp
@@ -84,6 +90,7 @@ internal fun ClockScaffold(
                     weatherLine = weatherLine,
                     occasionLine = occasionLine,
                     size = infoSize,
+                    maxWidth = boardWidth,
                     onOccasionClick = onOccasionClick,
                 )
             }
@@ -95,12 +102,16 @@ internal fun ClockScaffold(
 private fun FooterLine(
     weatherLine: String?,
     occasionLine: String?,
-    size: androidx.compose.ui.unit.TextUnit,
+    size: TextUnit,
+    maxWidth: Dp,
     onOccasionClick: (() -> Unit)?,
 ) {
     val weather = weatherLine?.takeIf { it.isNotBlank() }
     val occasion = occasionLine?.takeIf { it.isNotBlank() }
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(
+        modifier = Modifier.widthIn(max = maxWidth),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         if (weather != null) {
             InfoLine(weather, size)
         }
@@ -108,12 +119,42 @@ private fun FooterLine(
             InfoLine(" · ", size)
         }
         if (occasion != null) {
-            val click = if (onOccasionClick != null) {
-                Modifier.clickable(onClick = onOccasionClick)
-            } else {
-                Modifier
-            }
-            InfoLine(occasion, size, click)
+            OccasionBar(occasion, size, onOccasionClick)
+        }
+    }
+}
+
+@Composable
+private fun RowScope.OccasionBar(
+    line: String,
+    size: TextUnit,
+    onClick: (() -> Unit)?,
+) {
+    val parts = occasionBarParts(line)
+    val click = if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier
+    Row(
+        modifier = Modifier.weight(1f, fill = false).then(click),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = parts.lead,
+            color = Info,
+            fontFamily = FontFamily.SansSerif,
+            fontSize = size,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f, fill = false),
+        )
+        if (parts.count.isNotEmpty()) {
+            Text(
+                text = parts.count,
+                color = Info,
+                fontFamily = FontFamily.SansSerif,
+                fontSize = size,
+                maxLines = 1,
+                softWrap = false,
+            )
         }
     }
 }

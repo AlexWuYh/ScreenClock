@@ -158,6 +158,14 @@ class OccasionTest {
     }
 
     @Test
+    fun theBarKeepsTheCountApartFromTheTitle() {
+        assertEquals(OccasionBarParts("距妈妈生日", " 86 天"), occasionBarParts("距妈妈生日 86 天"))
+        assertEquals(OccasionBarParts("距妈妈生日", " 5 小时"), occasionBarParts("距妈妈生日 5 小时"))
+        assertEquals(OccasionBarParts("距考试 2", " 1 小时"), occasionBarParts("距考试 2 1 小时"))
+        assertEquals(OccasionBarParts("今天 · 妈妈生日", ""), occasionBarParts("今天 · 妈妈生日"))
+    }
+
+    @Test
     fun anUnpinnedItemDoesNotTakeTheBar() {
         val item = once("mom", 2026, 12, 1, pinned = false)
         assertNull(pinnedOccasionLine(listOf(item), LocalDateTime.of(2026, 1, 1, 0, 0), unused))

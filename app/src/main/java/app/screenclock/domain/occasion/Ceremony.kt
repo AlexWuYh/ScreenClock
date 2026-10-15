@@ -42,10 +42,18 @@ fun dayGroups(days: Long): List<String> {
     return groups.toList()
 }
 
-/** Last 24 hours always use three pairs, including a leading 00 hour. Seconds round up. */
+/**
+ * Last 24 hours always use three pairs, including a leading 00 hour.
+ * Seconds round up, but a remainder under 24 hours never displays 24:00:00.
+ */
 fun ceremonyClockGroups(now: LocalDateTime, occurrence: LocalDate): List<String> {
     val remaining = Duration.between(now, occurrence.atStartOfDay()).toMillis().coerceAtLeast(0L)
-    val totalSeconds = (remaining + 999L) / 1000L
+    val rounded = (remaining + 999L) / 1000L
+    val totalSeconds = if (remaining < DAY_MILLIS) {
+        rounded.coerceAtMost(DAY_MILLIS / 1000L - 1L)
+    } else {
+        rounded
+    }
     val hours = totalSeconds / 3600L
     val minutes = (totalSeconds % 3600L) / 60L
     val seconds = totalSeconds % 60L

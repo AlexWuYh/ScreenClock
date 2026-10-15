@@ -1,5 +1,6 @@
 package app.screenclock.domain.occasion
 
+import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
@@ -25,6 +26,15 @@ class CeremonyTest {
         val start = tomorrow.atStartOfDay()
         assertEquals(listOf("23", "00", "00"), ceremonyClockGroups(start.minusHours(23), tomorrow))
         assertEquals(listOf("00", "00", "01"), ceremonyClockGroups(start.minusNanos(1_000_000), tomorrow))
+        val justInside = start.minusHours(24).plusNanos(1_000_000)
+        assertEquals(CeremonyMode.Clock, ceremonyMode(justInside, tomorrow))
+        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(justInside, tomorrow))
+        val oneMillisUnder = start.minus(Duration.ofMillis(24L * 3_600_000L - 1L))
+        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(oneMillisUnder, tomorrow))
+        assertEquals(
+            "考试，剩余23小时59分59秒",
+            ceremonySpoken("考试", CeremonyMode.Clock, 0, ceremonyClockGroups(justInside, tomorrow), "到了"),
+        )
         assertEquals(CeremonyMode.Done, ceremonyMode(start, tomorrow))
         assertEquals(CeremonyMode.Done, ceremonyMode(start.plusHours(8), tomorrow))
     }
