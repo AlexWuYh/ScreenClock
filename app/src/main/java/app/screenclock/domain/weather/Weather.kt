@@ -57,10 +57,22 @@ fun weatherPhrase(code: Int?): String? = when (code) {
 }
 
 /** Nearest integer Celsius. Non-finite values are not a temperature. */
+/** Nearest integer Celsius. Non-finite and absurd values are not a temperature. */
 fun celsiusInt(value: Double): Int? {
     if (!value.isFinite()) return null
+    if (value < TEMPERATURE_MIN_C || value > TEMPERATURE_MAX_C) return null
     return value.roundToInt()
 }
+
+/** Weather codes are whole numbers. Anything else is unknown, never rounded into a code. */
+fun weatherCodeInt(value: Double): Int? {
+    if (!value.isFinite() || value % 1.0 != 0.0) return null
+    if (value < Int.MIN_VALUE || value > Int.MAX_VALUE) return null
+    return value.toInt()
+}
+
+private const val TEMPERATURE_MIN_C: Double = -100.0
+private const val TEMPERATURE_MAX_C: Double = 100.0
 
 /**
  * One clock line. Compact is `晴 18°`. Expanded adds today's high and low: `晴 18° · 26° / 14°`.
@@ -96,6 +108,21 @@ fun shouldFetchWeather(
 ): Boolean {
     if (!enabled || city == null) return false
     return !cacheFresh(cache?.fetchedAtEpochMillis, nowEpochMillis)
+}
+
+/**
+ * The minute loop refreshes at most once per cache window, so a failing network is not
+ * polled every minute. A missing or backwards timestamp allows the attempt. User actions
+ * (search, picking a city, returning to the front) skip this gate.
+ */
+fun weatherAttemptAllowed(
+    lastAttemptEpochMillis: Long?,
+    nowEpochMillis: Long,
+    retryAfterMillis: Long = WEATHER_CACHE_TTL_MILLIS,
+): Boolean {
+    if (lastAttemptEpochMillis == null) return true
+    val age = nowEpochMillis - lastAttemptEpochMillis
+    return age < 0L || age >= retryAfterMillis
 }
 
 /** Trimmed query of 1–40 characters, or null when there is nothing to search. */

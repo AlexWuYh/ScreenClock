@@ -128,4 +128,11 @@ class OpenMeteoTest {
         assertTrue(allowedWeatherUrl(seen))
         assertEquals("杭州 · 浙江", places.single().label)
     }
+
+    @Test
+    fun deeplyNestedJsonIsRejectedInsteadOfCrashing() {
+        val body = "[".repeat(64) + "]".repeat(64)
+        assertNull(parseJson(body))
+        assertNull(parseCitySearch(body))
+    }
 }

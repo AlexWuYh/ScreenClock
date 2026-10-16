@@ -175,9 +175,45 @@ class OccasionTest {
     fun titlesAndMessagesAreBounded() {
         assertNull(normalizeTitle("  "))
         assertNull(normalizeTitle("名".repeat(21)))
+        assertEquals("名".repeat(20), normalizeTitle("名".repeat(20)))
         assertEquals("妈妈生日", normalizeTitle(" 妈妈生日 "))
         assertEquals("到了", normalizeMessage("  "))
         assertEquals("a".repeat(20), normalizeMessage("a".repeat(25)))
+    }
+
+    @Test
+    fun theScanStopsAtTwentyYears() {
+        val atTheEdge = script(
+            ever = { true },
+            solar = { year, month, day, leap ->
+                if (year == 2045 && month == 5 && day == 28 && !leap) LocalDate.of(2045, 5, 28) else null
+            },
+        )
+        val found = nextOccurrence(LocalDate.of(2026, 1, 1), lunar(5, 28, leap = false), atTheEdge)
+        assertEquals(LocalDate.of(2045, 5, 28), found.date)
+        assertTrue(found.skipped)
+
+        val pastTheEdge = script(
+            ever = { true },
+            solar = { year, month, day, leap ->
+                if (year == 2046 && month == 5 && day == 28 && !leap) LocalDate.of(2046, 5, 28) else null
+            },
+        )
+        assertEquals(
+            OccasionStatus.NotFound,
+            nextOccurrence(LocalDate.of(2026, 1, 1), lunar(5, 28, leap = false), pastTheEdge).status,
+        )
+    }
+
+    @Test
+    fun theLeapNoteWinsOverTheSkippedNote() {
+        val next = NextOccurrence(
+            status = OccasionStatus.Future,
+            date = LocalDate.of(2027, 5, 28),
+            skipped = true,
+            missingLeapThisYear = true,
+        )
+        assertEquals("今年没有这个闰月，下次是 2027年5月28日", previewText(next))
     }
 
     @Test

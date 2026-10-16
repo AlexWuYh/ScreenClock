@@ -11,17 +11,24 @@ internal sealed interface JsonValue {
 
 private class JsonParseException : Exception()
 
+/** Nested containers deeper than this are rejected instead of recursing without end. */
+private const val MAX_JSON_DEPTH: Int = 32
+
 /** Parse one JSON value. Returns null when the text is not that JSON. */
 internal fun parseJson(text: String): JsonValue? {
     return try {
         JsonReader(text).parse()
     } catch (_: JsonParseException) {
         null
+    } catch (_: StackOverflowError) {
+        // Depth is capped below; this is the last line of defence for hostile input.
+        null
     }
 }
 
 private class JsonReader(private val text: String) {
     private var index = 0
+    private var depth = 0
 
     fun parse(): JsonValue {
         skip()
@@ -34,23 +41,29 @@ private class JsonReader(private val text: String) {
     private fun readValue(): JsonValue {
         skip()
         if (index >= text.length) throw JsonParseException()
-        return when (text[index]) {
-            '{' -> readObject()
-            '[' -> readArray()
-            '"' -> JsonValue.Str(readString())
-            't' -> {
-                literal("true")
-                JsonValue.Bool(true)
+        if (depth >= MAX_JSON_DEPTH) throw JsonParseException()
+        depth++
+        try {
+            return when (text[index]) {
+                '{' -> readObject()
+                '[' -> readArray()
+                '"' -> JsonValue.Str(readString())
+                't' -> {
+                    literal("true")
+                    JsonValue.Bool(true)
+                }
+                'f' -> {
+                    literal("false")
+                    JsonValue.Bool(false)
+                }
+                'n' -> {
+                    literal("null")
+                    JsonValue.Null
+                }
+                else -> readNumber()
             }
-            'f' -> {
-                literal("false")
-                JsonValue.Bool(false)
-            }
-            'n' -> {
-                literal("null")
-                JsonValue.Null
-            }
-            else -> readNumber()
+        } finally {
+            depth--
         }
     }
 

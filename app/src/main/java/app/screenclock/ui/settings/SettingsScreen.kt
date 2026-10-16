@@ -78,8 +78,8 @@ import app.screenclock.domain.weather.WeatherCache
 import app.screenclock.domain.weather.formatUpdatedAt
 import app.screenclock.domain.weather.formatWeatherLine
 import app.screenclock.ui.Amber
-import app.screenclock.ui.clock.WeatherNotice
-import app.screenclock.ui.clock.WeatherPanel
+import app.screenclock.controller.WeatherNotice
+import app.screenclock.controller.WeatherPanel
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Info
@@ -386,6 +386,7 @@ private fun ThemeFace(
         expanded = expanded,
         animate = false,
         modifier = Modifier.fillMaxSize(),
+        preview = true,
     )
 }
 

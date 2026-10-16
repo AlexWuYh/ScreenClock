@@ -49,11 +49,8 @@ fun dayGroups(days: Long): List<String> {
 fun ceremonyClockGroups(now: LocalDateTime, occurrence: LocalDate): List<String> {
     val remaining = Duration.between(now, occurrence.atStartOfDay()).toMillis().coerceAtLeast(0L)
     val rounded = (remaining + 999L) / 1000L
-    val totalSeconds = if (remaining < DAY_MILLIS) {
-        rounded.coerceAtMost(DAY_MILLIS / 1000L - 1L)
-    } else {
-        rounded
-    }
+    // Even for a caller that asks past the last 24 hours, the face never shows 24:00:00.
+    val totalSeconds = rounded.coerceAtMost(DAY_MILLIS / 1000L - 1L)
     val hours = totalSeconds / 3600L
     val minutes = (totalSeconds % 3600L) / 60L
     val seconds = totalSeconds % 60L

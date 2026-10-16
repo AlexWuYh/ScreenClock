@@ -29,6 +29,7 @@ import app.screenclock.ui.theme.flip.flapLayout
 /**
  * Shared slots for every theme: date above, hour and minute in the middle, one footer line below.
  * The footer is absent when both weather and occasion are absent.
+ * [preview] shrinks every block so a small box (the theme picker) keeps the flaps as its subject.
  */
 @Composable
 internal fun ClockScaffold(
@@ -38,26 +39,45 @@ internal fun ClockScaffold(
     occasionLine: String?,
     expanded: Boolean,
     modifier: Modifier = Modifier,
+    preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
     digits: @Composable (stacked: Boolean, cardWidth: Dp, cardHeight: Dp, gap: Dp) -> Unit,
 ) {
-    val pad = if (expanded) 32.dp else 16.dp
-    val infoSize = if (expanded) 22.sp else 16.sp
+    val pad = when {
+        preview -> 10.dp
+        expanded -> 32.dp
+        else -> 16.dp
+    }
+    val infoSize = when {
+        preview -> 11.sp
+        expanded -> 22.sp
+        else -> 16.sp
+    }
+    val lineGap = if (preview) 6.dp else 16.dp
     val footer = footerLine(weatherLine, occasionLine)
     BoxWithConstraints(
         modifier = modifier.padding(pad),
         contentAlignment = Alignment.Center,
     ) {
         val boardWidth = maxWidth
-        val lineBlock = if (expanded) 56.dp else 44.dp
+        val lineBlock = when {
+            preview -> 20.dp
+            expanded -> 56.dp
+            else -> 44.dp
+        }
         val dateBlock = if (dateLine != null) lineBlock else 0.dp
         val footerBlock = if (footer != null) lineBlock else 0.dp
+        val gapBlock = (if (dateLine != null) lineGap else 0.dp) + (if (footer != null) lineGap else 0.dp)
         val side = if (face.meridiem != null) {
-            if (expanded) 80.dp else 64.dp
+            when {
+                preview -> 32.dp
+                expanded -> 80.dp
+                else -> 64.dp
+            }
         } else {
             0.dp
         }
-        val availHeight = (maxHeight - dateBlock - footerBlock).coerceAtLeast(1.dp)
+        val availHeight = (maxHeight - dateBlock - footerBlock - gapBlock).coerceAtLeast(1.dp)
         val stacked = clockStacked(maxWidth.value, maxHeight.value)
         val layout = flapLayout(
             width = maxWidth.value.coerceAtLeast(1f),
@@ -68,7 +88,7 @@ internal fun ClockScaffold(
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (dateLine != null) {
                 InfoLine(dateLine, infoSize)
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(lineGap))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
@@ -85,7 +105,7 @@ internal fun ClockScaffold(
                 }
             }
             if (footer != null) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(lineGap))
                 FooterLine(
                     weatherLine = weatherLine,
                     occasionLine = occasionLine,

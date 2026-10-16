@@ -30,23 +30,23 @@ private val HighKey = intPreferencesKey("weather_high_c")
 private val LowKey = intPreferencesKey("weather_low_c")
 private val FetchedKey = longPreferencesKey("weather_fetched_at")
 
-class WeatherRepository(private val context: Context) {
-    val weather: Flow<WeatherPreferences> = context.clockSettingsStore.data
+class WeatherRepository(private val context: Context) : WeatherStore {
+    override val weather: Flow<WeatherPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toWeatherPreferences() }
         .catch { error ->
             if (error is IOException) emit(WeatherPreferences()) else throw error
         }
 
-    suspend fun setEnabled(enabled: Boolean) {
+    override suspend fun setEnabled(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[EnabledKey] = enabled }
     }
 
-    suspend fun setUseLocation(useLocation: Boolean) {
+    override suspend fun setUseLocation(useLocation: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[UseLocationKey] = useLocation }
     }
 
     /** Replaces the one city and drops the previous forecast in the same write. */
-    suspend fun replaceCity(city: SavedCity, useLocation: Boolean) {
+    override suspend fun replaceCity(city: SavedCity, useLocation: Boolean) {
         val safe = savedCityOrNull(city.label, city.latitude, city.longitude) ?: return
         context.clockSettingsStore.edit { prefs ->
             prefs[UseLocationKey] = useLocation
@@ -61,7 +61,7 @@ class WeatherRepository(private val context: Context) {
         }
     }
 
-    suspend fun saveCache(cache: WeatherCache) {
+    override suspend fun saveCache(cache: WeatherCache) {
         context.clockSettingsStore.edit { prefs ->
             prefs[TempKey] = cache.temperatureC
             if (cache.code != null) prefs[CodeKey] = cache.code else prefs.remove(CodeKey)

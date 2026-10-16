@@ -10,93 +10,46 @@ import android.os.BatteryManager
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.os.SystemClock
 import android.provider.Settings
 import android.text.format.DateFormat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.screenclock.controller.BurnInController
+import app.screenclock.controller.CeremonyExit
+import app.screenclock.controller.ClockFaceController
+import app.screenclock.controller.ClockTime
+import app.screenclock.controller.ClockUiState
+import app.screenclock.controller.FocusController
+import app.screenclock.controller.FocusEvent
+import app.screenclock.controller.OccasionController
+import app.screenclock.controller.OccasionDraftStatus
+import app.screenclock.controller.SystemClockTime
+import app.screenclock.controller.WeatherController
+import app.screenclock.controller.WeatherPanel
 import app.screenclock.data.bedside.BedsideRepository
 import app.screenclock.data.burnin.BurnInRepository
 import app.screenclock.data.focus.FocusRepository
 import app.screenclock.data.occasion.OccasionRepository
 import app.screenclock.data.occasion.SixTailCalendar
-import app.screenclock.data.occasion.statutoryHolidayName
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
-import app.screenclock.data.weather.CoarseLocator
 import app.screenclock.data.weather.OpenMeteoClient
 import app.screenclock.data.weather.WeatherRepository
 import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
-import app.screenclock.domain.burnin.BurnInPhase
 import app.screenclock.domain.burnin.BurnInPreferences
-import app.screenclock.domain.burnin.burnInSetEnabled
-import app.screenclock.domain.burnin.burnInSetHostHidden
-import app.screenclock.domain.burnin.burnInSetPagePaused
-import app.screenclock.domain.burnin.burnInTick
-import app.screenclock.domain.burnin.burnInTouch
-import app.screenclock.domain.burnin.freshBurnInClock
-import app.screenclock.domain.burnin.millisUntilBurnInEdge
-import app.screenclock.domain.focus.focusEndEpochMillis
-import app.screenclock.domain.focus.storedFocusEnd
 import app.screenclock.domain.occasion.CeremonyFace
-import app.screenclock.domain.occasion.OCCASION_LIMIT
-import app.screenclock.domain.occasion.Occasion
 import app.screenclock.domain.occasion.OccasionDraft
-import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.OccasionRow
-import app.screenclock.domain.occasion.addOccasionItem
-import app.screenclock.domain.occasion.canKeep
-import app.screenclock.domain.occasion.canPin
-import app.screenclock.domain.occasion.ceremonyFace
-import app.screenclock.domain.occasion.deleteOccasionItem
-import app.screenclock.domain.occasion.formatSolarDate
-import app.screenclock.domain.occasion.nextOccurrence
-import app.screenclock.domain.occasion.normalizeMessage
-import app.screenclock.domain.occasion.normalizeTitle
-import app.screenclock.domain.occasion.occasionRows
-import app.screenclock.domain.occasion.pinOccasion as pinOneOccasion
-import app.screenclock.domain.occasion.pinnedOccasionLine
-import app.screenclock.domain.occasion.previewText
-import app.screenclock.domain.occasion.refreshPins
-import app.screenclock.domain.occasion.unpinOccasion as unpinOneOccasion
-import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
-import app.screenclock.domain.time.ColorwayId
-import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
-import app.screenclock.domain.time.displayMinute
-import app.screenclock.domain.time.formatDateLine
-import app.screenclock.domain.time.formatFaceTime
-import app.screenclock.domain.time.millisUntilNextMinute
 import app.screenclock.domain.weather.CityCandidate
-import app.screenclock.domain.weather.SavedCity
-import app.screenclock.domain.weather.WeatherCache
-import app.screenclock.domain.weather.WeatherPreferences
-import app.screenclock.domain.weather.coordinateOk
-import app.screenclock.domain.weather.normalizeCityQuery
-import app.screenclock.domain.weather.shouldFetchWeather
-import java.io.IOException
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.UUID
-import kotlin.coroutines.coroutineContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.ensureActive
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 
 enum class AppDestination {
     Clock,
@@ -106,43 +59,48 @@ enum class AppDestination {
     Ceremony,
 }
 
-data class ClockUiState(
-    val face: FaceTime,
-    val dateLine: String?,
-    val hourMode: HourMode,
-    val showDate: Boolean,
-    val theme: ClockThemeId,
-    val colorway: ColorwayId,
-    val weatherEnabled: Boolean = false,
-    val useLocation: Boolean = false,
-    val cityLabel: String? = null,
-    val weather: WeatherCache? = null,
-)
-
-enum class WeatherNotice {
-    None,
-    NotFound,
-    Unavailable,
-    NoPermission,
-    NoLocation,
-}
-
-data class WeatherPanel(
-    val notice: WeatherNotice = WeatherNotice.None,
-    val results: List<CityCandidate> = emptyList(),
-    val busy: Boolean = false,
-)
-
+/**
+ * The app shell. It owns navigation and the Android glue (system hour format, battery,
+ * wall clock broadcasts) and delegates every feature to one controller:
+ * [ClockFaceController], [WeatherController], [OccasionController], [FocusController]
+ * and [BurnInController].
+ */
 class ClockViewModel(application: Application) : AndroidViewModel(application) {
+    private val time: ClockTime = SystemClockTime
     private val settingsRepository = SettingsRepository(application)
-    private val weatherRepository = WeatherRepository(application)
-    private val burnInRepository = BurnInRepository(application)
-    private val bedsideRepository = BedsideRepository(application)
-    private val focusRepository = FocusRepository(application)
-    private val occasionRepository = OccasionRepository(application.filesDir)
-    private val occasionCalendar = SixTailCalendar
-    private val weatherClient = OpenMeteoClient()
-    private val locator: CoarseLocator = AndroidCoarseLocator(application)
+
+    private val weatherController = WeatherController(
+        scope = viewModelScope,
+        store = WeatherRepository(application),
+        source = OpenMeteoClient(),
+        locator = AndroidCoarseLocator(application),
+        time = time,
+    )
+    private val faceController = ClockFaceController(
+        scope = viewModelScope,
+        settings = settingsRepository,
+        weather = WeatherRepository(application),
+        time = time,
+        systemIs24HourNow = { DateFormat.is24HourFormat(application) },
+        onMinute = { weatherController.refreshIfNeeded() },
+    )
+    private val occasionController = OccasionController(
+        scope = viewModelScope,
+        store = OccasionRepository(application.filesDir),
+        calendar = SixTailCalendar,
+        minutes = faceController.minute,
+    )
+    private val focusController = FocusController(
+        scope = viewModelScope,
+        store = FocusRepository(application),
+        time = time,
+    )
+    private val burnInController = BurnInController(
+        scope = viewModelScope,
+        burnInStore = BurnInRepository(application),
+        bedsideStore = BedsideRepository(application),
+        time = time,
+    )
 
     private val chromeState = MutableStateFlow(ChromeState())
     val chrome: StateFlow<ChromeState> = chromeState.asStateFlow()
@@ -150,65 +108,29 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val destinationState = MutableStateFlow(AppDestination.Clock)
     val destination: StateFlow<AppDestination> = destinationState.asStateFlow()
 
-    private val minute = MutableStateFlow(displayMinute(LocalDateTime.now()))
-    private val systemIs24Hour = MutableStateFlow(DateFormat.is24HourFormat(application))
-    private val refresh = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-
-    private val clockState = MutableStateFlow<ClockUiState?>(null)
-    val clock: StateFlow<ClockUiState?> = clockState.asStateFlow()
-
-    private val panelState = MutableStateFlow(WeatherPanel())
-    val weatherPanel: StateFlow<WeatherPanel> = panelState.asStateFlow()
-
-    private val burnInPrefsState = MutableStateFlow(BurnInPreferences())
-    val burnInPrefs: StateFlow<BurnInPreferences> = burnInPrefsState.asStateFlow()
-
-    private val bedsideState = MutableStateFlow(BedsidePreferences())
-    val bedside: StateFlow<BedsidePreferences> = bedsideState.asStateFlow()
-
-    private val minuteOfDayState = MutableStateFlow(minuteOfDay(LocalDateTime.now()))
-    val minuteOfDay: StateFlow<Int> = minuteOfDayState.asStateFlow()
-
-    private val pluggedState = MutableStateFlow(false)
-    val plugged: StateFlow<Boolean> = pluggedState.asStateFlow()
-
-    private val burnInState = MutableStateFlow(freshBurnInClock(enabled = false, nowMillis = 0L))
-    val burnInSession: StateFlow<BurnInClock> = burnInState.asStateFlow()
-
-    private val focusEndState = MutableStateFlow<Long?>(null)
-    val focusEnd: StateFlow<Long?> = focusEndState.asStateFlow()
-
-    private val focusKnownState = MutableStateFlow(false)
-    val focusKnown: StateFlow<Boolean> = focusKnownState.asStateFlow()
-
-    private val occasionLock = Mutex()
-    private val occasionsState = MutableStateFlow<List<Occasion>>(emptyList())
-    private val occasionRowsState = MutableStateFlow<List<OccasionRow>>(emptyList())
-    val occasionRows: StateFlow<List<OccasionRow>> = occasionRowsState.asStateFlow()
-    private val occasionLineState = MutableStateFlow<String?>(null)
-    val occasionLine: StateFlow<String?> = occasionLineState.asStateFlow()
-    private val leapMonthsState = MutableStateFlow<Set<Int>>(emptySet())
-    val leapMonths: StateFlow<Set<Int>> = leapMonthsState.asStateFlow()
     private val wallClockGenerationState = MutableStateFlow(0)
     val wallClockGeneration: StateFlow<Int> = wallClockGenerationState.asStateFlow()
-    private val pinnedOccasionIdState = MutableStateFlow<String?>(null)
-    val pinnedOccasionId: StateFlow<String?> = pinnedOccasionIdState.asStateFlow()
 
-    private var refreshJob: Job? = null
-    private var searchJob: Job? = null
-    private var burnInJob: Job? = null
-    private var burnInPlaced = false
-    private var pendingFocusEnd: Long? = null
-    private var awaitFocusClear = false
-    @Volatile private var occasionsReady = false
     private var occasionsFromSettings = false
-    private var ceremony: CeremonySession? = null
+
+    val clock: StateFlow<ClockUiState?> = faceController.clock
+    val minuteOfDay: StateFlow<Int> = faceController.minuteOfDay
+    val weatherPanel: StateFlow<WeatherPanel> = weatherController.panel
+    val burnInPrefs: StateFlow<BurnInPreferences> = burnInController.burnInPrefs
+    val bedside: StateFlow<BedsidePreferences> = burnInController.bedside
+    val plugged: StateFlow<Boolean> = burnInController.plugged
+    val burnInSession: StateFlow<BurnInClock> = burnInController.burnInSession
+    val focusEnd: StateFlow<Long?> = focusController.focusEnd
+    val focusKnown: StateFlow<Boolean> = focusController.focusKnown
+    val occasionRows: StateFlow<List<OccasionRow>> = occasionController.occasionRows
+    val occasionLine: StateFlow<String?> = occasionController.occasionLine
+    val leapMonths: StateFlow<Set<Int>> = occasionController.leapMonths
+    val pinnedOccasionId: StateFlow<String?> = occasionController.pinnedOccasionId
 
     init {
         val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean) {
-                publishSystemHourFormat()
-                refresh.tryEmit(Unit)
+                faceController.notifyTimeChanged()
             }
         }
         application.contentResolver.registerContentObserver(
@@ -220,74 +142,29 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             application.contentResolver.unregisterContentObserver(observer)
         }
         watchBattery(application)
+        weatherController.refreshIfNeeded()
         viewModelScope.launch {
-            combine(
-                settingsRepository.settings,
-                weatherRepository.weather,
-                minute,
-                systemIs24Hour,
-            ) { prefs, weather, shown, is24 ->
-                clockFace(prefs, weather, shown, is24)
-            }.collect { clockState.value = it }
-        }
-        viewModelScope.launch {
-            while (isActive) {
-                val now = LocalDateTime.now()
-                minute.value = displayMinute(now)
-                minuteOfDayState.value = minuteOfDay(now)
-                withTimeoutOrNull(millisUntilNextMinute(now)) {
-                    refresh.first()
-                }
-            }
-        }
-        refreshWeatherIfNeeded()
-        val leapMonthsJob = viewModelScope.launch(Dispatchers.IO) {
-            val months = buildSet {
-                for (month in 1..12) {
-                    if (occasionCalendar.leapMonthEver(month)) add(month)
-                }
-            }
-            leapMonthsState.value = months
-        }
-        viewModelScope.launch {
-            val loaded = withContext(Dispatchers.IO) { occasionRepository.load() }
-            leapMonthsJob.join()
-            occasionLock.withLock {
-                val now = minute.value
-                val refreshed = refreshPins(loaded, now.toLocalDate(), occasionCalendar)
-                occasionsState.value = refreshed
-                publishOccasions(now)
-                if (refreshed != loaded) persistOccasions(refreshed)
-                occasionsReady = true
-            }
-        }
-        viewModelScope.launch {
-            minute.collect { shown ->
-                occasionLock.withLock {
-                    if (!occasionsReady) return@withLock
-                    val refreshed = refreshPins(occasionsState.value, shown.toLocalDate(), occasionCalendar)
-                    val changed = refreshed != occasionsState.value
-                    if (changed) occasionsState.value = refreshed
-                    publishOccasions(shown)
-                    if (changed) persistOccasions(refreshed)
+            // A restored focus session takes the screen unless a page is already open.
+            focusController.focusEnd.collect { end ->
+                if (end != null && destinationState.value in FOCUS_TAKES_SCREEN) {
+                    destinationState.value = AppDestination.Focus
+                    burnInController.setPagePaused(true)
                 }
             }
         }
         viewModelScope.launch {
-            burnInRepository.preferences.collect { prefs -> placeBurnIn(prefs) }
-        }
-        viewModelScope.launch {
-            focusRepository.endEpochMillis.collect { stored -> placeFocus(stored) }
-        }
-        viewModelScope.launch {
-            bedsideRepository.preferences.collect { bedsideState.value = it }
+            focusController.events.collect { event ->
+                if (event == FocusEvent.PersistFailed) {
+                    leaveBlockingPage()
+                }
+            }
         }
     }
 
     private fun watchBattery(app: Application) {
         val receiver = object : BroadcastReceiver() {
             override fun onReceive(context: Context, intent: Intent) {
-                pluggedState.value = isPlugged(intent)
+                burnInController.setPlugged(isPlugged(intent))
             }
         }
         val filter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
@@ -296,24 +173,20 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         } else {
             app.registerReceiver(receiver, filter)
         }
-        pluggedState.value = isPlugged(sticky)
+        burnInController.setPlugged(isPlugged(sticky))
         addCloseable { app.unregisterReceiver(receiver) }
+    }
+
+    private fun isPlugged(intent: Intent?): Boolean {
+        if (intent == null) return false
+        return intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
     }
 
     /**
      * A press on the clock. Returns true when the press ends a running screensaver,
      * so that same tap should not also open the control layer.
      */
-    fun onBurnInContact(): Boolean {
-        val state = burnInState.value
-        val dismiss = state.phase == BurnInPhase.Running && !state.paused
-        val next = burnInTouch(state, elapsedNow())
-        if (next != state) {
-            burnInState.value = next
-            rescheduleBurnIn()
-        }
-        return dismiss
-    }
+    fun onBurnInContact(): Boolean = burnInController.onContact()
 
     fun onBlankTap(nowEpochMillis: Long) {
         chromeState.value = chromeState.value.onBlankTap(nowEpochMillis)
@@ -330,55 +203,45 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun openSettings() {
-        onBurnInContact()
-        setBurnInPagePaused(true)
+        burnInController.onContact()
+        burnInController.setPagePaused(true)
         chromeState.value = ChromeState()
         destinationState.value = AppDestination.Settings
     }
 
     fun closeSettings() {
-        destinationState.value = AppDestination.Clock
-        setBurnInPagePaused(false)
+        leaveBlockingPage()
     }
 
     fun openFocus() {
-        onBurnInContact()
-        setBurnInPagePaused(true)
+        burnInController.onContact()
+        burnInController.setPagePaused(true)
         chromeState.value = ChromeState()
         destinationState.value = AppDestination.Focus
     }
 
     /** Leaves the duration picker. A running session stays until it is abandoned. */
     fun closeFocusPicker() {
-        if (focusEndState.value != null) return
-        destinationState.value = AppDestination.Clock
-        setBurnInPagePaused(false)
+        if (focusEnd.value != null) return
+        leaveBlockingPage()
     }
 
     fun startFocus(minutes: Int) {
-        val end = focusEndEpochMillis(System.currentTimeMillis(), minutes)
-        pendingFocusEnd = end
-        awaitFocusClear = false
-        focusEndState.value = end
+        focusController.start(minutes)
         destinationState.value = AppDestination.Focus
-        setBurnInPagePaused(true)
-        viewModelScope.launch {
-            try {
-                focusRepository.setEnd(end)
-            } catch (_: IOException) {
-                if (pendingFocusEnd != end) return@launch
-                pendingFocusEnd = null
-                focusEndState.value = null
-                destinationState.value = AppDestination.Clock
-                setBurnInPagePaused(false)
-            }
-        }
+        burnInController.setPagePaused(true)
+    }
+
+    /** Long-press cancel and the tap after zero both clear the stored end. */
+    fun abandonFocus() {
+        focusController.abandon()
+        leaveBlockingPage()
     }
 
     fun openOccasions(fromSettings: Boolean) {
-        onBurnInContact()
+        burnInController.onContact()
         occasionsFromSettings = fromSettings
-        setBurnInPagePaused(true)
+        burnInController.setPagePaused(true)
         chromeState.value = ChromeState()
         destinationState.value = AppDestination.Occasions
     }
@@ -387,212 +250,67 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         if (occasionsFromSettings) {
             destinationState.value = AppDestination.Settings
         } else {
-            destinationState.value = AppDestination.Clock
-            setBurnInPagePaused(false)
+            leaveBlockingPage()
         }
     }
 
-    /**
-     * Opens the fullscreen countdown for a future or today's date.
-     * The occurrence date stays fixed until the user leaves, so a finished yearly date does not jump a year.
-     */
     fun openCeremony(id: String, fromList: Boolean) {
-        val item = occasionsState.value.find { it.id == id } ?: return
-        val next = nextOccurrence(minute.value.toLocalDate(), item, occasionCalendar)
-        val date = next.date ?: return
-        if (!canPin(next.status)) return
-        ceremony = CeremonySession(id = id, occurrence = date, returnToList = fromList)
-        setBurnInPagePaused(true)
+        if (!occasionController.openCeremony(id, fromList)) return
+        burnInController.setPagePaused(true)
         chromeState.value = ChromeState()
         destinationState.value = AppDestination.Ceremony
     }
 
     fun closeCeremony() {
-        val session = ceremony
-        if (session == null) {
-            if (destinationState.value == AppDestination.Ceremony) {
-                destinationState.value = AppDestination.Clock
-                setBurnInPagePaused(false)
-            }
-            return
-        }
-        ceremony = null
-        if (session.returnToList) {
-            destinationState.value = AppDestination.Occasions
-        } else {
-            destinationState.value = AppDestination.Clock
-            setBurnInPagePaused(false)
+        when (occasionController.closeCeremony()) {
+            CeremonyExit.Occasions -> destinationState.value = AppDestination.Occasions
+            CeremonyExit.Clock -> leaveBlockingPage()
         }
     }
 
-    fun ceremonyNow(now: LocalDateTime): CeremonyFace? {
-        val session = ceremony ?: return null
-        val item = occasionsState.value.find { it.id == session.id } ?: return null
-        return ceremonyFace(
-            title = item.title,
-            message = item.message,
-            solarLabel = formatSolarDate(session.occurrence),
-            now = now,
-            occurrence = session.occurrence,
-        )
-    }
+    fun ceremonyNow(now: LocalDateTime): CeremonyFace? = occasionController.ceremonyNow(now)
 
-    fun ceremonyDate(): LocalDate? {
-        val session = ceremony ?: return null
-        if (occasionsState.value.none { it.id == session.id }) return null
-        return session.occurrence
-    }
+    fun ceremonyDate(): LocalDate? = occasionController.ceremonyDate()
 
-    fun occasionPreview(draft: OccasionDraft): String {
-        return previewText(nextOccurrence(minute.value.toLocalDate(), draft, occasionCalendar))
-    }
+    fun occasionDraftStatus(draft: OccasionDraft): OccasionDraftStatus =
+        occasionController.occasionDraftStatus(draft)
 
-    fun occasionCanSave(draft: OccasionDraft): Boolean {
-        if (!occasionsReady) return false
-        if (normalizeTitle(draft.title) == null) return false
-        if (occasionsState.value.size >= OCCASION_LIMIT) return false
-        return canKeep(nextOccurrence(minute.value.toLocalDate(), draft, occasionCalendar).status)
-    }
+    fun addOccasion(draft: OccasionDraft): Boolean = occasionController.addOccasion(draft)
 
-    /** Returns false when the title, the date, or the 30-item cap rejects the draft. */
-    fun addOccasion(draft: OccasionDraft): Boolean {
-        if (!occasionCanSave(draft)) return false
-        val title = normalizeTitle(draft.title) ?: return false
-        val item = Occasion(
-            id = UUID.randomUUID().toString(),
-            title = title,
-            kind = draft.kind,
-            year = if (draft.kind == OccasionKind.SolarOnce) draft.year else null,
-            month = draft.month,
-            day = draft.day,
-            leap = draft.kind == OccasionKind.LunarYearly && draft.leap,
-            message = normalizeMessage(draft.message),
-            pinned = false,
-        )
-        viewModelScope.launch {
-            occasionLock.withLock {
-                if (!occasionsReady) return@withLock
-                if (!canKeep(nextOccurrence(minute.value.toLocalDate(), item, occasionCalendar).status)) {
-                    return@withLock
-                }
-                val added = addOccasionItem(occasionsState.value, item) ?: return@withLock
-                occasionsState.value = added
-                publishOccasions(minute.value)
-                persistOccasions(added)
-            }
-        }
-        return true
-    }
+    fun deleteOccasion(id: String) = occasionController.deleteOccasion(id)
 
-    fun deleteOccasion(id: String) {
-        viewModelScope.launch {
-            occasionLock.withLock {
-                if (!occasionsReady) return@withLock
-                val next = deleteOccasionItem(occasionsState.value, id)
-                if (next == occasionsState.value) return@withLock
-                occasionsState.value = next
-                publishOccasions(minute.value)
-                persistOccasions(next)
-            }
-        }
-    }
+    fun pinOccasion(id: String) = occasionController.pinOccasion(id)
 
-    fun pinOccasion(id: String) {
-        viewModelScope.launch {
-            occasionLock.withLock {
-                if (!occasionsReady) return@withLock
-                val now = minute.value
-                val next = pinOneOccasion(occasionsState.value, id, now.toLocalDate(), occasionCalendar)
-                if (next == occasionsState.value) return@withLock
-                occasionsState.value = next
-                publishOccasions(now)
-                persistOccasions(next)
-            }
-        }
-    }
+    fun unpinOccasion(id: String) = occasionController.unpinOccasion(id)
 
-    fun unpinOccasion(id: String) {
-        viewModelScope.launch {
-            occasionLock.withLock {
-                if (!occasionsReady) return@withLock
-                val next = unpinOneOccasion(occasionsState.value, id)
-                if (next == occasionsState.value) return@withLock
-                occasionsState.value = next
-                publishOccasions(minute.value)
-                persistOccasions(next)
-            }
-        }
-    }
+    fun setBurnInHostHidden(hidden: Boolean) = burnInController.setHostHidden(hidden)
 
-    /** Long-press cancel and the tap after zero both clear the stored end. */
-    fun abandonFocus() {
-        pendingFocusEnd = null
-        awaitFocusClear = true
-        focusEndState.value = null
-        destinationState.value = AppDestination.Clock
-        setBurnInPagePaused(false)
-        viewModelScope.launch { focusRepository.clear() }
-    }
+    fun setBurnInEnabled(enabled: Boolean) = burnInController.setEnabled(enabled)
 
-    /** Settings, focus, the occasion list, and ceremony share this hold. */
-    fun setBurnInPagePaused(paused: Boolean) {
-        val next = burnInSetPagePaused(burnInState.value, paused, elapsedNow())
-        if (next == burnInState.value) return
-        burnInState.value = next
-        rescheduleBurnIn()
-    }
+    fun setBurnInIdleMillis(idleMillis: Long) = burnInController.setIdleMillis(idleMillis)
 
-    /** The activity left the screen, or came back. */
-    fun setBurnInHostHidden(hidden: Boolean) {
-        val next = burnInSetHostHidden(burnInState.value, hidden, elapsedNow())
-        if (next == burnInState.value) return
-        burnInState.value = next
-        rescheduleBurnIn()
-    }
+    fun setBurnInRunMillis(runMillis: Long) = burnInController.setRunMillis(runMillis)
 
-    fun setBurnInEnabled(enabled: Boolean) {
-        viewModelScope.launch { burnInRepository.setEnabled(enabled) }
-    }
+    fun setNightDimEnabled(enabled: Boolean) = burnInController.setNightDimEnabled(enabled)
 
-    fun setBurnInIdleMillis(idleMillis: Long) {
-        viewModelScope.launch { burnInRepository.setIdleMillis(idleMillis) }
-    }
+    fun setNightStartHour(hour: Int) = burnInController.setNightStartHour(hour)
 
-    fun setBurnInRunMillis(runMillis: Long) {
-        viewModelScope.launch { burnInRepository.setRunMillis(runMillis) }
-    }
+    fun setNightEndHour(hour: Int) = burnInController.setNightEndHour(hour)
 
-    fun setNightDimEnabled(enabled: Boolean) {
-        viewModelScope.launch { bedsideRepository.setDimEnabled(enabled) }
-    }
+    fun setNightWarmEnabled(enabled: Boolean) = burnInController.setNightWarmEnabled(enabled)
 
-    fun setNightStartHour(hour: Int) {
-        viewModelScope.launch { bedsideRepository.setStartHour(hour) }
-    }
-
-    fun setNightEndHour(hour: Int) {
-        viewModelScope.launch { bedsideRepository.setEndHour(hour) }
-    }
-
-    fun setNightWarmEnabled(enabled: Boolean) {
-        viewModelScope.launch { bedsideRepository.setWarmEnabled(enabled) }
-    }
-
-    fun setChargeKeepAwake(enabled: Boolean) {
-        viewModelScope.launch { bedsideRepository.setChargeKeepAwake(enabled) }
-    }
+    fun setChargeKeepAwake(enabled: Boolean) = burnInController.setChargeKeepAwake(enabled)
 
     /** System clock changed, or the app returned to the front. Ceremony waits start over. */
     fun onTimeChanged() {
-        publishSystemHourFormat()
-        refresh.tryEmit(Unit)
+        faceController.notifyTimeChanged()
         wallClockGenerationState.value = wallClockGenerationState.value + 1
     }
 
     /** App is in front. Weather refresh stays off the minute loop. */
     fun onForeground() {
         onTimeChanged()
-        refreshWeatherIfNeeded()
+        weatherController.notifyForeground()
     }
 
     fun setHourMode(mode: HourMode) {
@@ -607,264 +325,35 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { settingsRepository.setTheme(theme) }
     }
 
-    fun setWeatherEnabled(enabled: Boolean) {
-        searchJob?.cancel()
-        panelState.value = WeatherPanel()
-        viewModelScope.launch {
-            weatherRepository.setEnabled(enabled)
-            if (enabled) refreshWeatherIfNeeded() else refreshJob?.cancel()
-        }
-    }
+    fun setWeatherEnabled(enabled: Boolean) = weatherController.setEnabled(enabled)
 
     /** Turning this off keeps the saved city. Turning it on goes through [useCurrentLocation]. */
-    fun setUseLocation(enabled: Boolean) {
-        if (enabled) return
-        viewModelScope.launch { weatherRepository.setUseLocation(false) }
-    }
+    fun setUseLocation(enabled: Boolean) = weatherController.setUseLocation(enabled)
 
-    fun onLocationDenied() {
-        viewModelScope.launch { weatherRepository.setUseLocation(false) }
-        panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.NoPermission)
-    }
+    fun onLocationDenied() = weatherController.onLocationDenied()
 
-    fun useCurrentLocation(hereLabel: String) {
-        if (panelState.value.busy) return
-        searchJob?.cancel()
-        viewModelScope.launch {
-            val enabled = weatherRepository.weather.first().enabled
-            if (!enabled) return@launch
-            weatherRepository.setUseLocation(true)
-            panelState.value = panelState.value.copy(
-                busy = true,
-                notice = WeatherNotice.None,
-                results = emptyList(),
-            )
-            val fix = locator.currentCoarse()
-            if (!weatherRepository.weather.first().enabled) {
-                weatherRepository.setUseLocation(false)
-                panelState.value = WeatherPanel()
-                return@launch
-            }
-            val label = hereLabel.trim()
-            if (fix == null || label.isEmpty() || !coordinateOk(fix.latitude, fix.longitude)) {
-                weatherRepository.setUseLocation(false)
-                panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.NoLocation)
-                return@launch
-            }
-            weatherRepository.replaceCity(
-                SavedCity(label, fix.latitude, fix.longitude),
-                useLocation = true,
-            )
-            panelState.value = WeatherPanel()
-            refreshWeatherNow()
-        }
-    }
+    fun useCurrentLocation(hereLabel: String) = weatherController.useCurrentLocation(hereLabel)
 
-    fun searchCity(raw: String) {
-        val query = normalizeCityQuery(raw) ?: return
-        if (panelState.value.busy) return
-        searchJob?.cancel()
-        searchJob = viewModelScope.launch {
-            if (!weatherRepository.weather.first().enabled) return@launch
-            panelState.value = panelState.value.copy(
-                busy = true,
-                results = emptyList(),
-                notice = WeatherNotice.None,
-            )
-            try {
-                val places = withContext(Dispatchers.IO) { weatherClient.search(query) }
-                coroutineContext.ensureActive()
-                if (!weatherRepository.weather.first().enabled) return@launch
-                panelState.value = if (places.isEmpty()) {
-                    WeatherPanel(notice = WeatherNotice.NotFound)
-                } else {
-                    WeatherPanel(results = places)
-                }
-            } catch (_: IOException) {
-                if (!weatherRepository.weather.first().enabled) return@launch
-                panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.Unavailable)
-            }
-        }
-    }
+    fun searchCity(raw: String) = weatherController.searchCity(raw)
 
-    fun selectCity(city: CityCandidate) {
-        if (!coordinateOk(city.latitude, city.longitude)) return
-        searchJob?.cancel()
-        viewModelScope.launch {
-            if (!weatherRepository.weather.first().enabled) return@launch
-            weatherRepository.replaceCity(
-                SavedCity(city.label, city.latitude, city.longitude),
-                useLocation = false,
-            )
-            panelState.value = WeatherPanel()
-            refreshWeatherNow()
-        }
-    }
+    fun selectCity(city: CityCandidate) = weatherController.selectCity(city)
 
-    private fun placeBurnIn(prefs: BurnInPreferences) {
-        val now = elapsedNow()
-        val current = burnInState.value
-        val next = if (!burnInPlaced) {
-            burnInPlaced = true
-            freshBurnInClock(prefs.enabled, now, current.pagePaused, current.hostHidden)
-        } else if ((current.phase != BurnInPhase.Off) != prefs.enabled) {
-            burnInSetEnabled(current, prefs.enabled, now)
-        } else {
-            current
-        }
-        burnInPrefsState.value = prefs
-        burnInState.value = next
-        rescheduleBurnIn()
-    }
-
-    private fun rescheduleBurnIn() {
-        burnInJob?.cancel()
-        burnInJob = viewModelScope.launch {
-            while (isActive) {
-                val prefs = burnInPrefsState.value
-                val wait = millisUntilBurnInEdge(
-                    burnInState.value,
-                    prefs.idleMillis,
-                    prefs.runMillis,
-                    elapsedNow(),
-                ) ?: return@launch
-                delay(wait)
-                val latest = burnInPrefsState.value
-                val updated = burnInTick(
-                    burnInState.value,
-                    latest.idleMillis,
-                    latest.runMillis,
-                    elapsedNow(),
-                )
-                if (updated == burnInState.value) return@launch
-                burnInState.value = updated
-            }
-        }
-    }
-
-    private fun placeFocus(stored: Long?) {
-        val incoming = storedFocusEnd(stored)
-        val pending = pendingFocusEnd
-        if (pending != null) {
-            if (incoming != pending) {
-                focusKnownState.value = true
-                return
-            }
-            pendingFocusEnd = null
-        }
-        if (awaitFocusClear) {
-            if (incoming != null) {
-                focusKnownState.value = true
-                return
-            }
-            awaitFocusClear = false
-        }
-        focusEndState.value = incoming
-        val blocked = destinationState.value == AppDestination.Settings ||
-            destinationState.value == AppDestination.Occasions ||
-            destinationState.value == AppDestination.Ceremony
-        if (incoming != null && !blocked) {
+    /**
+     * Back to the clock, or straight into a focus session that was restored while a
+     * page was open. The burn-in hold follows the screen that is now showing.
+     */
+    private fun leaveBlockingPage() {
+        if (focusController.focusEnd.value != null) {
             destinationState.value = AppDestination.Focus
-            setBurnInPagePaused(true)
-        }
-        focusKnownState.value = true
-    }
-
-    private fun minuteOfDay(time: LocalDateTime): Int = time.hour * 60 + time.minute
-
-    private fun isPlugged(intent: Intent?): Boolean {
-        if (intent == null) return false
-        return intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0
-    }
-
-    private fun elapsedNow(): Long = SystemClock.elapsedRealtime()
-
-    private fun publishSystemHourFormat() {
-        systemIs24Hour.value = DateFormat.is24HourFormat(getApplication())
-    }
-
-    private fun refreshWeatherIfNeeded() {
-        if (refreshJob?.isActive == true) return
-        refreshJob = viewModelScope.launch { fetchForecast(force = false) }
-    }
-
-    private fun refreshWeatherNow() {
-        refreshJob?.cancel()
-        refreshJob = viewModelScope.launch { fetchForecast(force = true) }
-    }
-
-    private suspend fun fetchForecast(force: Boolean) {
-        val prefs = weatherRepository.weather.first()
-        val city = prefs.city
-        val want = if (force) {
-            prefs.enabled && city != null
+            burnInController.setPagePaused(true)
         } else {
-            shouldFetchWeather(prefs.enabled, city, prefs.cache, System.currentTimeMillis())
-        }
-        if (!want || city == null) return
-        try {
-            val cache = withContext(Dispatchers.IO) {
-                weatherClient.forecast(city.latitude, city.longitude, System.currentTimeMillis())
-            }
-            coroutineContext.ensureActive()
-            val latest = weatherRepository.weather.first()
-            if (!latest.enabled || latest.city != city) return
-            weatherRepository.saveCache(cache)
-            if (panelState.value.notice == WeatherNotice.Unavailable) {
-                panelState.value = panelState.value.copy(notice = WeatherNotice.None)
-            }
-        } catch (_: IOException) {
-            val latest = weatherRepository.weather.first()
-            if (!latest.enabled) return
-            panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.Unavailable)
+            destinationState.value = AppDestination.Clock
+            burnInController.setPagePaused(false)
         }
     }
 
-    private fun clockFace(
-        prefs: ClockPreferences,
-        weather: WeatherPreferences,
-        shown: LocalDateTime,
-        systemIs24Hour: Boolean,
-    ): ClockUiState {
-        return ClockUiState(
-            face = formatFaceTime(shown.hour, shown.minute, prefs.hourMode, systemIs24Hour),
-            dateLine = if (prefs.showDate) {
-                val today = shown.toLocalDate()
-                formatDateLine(today, statutoryHolidayName(today))
-            } else {
-                null
-            },
-            hourMode = prefs.hourMode,
-            showDate = prefs.showDate,
-            theme = prefs.theme,
-            colorway = prefs.colorway,
-            weatherEnabled = weather.enabled,
-            useLocation = weather.useLocation,
-            cityLabel = weather.city?.label,
-            weather = if (weather.enabled) weather.cache else null,
-        )
+    private companion object {
+        /** Only these destinations give way to a restored focus session. */
+        val FOCUS_TAKES_SCREEN: Set<AppDestination> = setOf(AppDestination.Clock, AppDestination.Focus)
     }
-
-    private fun publishOccasions(now: LocalDateTime) {
-        val items = occasionsState.value
-        val today = now.toLocalDate()
-        occasionRowsState.value = occasionRows(items, today, occasionCalendar)
-        occasionLineState.value = pinnedOccasionLine(items, now, occasionCalendar)
-        pinnedOccasionIdState.value = items.firstOrNull { it.pinned }?.id
-    }
-
-    /** A failed write keeps the list in memory. The next edit tries the file again. */
-    private suspend fun persistOccasions(items: List<Occasion>) {
-        try {
-            withContext(Dispatchers.IO) { occasionRepository.save(items) }
-        } catch (_: IOException) {
-            // The in-memory list stays. The next edit writes the file again.
-        }
-    }
-
-    private data class CeremonySession(
-        val id: String,
-        val occurrence: LocalDate,
-        val returnToList: Boolean,
-    )
 }

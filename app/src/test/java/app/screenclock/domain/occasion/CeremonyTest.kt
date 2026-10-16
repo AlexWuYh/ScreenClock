@@ -52,11 +52,26 @@ class CeremonyTest {
     fun daysModeDoesNotTickEverySecond() {
         val later = LocalDate.of(2026, 4, 1)
         val wait = millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 12, 0), later)
-        assertTrue(wait != null && wait > 60_000L)
+        assertEquals(43_200_000L, wait)
         val exact = LocalDate.of(2026, 1, 2)
         assertEquals(1L, millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 0, 0), exact))
         assertEquals(1000L, millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 10, 0), exact))
         assertNull(millisUntilCeremonyTick(exact.atStartOfDay(), exact))
+    }
+
+    @Test
+    fun dayGroupsOfSmallAndHugeCounts() {
+        assertEquals(listOf("0"), dayGroups(0))
+        assertEquals(listOf("10"), dayGroups(10))
+        assertEquals(listOf("10", "00"), dayGroups(1000))
+        assertEquals(listOf("1", "00", "00"), dayGroups(10000))
+    }
+
+    @Test
+    fun theClockFaceNeverShowsTwentyFourOClock() {
+        val occurrence = LocalDate.of(2026, 1, 2)
+        val exactlyOneDayEarly = LocalDateTime.of(2026, 1, 1, 0, 0)
+        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(exactlyOneDayEarly, occurrence))
     }
 
     @Test

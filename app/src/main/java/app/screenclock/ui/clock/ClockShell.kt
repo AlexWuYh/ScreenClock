@@ -21,6 +21,7 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -81,11 +82,14 @@ fun ClockShell(viewModel: ClockViewModel) {
     }
     val openOccasionLabel = stringResource(R.string.occasion_open)
     val openId = pinnedOccasionId?.takeIf { !occasionLine.isNullOrBlank() }
-    val animate = Settings.Global.getFloat(
-        context.contentResolver,
-        Settings.Global.ANIMATOR_DURATION_SCALE,
-        1f,
-    ) > 0f
+    // One cross-process read per composition entry, not one per recomposition.
+    val animate = remember(context) {
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) > 0f
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()

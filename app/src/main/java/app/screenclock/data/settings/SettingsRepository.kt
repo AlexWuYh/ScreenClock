@@ -22,22 +22,22 @@ private val ShowDateKey = booleanPreferencesKey("show_date")
 private val ThemeKey = stringPreferencesKey("theme")
 private val ColorwayKey = stringPreferencesKey("colorway")
 
-class SettingsRepository(private val context: Context) {
-    val settings: Flow<ClockPreferences> = context.clockSettingsStore.data
+class SettingsRepository(private val context: Context) : SettingsStore {
+    override val settings: Flow<ClockPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toClockPreferences() }
         .catch { error ->
             if (error is IOException) emit(ClockPreferences()) else throw error
         }
 
-    suspend fun setHourMode(mode: HourMode) {
+    override suspend fun setHourMode(mode: HourMode) {
         context.clockSettingsStore.edit { prefs -> prefs[HourModeKey] = mode.name }
     }
 
-    suspend fun setShowDate(show: Boolean) {
+    override suspend fun setShowDate(show: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[ShowDateKey] = show }
     }
 
-    suspend fun setTheme(theme: ClockThemeId) {
+    override suspend fun setTheme(theme: ClockThemeId) {
         context.clockSettingsStore.edit { prefs ->
             prefs[ThemeKey] = theme.name
             if (prefs[ColorwayKey] == null) {

@@ -19,7 +19,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
@@ -31,13 +33,16 @@ import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -60,7 +65,10 @@ import app.screenclock.ui.Cream
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
 import app.screenclock.ui.clock.ClockViewModel
+import app.screenclock.controller.OccasionDraftStatus
 import java.time.LocalDate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 private const val YEAR_MIN: Int = 1900
 private const val YEAR_MAX: Int = 2100
@@ -102,6 +110,7 @@ private fun OccasionList(
     onDelete: (String) -> Unit,
 ) {
     val full = rows.size >= OCCASION_LIMIT
+    var pendingDelete by rememberSaveable { mutableStateOf<String?>(null) }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -161,12 +170,39 @@ private fun OccasionList(
                             fontSize = 16.sp,
                         )
                     }
-                    TextButton(onClick = { onDelete(row.id) }) {
+                    TextButton(onClick = { pendingDelete = row.id }) {
                         Text(text = stringResource(R.string.occasion_delete), color = Cream, fontSize = 16.sp)
                     }
                 }
             }
         }
+    }
+    val pending = pendingDelete
+    if (pending != null) {
+        val row = rows.find { it.id == pending }
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            containerColor = ChromeBar,
+            titleContentColor = Cream,
+            textContentColor = Info,
+            title = { Text(text = stringResource(R.string.occasion_delete_title)) },
+            text = { Text(text = stringResource(R.string.occasion_delete_body, row?.title ?: "")) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        pendingDelete = null
+                        onDelete(pending)
+                    },
+                ) {
+                    Text(text = stringResource(R.string.occasion_delete), color = Cream)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(text = stringResource(R.string.occasion_cancel), color = Info)
+                }
+            },
+        )
     }
 }
 
@@ -184,6 +220,7 @@ private fun OccasionEditor(
     var month by rememberSaveable { mutableIntStateOf(1) }
     var day by rememberSaveable { mutableIntStateOf(1) }
     var leap by rememberSaveable { mutableStateOf(false) }
+    var pickingDate by rememberSaveable { mutableStateOf(false) }
     val kind = OccasionKind.entries.find { it.name == kindName } ?: OccasionKind.SolarYearly
     val leapMonths by viewModel.leapMonths.collectAsStateWithLifecycle()
     val leapAllowed = kind == OccasionKind.LunarYearly && month in leapMonths
@@ -199,8 +236,16 @@ private fun OccasionEditor(
         leap = leapValue,
         message = message,
     )
-    val preview = viewModel.occasionPreview(draft)
-    val canSave = viewModel.occasionCanSave(draft)
+    // The date scan is the expensive part. It runs once per draft change on a
+    // background dispatcher, not twice inside every recomposition of the form.
+    var draftStatus by remember {
+        mutableStateOf(OccasionDraftStatus(preview = "", canSave = false))
+    }
+    LaunchedEffect(draft) {
+        draftStatus = withContext(Dispatchers.Default) { viewModel.occasionDraftStatus(draft) }
+    }
+    val preview = draftStatus.preview
+    val canSave = draftStatus.canSave
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -243,17 +288,20 @@ private fun OccasionEditor(
                 value = stringResource(R.string.occasion_year_value, year),
                 onDecrease = { year = (year - 1).coerceAtLeast(YEAR_MIN) },
                 onIncrease = { year = (year + 1).coerceAtMost(YEAR_MAX) },
+                onPick = { pickingDate = true },
             )
         }
         StepRow(
             value = stringResource(R.string.occasion_month_value, month),
             onDecrease = { month = if (month <= 1) 12 else month - 1 },
             onIncrease = { month = if (month >= 12) 1 else month + 1 },
+            onPick = { pickingDate = true },
         )
         StepRow(
             value = stringResource(R.string.occasion_day_value, dayValue),
             onDecrease = { day = if (dayValue <= 1) dayMax else dayValue - 1 },
             onIncrease = { day = if (dayValue >= dayMax) 1 else dayValue + 1 },
+            onPick = { pickingDate = true },
         )
         if (kind == OccasionKind.LunarYearly) {
             Row(
@@ -318,6 +366,24 @@ private fun OccasionEditor(
             Text(text = stringResource(R.string.occasion_save), fontSize = 18.sp)
         }
     }
+    if (pickingDate) {
+        DateWheelDialog(
+            title = stringResource(R.string.occasion_pick_title),
+            showYear = kind == OccasionKind.SolarOnce,
+            yearRange = YEAR_MIN..YEAR_MAX,
+            initialYear = year,
+            initialMonth = month,
+            initialDay = dayValue,
+            dayMaxOf = { pickedYear, pickedMonth -> occasionDayMax(kind, pickedYear, pickedMonth) },
+            onPick = { pickedYear, pickedMonth, pickedDay ->
+                year = pickedYear
+                month = pickedMonth
+                day = pickedDay
+                pickingDate = false
+            },
+            onDismiss = { pickingDate = false },
+        )
+    }
 }
 
 @Composable
@@ -362,7 +428,7 @@ private fun KindRow(label: String, selected: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun StepRow(value: String, onDecrease: () -> Unit, onIncrease: () -> Unit) {
+private fun StepRow(value: String, onDecrease: () -> Unit, onIncrease: () -> Unit, onPick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -376,7 +442,11 @@ private fun StepRow(value: String, onDecrease: () -> Unit, onIncrease: () -> Uni
             text = value,
             color = Cream,
             fontSize = 20.sp,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .clip(RoundedCornerShape(10.dp))
+                .clickable(role = Role.Button, onClick = onPick)
+                .padding(vertical = 12.dp),
         )
         TextButton(onClick = onIncrease) {
             Text(text = stringResource(R.string.occasion_increase), color = Cream, fontSize = 16.sp)

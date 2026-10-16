@@ -83,11 +83,14 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
         return
     }
     val leave = rememberUpdatedState(viewModel::closeCeremony)
-    val animate = Settings.Global.getFloat(
-        context.contentResolver,
-        Settings.Global.ANIMATOR_DURATION_SCALE,
-        1f,
-    ) > 0f
+    // One cross-process read per screen entry, not one per second of countdown.
+    val animate = remember(context) {
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) > 0f
+    }
     val pad = if (expanded) 32.dp else 16.dp
     Box(
         modifier = Modifier

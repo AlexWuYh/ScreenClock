@@ -22,32 +22,32 @@ private val EndKey = intPreferencesKey("night_dim_end_hour")
 private val WarmKey = booleanPreferencesKey("night_warm")
 private val ChargeKey = booleanPreferencesKey("charge_keep_awake")
 
-class BedsideRepository(private val context: Context) {
-    val preferences: Flow<BedsidePreferences> = context.clockSettingsStore.data
+class BedsideRepository(private val context: Context) : BedsideStore {
+    override val preferences: Flow<BedsidePreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toBedsidePreferences() }
         .catch { error ->
             if (error is IOException) emit(BedsidePreferences()) else throw error
         }
 
-    suspend fun setDimEnabled(enabled: Boolean) {
+    override suspend fun setDimEnabled(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[DimKey] = enabled }
     }
 
-    suspend fun setStartHour(hour: Int) {
+    override suspend fun setStartHour(hour: Int) {
         val stored = normalizeHour(hour, NIGHT_START_DEFAULT)
         context.clockSettingsStore.edit { prefs -> prefs[StartKey] = stored }
     }
 
-    suspend fun setEndHour(hour: Int) {
+    override suspend fun setEndHour(hour: Int) {
         val stored = normalizeHour(hour, NIGHT_END_DEFAULT)
         context.clockSettingsStore.edit { prefs -> prefs[EndKey] = stored }
     }
 
-    suspend fun setWarmEnabled(enabled: Boolean) {
+    override suspend fun setWarmEnabled(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[WarmKey] = enabled }
     }
 
-    suspend fun setChargeKeepAwake(enabled: Boolean) {
+    override suspend fun setChargeKeepAwake(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[ChargeKey] = enabled }
     }
 }

@@ -63,6 +63,16 @@ class WeatherTest {
     }
 
     @Test
+    fun codesAreWholeNumbersAndTemperaturesStayPlausible() {
+        assertEquals(61, weatherCodeInt(61.0))
+        assertEquals(95, weatherCodeInt(95.0))
+        assertNull(weatherCodeInt(61.5))
+        assertNull(weatherCodeInt(Double.NaN))
+        assertNull(celsiusInt(1e300))
+        assertNull(celsiusInt(-200.0))
+    }
+
+    @Test
     fun cacheIsStaleAtThirtyMinutesAndWhenTheClockMovesBack() {
         val fetched = 1_000_000L
         assertTrue(cacheFresh(fetched, fetched))
@@ -88,6 +98,25 @@ class WeatherTest {
             ),
         )
         assertTrue(shouldFetchWeather(enabled = true, city = city, cache = null, nowEpochMillis = 0))
+    }
+
+    @Test
+    fun minuteLoopAttemptsAreSpacedByOneCacheWindow() {
+        assertTrue(weatherAttemptAllowed(lastAttemptEpochMillis = null, nowEpochMillis = 0))
+        assertFalse(weatherAttemptAllowed(lastAttemptEpochMillis = 1_000L, nowEpochMillis = 1_000L))
+        assertFalse(
+            weatherAttemptAllowed(
+                lastAttemptEpochMillis = 1_000L,
+                nowEpochMillis = 1_000L + WEATHER_CACHE_TTL_MILLIS - 1,
+            ),
+        )
+        assertTrue(
+            weatherAttemptAllowed(
+                lastAttemptEpochMillis = 1_000L,
+                nowEpochMillis = 1_000L + WEATHER_CACHE_TTL_MILLIS,
+            ),
+        )
+        assertTrue(weatherAttemptAllowed(lastAttemptEpochMillis = 1_000L, nowEpochMillis = 999L))
     }
 
     @Test

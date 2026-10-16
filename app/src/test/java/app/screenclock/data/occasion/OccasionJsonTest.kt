@@ -30,6 +30,18 @@ class OccasionJsonTest {
     }
 
     @Test
+    fun outOfRangeFieldsDropTheRowButKeepTheOthers() {
+        val text = """
+            {"items":[
+                {"id":"bad-month","title":"x","kind":"solar_yearly","month":0,"day":1,"leap":false,"message":"","pinned":false},
+                {"id":"bad-day","title":"y","kind":"lunar_yearly","month":1,"day":31,"leap":false,"message":"","pinned":false},
+                {"id":"good","title":"z","kind":"solar_yearly","month":5,"day":28,"leap":false,"message":"","pinned":false}
+            ]}
+        """.trimIndent()
+        assertEquals(listOf("good"), decodeOccasions(text).map { it.id })
+    }
+
+    @Test
     fun solarOnceKeepsItsYearAndYearlyOmitsIt() {
         val once = Occasion(
             id = "once",

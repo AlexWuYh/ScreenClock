@@ -196,6 +196,26 @@ class BurnInTest {
     }
 
     @Test
+    fun clockMovedBackwardsDuringARoundRestartsTheWaitInsteadOfEndingIt() {
+        val armed = freshBurnInClock(enabled = true, nowMillis = 0L)
+        val running = burnInTick(armed, idle, run, nowMillis = idle)
+        assertEquals(BurnInPhase.Running, running.phase)
+        val repaired = burnInTick(running, idle, run, nowMillis = idle - 5_000L)
+        assertEquals(BurnInPhase.Running, repaired.phase)
+        assertEquals(idle - 5_000L, repaired.anchorMillis)
+        assertEquals(BurnInPhase.Spent, burnInTick(repaired, idle, run, repaired.anchorMillis + run).phase)
+    }
+
+    @Test
+    fun clockMovedBackwardsAfterARoundKeepsItSpent() {
+        val armed = freshBurnInClock(enabled = true, nowMillis = 0L)
+        val running = burnInTick(armed, idle, run, nowMillis = idle)
+        val spent = burnInTick(running, idle, run, nowMillis = idle + run)
+        val repaired = burnInTick(spent, idle, run, nowMillis = 0L)
+        assertEquals(BurnInPhase.Spent, repaired.phase)
+    }
+
+    @Test
     fun shorterIdleIsHonoredFromTheSameAnchor() {
         val armed = freshBurnInClock(enabled = true, nowMillis = 0L)
         val soon = burnInTick(armed, idleMillis = 60_000L, runMillis = run, nowMillis = 60_000L)

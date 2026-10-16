@@ -23,7 +23,6 @@ class MinuteClockTest {
         val mid = LocalDateTime.of(2026, 10, 14, 10, 0, 30, 0)
         assertEquals(30_000L, millisUntilNextMinute(mid))
         val almost = LocalDateTime.of(2026, 10, 14, 10, 0, 59, 999_000_000)
-        val wait = millisUntilNextMinute(almost)
-        assertTrue(wait in 1L..1_000L)
+        assertEquals(1L, millisUntilNextMinute(almost))
     }
 }

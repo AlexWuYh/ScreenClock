@@ -4,24 +4,25 @@ import app.screenclock.data.occasion.SixTailCalendar
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Every solar date in these tests comes from cn.6tail:lunar.
- * Method names include that solar date so the anchor is not a hand calculation.
+ * The solar anchors are library generated and pinned as literals, exactly as the
+ * method names say, so a library change cannot leave a lying name behind.
  */
 class OccasionLunarTest {
     private val calendar = SixTailCalendar
 
     @Test
     fun ordinaryApril21On20010513DoesNotHitLeapApril() {
-        val year = leapAprilYear()
-        val ordinary = requireNotNull(calendar.solarOf(year, 4, 21, leap = false))
-        val leap = requireNotNull(calendar.solarOf(year, 4, 21, leap = true))
-        assertNotEquals(ordinary, leap)
+        val ordinary = LocalDate.of(2001, 5, 13)
+        val leap = LocalDate.of(2001, 6, 12)
+        assertEquals(ordinary, calendar.solarOf(2001, 4, 21, leap = false))
+        assertEquals(leap, calendar.solarOf(2001, 4, 21, leap = true))
         val hit = nextOccurrence(ordinary, lunar(4, 21, leap = false), calendar)
-        assertEquals("ordinary lunar 4-21 is $ordinary", OccasionStatus.Today, hit.status)
+        assertEquals(OccasionStatus.Today, hit.status)
         assertEquals(ordinary, hit.date)
         val missed = nextOccurrence(ordinary, lunar(4, 21, leap = true), calendar)
         assertNotEquals("leap April must not land on ordinary $ordinary", ordinary, missed.date)
@@ -29,23 +30,23 @@ class OccasionLunarTest {
 
     @Test
     fun leapApril21On20010612DoesNotHitOrdinaryApril() {
-        val year = leapAprilYear()
-        val leap = requireNotNull(calendar.solarOf(year, 4, 21, leap = true))
-        val ordinary = requireNotNull(calendar.solarOf(year, 4, 21, leap = false))
+        val ordinary = LocalDate.of(2001, 5, 13)
+        val leap = LocalDate.of(2001, 6, 12)
+        assertEquals(leap, calendar.solarOf(2001, 4, 21, leap = true))
+        assertEquals(ordinary, calendar.solarOf(2001, 4, 21, leap = false))
         val hit = nextOccurrence(leap, lunar(4, 21, leap = true), calendar)
-        assertEquals("leap lunar 4-21 is $leap", OccasionStatus.Today, hit.status)
+        assertEquals(OccasionStatus.Today, hit.status)
         assertEquals(leap, hit.date)
         val missed = nextOccurrence(leap, lunar(4, 21, leap = false), calendar)
         assertNotEquals("ordinary April must not land on leap $leap", leap, missed.date)
-        assertNotEquals(ordinary, leap)
     }
 
     @Test
     fun from20390124MissingLeapAprilSkipsTo20580611() {
-        val gap = yearWithoutLeapApril()
-        val today = requireNotNull(calendar.solarOf(gap.year, 1, 1, leap = false))
+        val today = LocalDate.of(2039, 1, 24)
+        val expected = LocalDate.of(2058, 6, 11)
+        assertEquals(expected, calendar.solarOf(2058, 4, 21, leap = true))
         assertNotEquals(4, calendar.leapMonthOf(calendar.lunarYear(today)))
-        val expected = requireNotNull(calendar.solarOf(gap.laterYear, 4, 21, leap = true))
         val next = nextOccurrence(today, lunar(4, 21, leap = true), calendar)
         assertEquals("from $today the next leap April 21 is $expected", expected, next.date)
         assertTrue(next.date!!.isAfter(today))
@@ -54,54 +55,15 @@ class OccasionLunarTest {
 
     @Test
     fun lunarNewYear20200125SkipsMonth1WithoutDay30Until20220302() {
-        val sample = shortMonth()
-        val next = nextOccurrence(sample.today, lunar(sample.month, 30, leap = false), calendar)
-        assertEquals(
-            "lunar $sample lacks day 30 and the next one is ${sample.later}",
-            sample.later,
-            next.date,
-        )
+        val today = LocalDate.of(2020, 1, 25)
+        val later = LocalDate.of(2022, 3, 2)
+        assertEquals(today, calendar.solarOf(2020, 1, 1, leap = false))
+        assertNull(calendar.solarOf(2020, 1, 30, leap = false))
+        assertNull(calendar.solarOf(2021, 1, 30, leap = false))
+        assertEquals(later, calendar.solarOf(2022, 1, 30, leap = false))
+        val next = nextOccurrence(today, lunar(1, 30, leap = false), calendar)
+        assertEquals("lunar month 1 of 2020 lacks day 30 and the next one is $later", later, next.date)
         assertTrue(next.skipped)
-        assertNotEquals(sample.shortYear, calendar.lunarYear(next.date!!))
-    }
-
-    private fun leapAprilYear(): Int {
-        for (year in 2000..2100) {
-            if (calendar.leapMonthOf(year) != 4) continue
-            if (calendar.solarOf(year, 4, 21, leap = false) == null) continue
-            if (calendar.solarOf(year, 4, 21, leap = true) == null) continue
-            return year
-        }
-        error("library has no leap April 21 between 2000 and 2100")
-    }
-
-    private fun yearWithoutLeapApril(): LeapGap {
-        for (year in 2020..2080) {
-            if (calendar.leapMonthOf(year) == 4) continue
-            if (calendar.solarOf(year, 1, 1, leap = false) == null) continue
-            for (later in year + 1..year + 19) {
-                if (calendar.leapMonthOf(later) != 4) continue
-                if (calendar.solarOf(later, 4, 21, leap = true) == null) continue
-                return LeapGap(year, later)
-            }
-        }
-        error("library has no gap before a leap April")
-    }
-
-    private fun shortMonth(): ShortMonth {
-        for (year in 2020..2060) {
-            val newYear = calendar.solarOf(year, 1, 1, leap = false) ?: continue
-            for (month in 1..12) {
-                if (calendar.solarOf(year, month, 30, leap = false) != null) continue
-                if (calendar.solarOf(year, month, 1, leap = false) == null) continue
-                for (laterYear in year + 1..year + 15) {
-                    val later = calendar.solarOf(laterYear, month, 30, leap = false) ?: continue
-                    if (!later.isAfter(newYear)) continue
-                    return ShortMonth(newYear, year, month, later)
-                }
-            }
-        }
-        error("library has no short lunar month in the scan")
     }
 
     private fun lunar(month: Int, day: Int, leap: Boolean) = Occasion(
@@ -116,12 +78,3 @@ class OccasionLunarTest {
         pinned = false,
     )
 }
-
-private data class LeapGap(val year: Int, val laterYear: Int)
-
-private data class ShortMonth(
-    val today: LocalDate,
-    val shortYear: Int,
-    val month: Int,
-    val later: LocalDate,
-)

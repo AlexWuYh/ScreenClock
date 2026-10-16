@@ -1,8 +1,11 @@
 package app.screenclock.ui.focus
 
 import android.provider.Settings
+import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.LocalActivity
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +14,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -48,6 +52,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -287,12 +292,26 @@ private fun FocusCountdown(
     val phase = rememberUpdatedState(face.phase)
     val giveUp = rememberUpdatedState(onGiveUp)
     val finished = rememberUpdatedState(onFinished)
-    val animate = Settings.Global.getFloat(
-        context.contentResolver,
-        Settings.Global.ANIMATOR_DURATION_SCALE,
-        1f,
-    ) > 0f
+    // One cross-process read per screen entry, not one per second of countdown.
+    val animate = remember(context) {
+        Settings.Global.getFloat(
+            context.contentResolver,
+            Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f,
+        ) > 0f
+    }
     val pad = if (expanded) 32.dp else 16.dp
+    val view = LocalView.current
+    var holding by remember { mutableStateOf(false) }
+    val holdProgress = remember { Animatable(0f) }
+    LaunchedEffect(holding) {
+        if (holding) {
+            holdProgress.snapTo(0f)
+            holdProgress.animateTo(1f, tween(durationMillis = FOCUS_HOLD_MILLIS.toInt()))
+        } else {
+            holdProgress.snapTo(0f)
+        }
+    }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -305,16 +324,24 @@ private fun FocusCountdown(
                         if (phase.value == FocusPhase.Done) {
                             if (tryAwaitRelease()) finished.value()
                         } else {
-                            coroutineScope {
-                                val hold = launch {
-                                    delay(FOCUS_HOLD_MILLIS)
-                                    giveUp.value()
+                            // Holding shows a short bar and buzzes once at the threshold,
+                            // so a bedside press that lingers is not a silent exit.
+                            holding = true
+                            try {
+                                coroutineScope {
+                                    val hold = launch {
+                                        delay(FOCUS_HOLD_MILLIS)
+                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                        giveUp.value()
+                                    }
+                                    try {
+                                        tryAwaitRelease()
+                                    } finally {
+                                        hold.cancel()
+                                    }
                                 }
-                                try {
-                                    tryAwaitRelease()
-                                } finally {
-                                    hold.cancel()
-                                }
+                            } finally {
+                                holding = false
                             }
                         }
                     },
@@ -347,6 +374,23 @@ private fun FocusCountdown(
                 .clearAndSetSemantics { },
             keyOf = { index -> focusFlapKey(face.groups.size, index) },
         )
+        if (holding && phase.value != FocusPhase.Done) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 24.dp)
+                    .fillMaxWidth(0.42f)
+                    .height(3.dp)
+                    .background(ChromeBar),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(holdProgress.value.coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .background(Cream),
+                )
+            }
+        }
     }
 }
 

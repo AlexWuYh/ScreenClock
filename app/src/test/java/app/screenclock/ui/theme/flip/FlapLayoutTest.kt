@@ -55,8 +55,24 @@ class FlapLayoutTest {
     }
 
     @Test
-    fun cornerIsEightPercentOfTheShortSide() {
-        assertEquals(0.08f, FLAP_CORNER_FRACTION, 0f)
+    fun glyphInkStaysInsideTheCardAndClearOfTheCorner() {
+        val cardWidth = 360f
+        val cardHeight = cardWidth / FLAP_ASPECT
+        val fit = glyphFit(
+            cardWidth = cardWidth,
+            cardHeight = cardHeight,
+            inkWidth = cardWidth,
+            inkHeight = cardHeight,
+            measuredSize = 100f,
+        )
+        val inkWidth = cardWidth * fit.sizeScale
+        val inkHeight = cardHeight * fit.sizeScale
+        assertTrue(fit.inkLeft >= 0f)
+        assertTrue(fit.inkTop >= 0f)
+        assertTrue(fit.inkLeft + inkWidth <= cardWidth)
+        assertTrue(fit.inkTop + inkHeight <= cardHeight)
+        val corner = minOf(cardWidth, cardHeight) * FLAP_CORNER_FRACTION
+        assertTrue("ink must start below the corner radius", fit.inkTop >= corner)
     }
 
     @Test

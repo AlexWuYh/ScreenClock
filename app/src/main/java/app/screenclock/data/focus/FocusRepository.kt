@@ -11,18 +11,18 @@ import kotlinx.coroutines.flow.map
 
 private val EndKey = longPreferencesKey("focus_end_epoch_millis")
 
-class FocusRepository(private val context: Context) {
-    val endEpochMillis: Flow<Long?> = context.clockSettingsStore.data
+class FocusRepository(private val context: Context) : FocusStore {
+    override val endEpochMillis: Flow<Long?> = context.clockSettingsStore.data
         .map { prefs -> prefs[EndKey] }
         .catch { error ->
             if (error is IOException) emit(null) else throw error
         }
 
-    suspend fun setEnd(endEpochMillis: Long) {
+    override suspend fun setEnd(endEpochMillis: Long) {
         context.clockSettingsStore.edit { prefs -> prefs[EndKey] = endEpochMillis }
     }
 
-    suspend fun clear() {
+    override suspend fun clear() {
         context.clockSettingsStore.edit { prefs -> prefs.remove(EndKey) }
     }
 }

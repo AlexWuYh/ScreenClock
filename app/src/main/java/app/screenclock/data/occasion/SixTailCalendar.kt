@@ -22,7 +22,12 @@ object SixTailCalendar : LunarCalendar {
         if (month !in 1..12 || day !in 1..30) return null
         val lunarMonth = if (leap) -month else month
         return try {
-            val solar = Lunar.fromYmd(lunarYear, lunarMonth, day).solar
+            val lunar = Lunar.fromYmd(lunarYear, lunarMonth, day)
+            // The library rolls some impossible dates forward (a short month's day 30,
+            // a leap month that year does not have). Reading the result back keeps
+            // only the dates that really are this month, day and leap flag.
+            if (lunar.year != lunarYear || lunar.month != lunarMonth || lunar.day != day) return null
+            val solar = lunar.solar
             LocalDate.of(solar.year, solar.month, solar.day)
         } catch (_: IllegalArgumentException) {
             null

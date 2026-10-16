@@ -6,8 +6,8 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-class OccasionRepository(private val directory: File) {
-    fun load(): List<Occasion> {
+class OccasionRepository(private val directory: File) : OccasionStore {
+    override fun load(): List<Occasion> {
         val file = File(directory, FILE_NAME)
         if (!file.isFile) return emptyList()
         return try {
@@ -17,7 +17,7 @@ class OccasionRepository(private val directory: File) {
         }
     }
 
-    fun save(items: List<Occasion>) {
+    override fun save(items: List<Occasion>) {
         if (!directory.isDirectory && !directory.mkdirs()) {
             throw IOException("occasions directory is not available")
         }
@@ -26,15 +26,23 @@ class OccasionRepository(private val directory: File) {
         val temp = File(directory, "$FILE_NAME.tmp")
         temp.writeText(text, Charsets.UTF_8)
         try {
-            Files.move(
-                temp.toPath(),
-                dest.toPath(),
-                StandardCopyOption.REPLACE_EXISTING,
-                StandardCopyOption.ATOMIC_MOVE,
-            )
+            try {
+                Files.move(
+                    temp.toPath(),
+                    dest.toPath(),
+                    StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE,
+                )
+            } catch (_: IOException) {
+                // Plain replace is still a rename on the same volume, so the file is
+                // never left half written between these two steps.
+                Files.move(temp.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING)
+            }
         } catch (_: IOException) {
+            // Last resort. A failed write keeps the in-memory list; the next edit retries.
             dest.writeText(text, Charsets.UTF_8)
-            if (!temp.delete()) temp.deleteOnExit()
+        } finally {
+            if (temp.exists() && !temp.delete()) temp.deleteOnExit()
         }
     }
 

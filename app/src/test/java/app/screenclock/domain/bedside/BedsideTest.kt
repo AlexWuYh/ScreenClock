@@ -7,7 +7,7 @@ import org.junit.Test
 
 class BedsideTest {
     @Test
-    fun defaultWindowDimsFromTenUntilSeven() {
+    fun defaultWindowDimsFromTwentyTwoUntilSeven() {
         assertFalse(night(false, 22, 0))
         assertFalse(night(true, 21, 0))
         assertTrue(night(true, 22, 0))

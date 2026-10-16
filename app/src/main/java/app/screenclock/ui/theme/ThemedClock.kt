@@ -19,6 +19,7 @@ internal fun ThemedClock(
     expanded: Boolean,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
     when (theme) {
@@ -31,6 +32,7 @@ internal fun ThemedClock(
             expanded = expanded,
             animate = animate,
             modifier = modifier,
+            preview = preview,
             onOccasionClick = onOccasionClick,
         )
         ClockThemeId.Tube -> TubeClock(
@@ -41,6 +43,7 @@ internal fun ThemedClock(
             expanded = expanded,
             animate = animate,
             modifier = modifier,
+            preview = preview,
             onOccasionClick = onOccasionClick,
         )
     }

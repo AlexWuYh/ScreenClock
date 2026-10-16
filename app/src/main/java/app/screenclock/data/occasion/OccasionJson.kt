@@ -49,7 +49,10 @@ private fun decodeItem(value: JsonValue): Occasion? {
     val kind = kindOf(obj.fields["kind"].asString()) ?: return null
     val month = obj.fields["month"].asInt() ?: return null
     val day = obj.fields["day"].asInt() ?: return null
-    if (month < 0) return null
+    // A hand-edited or old file must not smuggle in rows that can never resolve.
+    if (month !in 1..12) return null
+    val dayMax = if (kind == OccasionKind.LunarYearly) 30 else 31
+    if (day !in 1..dayMax) return null
     val leap = obj.fields["leap"].asBoolean() ?: false
     val year = obj.fields["year"].asInt()
     if (kind == OccasionKind.SolarOnce && year == null) return null

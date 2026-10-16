@@ -1,0 +1,195 @@
+package app.screenclock.ui.occasion
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import app.screenclock.R
+import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.Cream
+import app.screenclock.ui.Info
+
+private val WheelItemHeight = 44.dp
+private const val WheelVisibleItems = 3
+
+/**
+ * One rolling number column. The middle row is the selection and is reported
+ * once the wheel settles, so the caller can clamp the other columns.
+ */
+@Composable
+private fun WheelColumn(
+    label: String,
+    items: List<String>,
+    selectedIndex: Int,
+    onSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val start = selectedIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0))
+    val state = rememberLazyListState(initialFirstVisibleItemIndex = start)
+    val fling = rememberSnapFlingBehavior(lazyListState = state)
+    val settled by remember(items) {
+        derivedStateOf {
+            val base = state.firstVisibleItemIndex
+            val half = state.layoutInfo.viewportEndOffset / (WheelVisibleItems * 2)
+            if (state.firstVisibleItemScrollOffset > half) base + 1 else base
+        }
+    }
+    LaunchedEffect(state, items.size) {
+        snapshotFlow { state.isScrollInProgress to settled }
+            .collect { (scrolling, index) ->
+                if (!scrolling && items.isNotEmpty()) {
+                    onSelected(index.coerceIn(items.indices))
+                }
+            }
+    }
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier
+                .height(WheelItemHeight * WheelVisibleItems)
+                .widthIn(min = 72.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth()
+                    .height(WheelItemHeight)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Cream.copy(alpha = 0.06f)),
+            )
+            LazyColumn(
+                state = state,
+                flingBehavior = fling,
+                contentPadding = PaddingValues(vertical = WheelItemHeight),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier
+                    .height(WheelItemHeight * WheelVisibleItems)
+                    .fillMaxWidth(),
+            ) {
+                itemsIndexed(items) { index, item ->
+                    Box(
+                        modifier = Modifier
+                            .height(WheelItemHeight)
+                            .fillMaxWidth(),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = item,
+                            color = if (index == settled) Cream else Info,
+                            fontSize = 20.sp,
+                        )
+                    }
+                }
+            }
+        }
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = label, color = Info, fontSize = 14.sp)
+    }
+}
+
+/**
+ * The date wheel for the occasion form. [showYear] is off for yearly dates.
+ * Changes apply on 「完成」; the form preview follows immediately after.
+ */
+@Composable
+internal fun DateWheelDialog(
+    title: String,
+    showYear: Boolean,
+    yearRange: IntRange,
+    initialYear: Int,
+    initialMonth: Int,
+    initialDay: Int,
+    dayMaxOf: (year: Int, month: Int) -> Int,
+    onPick: (year: Int, month: Int, day: Int) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var pickedYear by remember { mutableIntStateOf(initialYear) }
+    var pickedMonth by remember { mutableIntStateOf(initialMonth) }
+    var pickedDay by remember { mutableIntStateOf(initialDay) }
+    val dayMax = dayMaxOf(pickedYear, pickedMonth)
+    LaunchedEffect(dayMax) {
+        if (pickedDay > dayMax) pickedDay = dayMax
+    }
+    Dialog(onDismissRequest = onDismiss) {
+        Column(
+            modifier = Modifier
+                .clip(RoundedCornerShape(20.dp))
+                .background(ChromeBar)
+                .padding(horizontal = 20.dp, vertical = 20.dp)
+                .widthIn(min = 280.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = title, color = Cream, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                if (showYear) {
+                    WheelColumn(
+                        label = stringResource(R.string.occasion_wheel_year),
+                        items = yearRange.map { it.toString() },
+                        selectedIndex = pickedYear - yearRange.first,
+                        onSelected = { pickedYear = yearRange.first + it },
+                    )
+                }
+                WheelColumn(
+                    label = stringResource(R.string.occasion_wheel_month),
+                    items = (1..12).map { it.toString() },
+                    selectedIndex = pickedMonth - 1,
+                    onSelected = { pickedMonth = it + 1 },
+                )
+                key(dayMax) {
+                    WheelColumn(
+                        label = stringResource(R.string.occasion_wheel_day),
+                        items = (1..dayMax).map { it.toString() },
+                        selectedIndex = pickedDay - 1,
+                        onSelected = { pickedDay = it + 1 },
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+            ) {
+                TextButton(onClick = onDismiss) {
+                    Text(text = stringResource(R.string.occasion_cancel), color = Info, fontSize = 16.sp)
+                }
+                TextButton(
+                    onClick = {
+                        onPick(pickedYear, pickedMonth, pickedDay.coerceAtMost(dayMax))
+                    },
+                ) {
+                    Text(text = stringResource(R.string.occasion_done), color = Cream, fontSize = 16.sp)
+                }
+            }
+        }
+    }
+}

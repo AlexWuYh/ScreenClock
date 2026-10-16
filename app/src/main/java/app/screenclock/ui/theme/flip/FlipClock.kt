@@ -28,6 +28,7 @@ internal fun FlipClock(
     expanded: Boolean,
     animate: Boolean,
     modifier: Modifier = Modifier,
+    preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
     val finish = flipFinish(colorway)
@@ -38,6 +39,7 @@ internal fun FlipClock(
         occasionLine = occasionLine,
         expanded = expanded,
         modifier = modifier,
+        preview = preview,
         onOccasionClick = onOccasionClick,
     ) { stacked, cardWidth, cardHeight, gap ->
         FlapPair(

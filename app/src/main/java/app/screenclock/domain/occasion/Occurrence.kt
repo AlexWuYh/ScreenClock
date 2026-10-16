@@ -85,12 +85,16 @@ fun occasionBarParts(line: String): OccasionBarParts {
     )
 }
 
-/** Solar once uses the real length of that month. A yearly February may be the 29th. Lunar days stop at 30. */
+/**
+ * Solar once uses the real length of that month. A yearly February may be the 29th,
+ * so yearly months take their length from a leap year. Lunar days stop at 30.
+ * The month guard is defensive: the editor only offers 1–12.
+ */
 fun occasionDayMax(kind: OccasionKind, year: Int, month: Int): Int {
     if (month !in 1..12) return 30
     return when (kind) {
         OccasionKind.LunarYearly -> 30
-        OccasionKind.SolarYearly -> LocalDate.of(2024, month, 1).lengthOfMonth()
+        OccasionKind.SolarYearly -> LocalDate.of(YEARLY_DAY_TEMPLATE_LEAP, month, 1).lengthOfMonth()
         OccasionKind.SolarOnce -> try {
             LocalDate.of(year, month, 1).lengthOfMonth()
         } catch (_: DateTimeException) {
@@ -98,6 +102,9 @@ fun occasionDayMax(kind: OccasionKind, year: Int, month: Int): Int {
         }
     }
 }
+
+/** A leap year, so February reports 29 days and a yearly 2月29日 stays selectable. */
+private const val YEARLY_DAY_TEMPLATE_LEAP: Int = 2024
 
 fun pinnedOccasionLine(items: List<Occasion>, now: LocalDateTime, calendar: LunarCalendar): String? {
     val pinned = items.firstOrNull { it.pinned } ?: return null

@@ -19,23 +19,23 @@ private val EnabledKey = booleanPreferencesKey("burnin_enabled")
 private val IdleKey = longPreferencesKey("burnin_idle_millis")
 private val RunKey = longPreferencesKey("burnin_run_millis")
 
-class BurnInRepository(private val context: Context) {
-    val preferences: Flow<BurnInPreferences> = context.clockSettingsStore.data
+class BurnInRepository(private val context: Context) : BurnInStore {
+    override val preferences: Flow<BurnInPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toBurnInPreferences() }
         .catch { error ->
             if (error is IOException) emit(BurnInPreferences()) else throw error
         }
 
-    suspend fun setEnabled(enabled: Boolean) {
+    override suspend fun setEnabled(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[EnabledKey] = enabled }
     }
 
-    suspend fun setIdleMillis(idleMillis: Long) {
+    override suspend fun setIdleMillis(idleMillis: Long) {
         val stored = normalizeIdleMillis(idleMillis)
         context.clockSettingsStore.edit { prefs -> prefs[IdleKey] = stored }
     }
 
-    suspend fun setRunMillis(runMillis: Long) {
+    override suspend fun setRunMillis(runMillis: Long) {
         val stored = normalizeRunMillis(runMillis)
         context.clockSettingsStore.edit { prefs -> prefs[RunKey] = stored }
     }

@@ -7,6 +7,9 @@
     <string name="occasion_add">添加</string>
     <string name="occasion_save">保存</string>
     <string name="occasion_delete">删除</string>
+    <string name="occasion_delete_title">删除纪念日？</string>
+    <string name="occasion_delete_body">「%1$s」删除后不能恢复。</string>
+    <string name="occasion_cancel">取消</string>
     <string name="occasion_pin">置顶</string>
     <string name="occasion_unpin">取消置顶</string>
     <string name="occasion_empty">还没有纪念日</string>
@@ -20,6 +23,11 @@
     <string name="occasion_year_value">%1$d年</string>
     <string name="occasion_month_value">%1$d月</string>
     <string name="occasion_day_value">%1$d日</string>
+    <string name="occasion_pick_title">选择日期</string>
+    <string name="occasion_done">完成</string>
+    <string name="occasion_wheel_year">年</string>
+    <string name="occasion_wheel_month">月</string>
+    <string name="occasion_wheel_day">日</string>
     <string name="occasion_decrease">减少</string>
     <string name="occasion_increase">增加</string>
     <string name="occasion_open">打开仪式</string>

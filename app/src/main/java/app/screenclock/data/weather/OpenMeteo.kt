@@ -6,6 +6,7 @@ import app.screenclock.domain.weather.celsiusInt
 import app.screenclock.domain.weather.coordinateOk
 import app.screenclock.domain.weather.normalizeCityQuery
 import app.screenclock.domain.weather.placeLabel
+import app.screenclock.domain.weather.weatherCodeInt
 import java.io.ByteArrayOutputStream
 import java.io.IOException
 import java.io.InputStream
@@ -88,7 +89,7 @@ internal fun parseForecast(body: String, fetchedAtEpochMillis: Long): WeatherCac
     val root = parseJson(body) as? JsonValue.Obj ?: return null
     val current = root.fields["current"] as? JsonValue.Obj ?: return null
     val temperature = current.num("temperature_2m")?.let(::celsiusInt) ?: return null
-    val code = current.num("weather_code")?.let(::celsiusInt)
+    val code = current.num("weather_code")?.let(::weatherCodeInt)
     val daily = root.fields["daily"] as? JsonValue.Obj
     val high = daily?.firstNumber("temperature_2m_max")?.let(::celsiusInt)
     val low = daily?.firstNumber("temperature_2m_min")?.let(::celsiusInt)
@@ -107,15 +108,15 @@ private fun JsonValue.Obj.firstNumber(key: String): Double? {
     return (array.items.firstOrNull() as? JsonValue.Num)?.value
 }
 
-class OpenMeteoClient(private val transport: WeatherTransport = HttpWeatherTransport()) {
+class OpenMeteoClient(private val transport: WeatherTransport = HttpWeatherTransport()) : WeatherSource {
     /** Empty query does not touch the network. Invalid JSON throws [IOException]. */
-    fun search(rawQuery: String): List<CityCandidate> {
+    override fun search(rawQuery: String): List<CityCandidate> {
         val query = normalizeCityQuery(rawQuery) ?: return emptyList()
         val body = transport.get(searchUrl(query))
         return parseCitySearch(body) ?: throw IOException("weather body")
     }
 
-    fun forecast(latitude: Double, longitude: Double, fetchedAtEpochMillis: Long): WeatherCache {
+    override fun forecast(latitude: Double, longitude: Double, fetchedAtEpochMillis: Long): WeatherCache {
         if (!coordinateOk(latitude, longitude)) throw IOException("weather coordinate")
         val body = transport.get(forecastUrl(latitude, longitude))
         return parseForecast(body, fetchedAtEpochMillis) ?: throw IOException("weather body")
