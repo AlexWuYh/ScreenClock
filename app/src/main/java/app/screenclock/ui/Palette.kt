@@ -10,9 +10,7 @@ internal val Amber = Color(0xFFE6A15C)
 internal val TubeGlass = Color(0xFF100E0C)
 internal val SnowFlap = Color(0xFFF1EDE4)
 internal val SnowDigit = Color(0xFF1B1A17)
-internal val LcdPanel = Color(0xFFE9E3D2)
-internal val LcdInk = Color(0xFF2B2A26)
-internal val MoonGrey = Color(0xFFB7B0A4)
+internal val FluidInk = Color(0xFF2E3A66)
 
 // The app around the face: a warm near-black ladder with one accent.
 internal val Cream = Color(0xFFF3EDE2)

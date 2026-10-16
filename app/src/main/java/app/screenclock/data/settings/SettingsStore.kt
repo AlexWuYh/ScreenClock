@@ -11,6 +11,10 @@ interface SettingsStore {
     val settings: Flow<ClockPreferences>
     suspend fun setHourMode(mode: HourMode)
     suspend fun setShowDate(show: Boolean)
+    suspend fun setShowYear(show: Boolean)
+    suspend fun setShowWeekday(show: Boolean)
+    suspend fun setShowLunarDate(show: Boolean)
+    suspend fun setShowHoliday(show: Boolean)
     suspend fun setTheme(theme: ClockThemeId)
     suspend fun setColorway(colorway: ColorwayId)
 }

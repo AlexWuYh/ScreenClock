@@ -19,6 +19,10 @@ internal val Context.clockSettingsStore by preferencesDataStore(name = "clock_se
 
 private val HourModeKey = stringPreferencesKey("hour_mode")
 private val ShowDateKey = booleanPreferencesKey("show_date")
+private val ShowYearKey = booleanPreferencesKey("show_year")
+private val ShowWeekdayKey = booleanPreferencesKey("show_weekday")
+private val ShowLunarKey = booleanPreferencesKey("show_lunar_date")
+private val ShowHolidayKey = booleanPreferencesKey("show_holiday")
 private val ThemeKey = stringPreferencesKey("theme")
 private val ColorwayKey = stringPreferencesKey("colorway")
 
@@ -35,6 +39,22 @@ class SettingsRepository(private val context: Context) : SettingsStore {
 
     override suspend fun setShowDate(show: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[ShowDateKey] = show }
+    }
+
+    override suspend fun setShowYear(show: Boolean) {
+        context.clockSettingsStore.edit { prefs -> prefs[ShowYearKey] = show }
+    }
+
+    override suspend fun setShowWeekday(show: Boolean) {
+        context.clockSettingsStore.edit { prefs -> prefs[ShowWeekdayKey] = show }
+    }
+
+    override suspend fun setShowLunarDate(show: Boolean) {
+        context.clockSettingsStore.edit { prefs -> prefs[ShowLunarKey] = show }
+    }
+
+    override suspend fun setShowHoliday(show: Boolean) {
+        context.clockSettingsStore.edit { prefs -> prefs[ShowHolidayKey] = show }
     }
 
     override suspend fun setTheme(theme: ClockThemeId) {
@@ -55,6 +75,10 @@ private fun Preferences.toClockPreferences(): ClockPreferences {
     return ClockPreferences(
         hourMode = HourMode.fromStored(this[HourModeKey]),
         showDate = this[ShowDateKey] ?: true,
+        showYear = this[ShowYearKey] ?: true,
+        showWeekday = this[ShowWeekdayKey] ?: true,
+        showLunarDate = this[ShowLunarKey] ?: true,
+        showHoliday = this[ShowHolidayKey] ?: true,
         theme = ClockThemeId.fromStored(this[ThemeKey]),
         colorway = ColorwayId.fromStored(this[ColorwayKey]),
     )

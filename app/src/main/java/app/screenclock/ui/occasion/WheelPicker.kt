@@ -39,7 +39,8 @@ import androidx.compose.ui.window.Dialog
 import app.screenclock.R
 import app.screenclock.ui.Amber
 import app.screenclock.ui.Cream
-import app.screenclock.ui.Hairline
+import app.screenclock.ui.GlassFillHigh
+import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Info
 import app.screenclock.ui.Muted
 import app.screenclock.ui.Panel
@@ -89,9 +90,7 @@ private fun WheelColumn(
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .height(WheelItemHeight)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(PanelHigh)
-                    .border(1.dp, Hairline, RoundedCornerShape(12.dp)),
+                    .glassSurface(corner = 12.dp, fill = GlassFillHigh),
             )
             LazyColumn(
                 state = state,
@@ -150,9 +149,7 @@ internal fun DateWheelDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(22.dp))
-                .background(Panel)
-                .border(1.dp, Hairline, RoundedCornerShape(22.dp))
+                .glassSurface(corner = 22.dp, fill = GlassFillHigh)
                 .padding(horizontal = 20.dp, vertical = 20.dp)
                 .widthIn(min = 280.dp),
             horizontalAlignment = Alignment.CenterHorizontally,

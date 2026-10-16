@@ -13,7 +13,7 @@ class ClockThemeTest {
         for (colorway in ColorwayId.entries) {
             assertEquals(colorway, ColorwayId.fromStored(colorway.name))
         }
-        assertEquals(ClockThemeId.Moon, ClockThemeId.fromStored("Moon"))
+        assertEquals(ClockThemeId.Neon, ClockThemeId.fromStored("Neon"))
         assertEquals(ColorwayId.SnowWhite, ColorwayId.fromStored("SnowWhite"))
     }
 

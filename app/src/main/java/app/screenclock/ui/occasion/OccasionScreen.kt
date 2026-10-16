@@ -54,12 +54,18 @@ import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.occasionDayMax
 import app.screenclock.ui.Alert
+import app.screenclock.ui.AmberGlassBorder
+import app.screenclock.ui.AmberGlassFill
+import app.screenclock.ui.GlassBorder
+import app.screenclock.ui.GlassFill
 import app.screenclock.ui.Amber
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
+import app.screenclock.ui.glassPressable
+import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Ink
 import app.screenclock.ui.Muted
 import app.screenclock.ui.PageTitle
@@ -160,7 +166,7 @@ private fun OccasionList(
         val row = rows.find { it.id == pending }
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            containerColor = Panel,
+            containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f),
             titleContentColor = Cream,
             textContentColor = Info,
             title = { Text(text = stringResource(R.string.occasion_delete_title)) },
@@ -186,21 +192,21 @@ private fun OccasionList(
 
 @Composable
 private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.height(44.dp),
-        shape = RoundedCornerShape(14.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Amber,
-            contentColor = Ink,
-            disabledContainerColor = Panel,
-            disabledContentColor = Muted,
-        ),
+    Row(
+        modifier = Modifier
+            .height(44.dp)
+            .glassSurface(
+                corner = 14.dp,
+                fill = if (enabled) AmberGlassFill else GlassFill,
+                border = if (enabled) AmberGlassBorder else GlassBorder,
+            )
+            .glassPressable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = AppIconKind.Plus, tint = if (enabled) Ink else Muted, size = 18.dp)
+        AppIcon(kind = AppIconKind.Plus, tint = if (enabled) Cream else Muted, size = 18.dp)
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = stringResource(R.string.occasion_add), fontSize = 15.sp)
+        Text(text = stringResource(R.string.occasion_add), color = if (enabled) Cream else Muted, fontSize = 15.sp)
     }
 }
 
@@ -213,16 +219,14 @@ private fun OccasionRowCard(
     onDelete: () -> Unit,
 ) {
     val open = if (row.canOpen) {
-        Modifier.clickable(role = Role.Button) { onOpen(row.id) }
+        Modifier.glassPressable { onOpen(row.id) }
     } else {
         Modifier
     }
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(16.dp))
-            .background(Panel)
-            .border(1.dp, Hairline, RoundedCornerShape(16.dp))
+            .glassSurface(corner = 16.dp)
             .then(open)
             .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,

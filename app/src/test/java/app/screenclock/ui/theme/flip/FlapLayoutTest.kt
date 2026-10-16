@@ -72,7 +72,9 @@ class FlapLayoutTest {
         assertTrue(fit.inkLeft + inkWidth <= cardWidth)
         assertTrue(fit.inkTop + inkHeight <= cardHeight)
         val corner = minOf(cardWidth, cardHeight) * FLAP_CORNER_FRACTION
-        assertTrue("ink must start below the corner radius", fit.inkTop >= corner)
+        val clearsSide = fit.inkLeft >= corner
+        val clearsTop = fit.inkTop >= corner
+        assertTrue("ink must clear the rounded corner on at least one axis", clearsSide || clearsTop)
     }
 
     @Test

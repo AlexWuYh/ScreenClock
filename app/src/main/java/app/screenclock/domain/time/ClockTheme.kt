@@ -6,14 +6,16 @@ enum class ClockThemeId {
     Flip,
     /** Glass tubes that glow once per minute. */
     Tube,
-    /** One bold digital line with a quiet colon. */
+    /** Thin digits and a quiet colon over a dusk lake. */
     Digital,
-    /** A desk-clock panel with seven-segment digits. */
-    Lcd,
-    /** A dial with hour and minute hands. No second hand on the home screen. */
+    /** A numbered dial with thin hands over snow ridges. */
     Analog,
-    /** Outlined digits over a drawn moon. */
-    Moon,
+    /** Thin glowing digits over the night earth. */
+    Earth,
+    /** Soft digits over flowing pastel waves. */
+    Fluid,
+    /** Neon gradient digits on a synthwave grid. */
+    Neon,
     ;
 
     companion object {
@@ -41,6 +43,10 @@ enum class ColorwayId {
 data class ClockPreferences(
     val hourMode: HourMode = HourMode.FollowSystem,
     val showDate: Boolean = true,
+    val showYear: Boolean = true,
+    val showWeekday: Boolean = true,
+    val showLunarDate: Boolean = true,
+    val showHoliday: Boolean = true,
     val theme: ClockThemeId = ClockThemeId.Flip,
     val colorway: ColorwayId = ColorwayId.InkBlack,
 )

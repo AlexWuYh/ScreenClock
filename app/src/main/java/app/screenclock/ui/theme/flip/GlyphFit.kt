@@ -1,8 +1,8 @@
 package app.screenclock.ui.theme.flip
 
 /** Ink stays inside the flap and clear of the rounded corners. */
-internal const val GLYPH_WIDTH_FRACTION: Float = 0.90f
-internal const val GLYPH_HEIGHT_FRACTION: Float = 0.80f
+internal const val GLYPH_WIDTH_FRACTION: Float = 0.92f
+internal const val GLYPH_HEIGHT_FRACTION: Float = 0.88f
 
 internal data class GlyphFit(
     val sizeScale: Float,

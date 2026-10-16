@@ -1,5 +1,6 @@
 package app.screenclock.data.occasion
 
+import app.screenclock.domain.time.DateParts
 import app.screenclock.domain.time.formatDateLine
 import com.nlf.calendar.util.HolidayUtil
 import java.time.LocalDate
@@ -14,7 +15,7 @@ class HolidayNameTest {
         val day = LocalDate.of(2026, 10, 1)
         val name = statutoryHolidayName(day)
         assertEquals("国庆节", name)
-        assertEquals("10月1日 周四 · 国庆节", formatDateLine(day, name))
+        assertEquals("2026年10月1日 星期四 · 国庆节", formatDateLine(day, holidayName = name, parts = DateParts(lunar = false)))
     }
 
     @Test

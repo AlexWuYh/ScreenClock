@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -30,6 +31,8 @@ import app.screenclock.ui.theme.flip.flapLayout
  * Shared slots for every theme: date above, hour and minute in the middle, one footer line below.
  * The footer is absent when both weather and occasion are absent.
  * [preview] shrinks every block so a small box (the theme picker) keeps the flaps as its subject.
+ * [meridiemBelow] puts the 上午/下午 mark under the digits instead of beside them;
+ * [infoColor] tints the date, footer and meridiem so scene backdrops stay readable.
  */
 @Composable
 internal fun ClockScaffold(
@@ -40,6 +43,8 @@ internal fun ClockScaffold(
     expanded: Boolean,
     modifier: Modifier = Modifier,
     preview: Boolean = false,
+    meridiemBelow: Boolean = false,
+    infoColor: Color = Info,
     onOccasionClick: (() -> Unit)? = null,
     digits: @Composable (stacked: Boolean, cardWidth: Dp, cardHeight: Dp, gap: Dp) -> Unit,
 ) {
@@ -68,7 +73,7 @@ internal fun ClockScaffold(
         val dateBlock = if (dateLine != null) lineBlock else 0.dp
         val footerBlock = if (footer != null) lineBlock else 0.dp
         val gapBlock = (if (dateLine != null) lineGap else 0.dp) + (if (footer != null) lineGap else 0.dp)
-        val side = if (face.meridiem != null) {
+        val side = if (face.meridiem != null && !meridiemBelow) {
             when {
                 preview -> 32.dp
                 expanded -> 80.dp
@@ -77,7 +82,12 @@ internal fun ClockScaffold(
         } else {
             0.dp
         }
-        val availHeight = (maxHeight - dateBlock - footerBlock - gapBlock).coerceAtLeast(1.dp)
+        val meridiemBlock = if (face.meridiem != null && meridiemBelow) {
+            if (preview) 14.dp else 32.dp
+        } else {
+            0.dp
+        }
+        val availHeight = (maxHeight - dateBlock - footerBlock - gapBlock - meridiemBlock).coerceAtLeast(1.dp)
         val stacked = clockStacked(maxWidth.value, maxHeight.value)
         val layout = flapLayout(
             width = maxWidth.value.coerceAtLeast(1f),
@@ -87,21 +97,36 @@ internal fun ClockScaffold(
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (dateLine != null) {
-                InfoLine(dateLine, infoSize)
+                InfoLine(dateLine, infoSize, infoColor)
                 Spacer(modifier = Modifier.height(lineGap))
             }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
-                if (face.meridiem != null) {
+            if (face.meridiem != null && meridiemBelow) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    Spacer(modifier = Modifier.height(if (preview) 2.dp else 6.dp))
                     Text(
                         text = face.meridiem,
-                        color = Info,
+                        color = infoColor,
                         fontFamily = FontFamily.SansSerif,
                         fontSize = infoSize,
                         maxLines = 1,
                         softWrap = false,
-                        modifier = Modifier.padding(start = 12.dp),
                     )
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    if (face.meridiem != null) {
+                        Text(
+                            text = face.meridiem,
+                            color = infoColor,
+                            fontFamily = FontFamily.SansSerif,
+                            fontSize = infoSize,
+                            maxLines = 1,
+                            softWrap = false,
+                            modifier = Modifier.padding(start = 12.dp),
+                        )
+                    }
                 }
             }
             if (footer != null) {
@@ -111,6 +136,7 @@ internal fun ClockScaffold(
                     occasionLine = occasionLine,
                     size = infoSize,
                     maxWidth = boardWidth,
+                    infoColor = infoColor,
                     onOccasionClick = onOccasionClick,
                 )
             }
@@ -124,6 +150,7 @@ private fun FooterLine(
     occasionLine: String?,
     size: TextUnit,
     maxWidth: Dp,
+    infoColor: Color,
     onOccasionClick: (() -> Unit)?,
 ) {
     val weather = weatherLine?.takeIf { it.isNotBlank() }
@@ -133,13 +160,13 @@ private fun FooterLine(
         verticalAlignment = Alignment.CenterVertically,
     ) {
         if (weather != null) {
-            InfoLine(weather, size)
+            InfoLine(weather, size, infoColor)
         }
         if (weather != null && occasion != null) {
-            InfoLine(" · ", size)
+            InfoLine(" · ", size, infoColor)
         }
         if (occasion != null) {
-            OccasionBar(occasion, size, onOccasionClick)
+            OccasionBar(occasion, size, infoColor, onOccasionClick)
         }
     }
 }
@@ -148,6 +175,7 @@ private fun FooterLine(
 private fun RowScope.OccasionBar(
     line: String,
     size: TextUnit,
+    infoColor: Color,
     onClick: (() -> Unit)?,
 ) {
     val parts = occasionBarParts(line)
@@ -158,7 +186,7 @@ private fun RowScope.OccasionBar(
     ) {
         Text(
             text = parts.lead,
-            color = Info,
+            color = infoColor,
             fontFamily = FontFamily.SansSerif,
             fontSize = size,
             maxLines = 1,
@@ -169,7 +197,7 @@ private fun RowScope.OccasionBar(
         if (parts.count.isNotEmpty()) {
             Text(
                 text = parts.count,
-                color = Info,
+                color = infoColor,
                 fontFamily = FontFamily.SansSerif,
                 fontSize = size,
                 maxLines = 1,
@@ -182,12 +210,13 @@ private fun RowScope.OccasionBar(
 @Composable
 private fun InfoLine(
     text: String,
-    size: androidx.compose.ui.unit.TextUnit,
+    size: TextUnit,
+    infoColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Text(
         text = text,
-        color = Info,
+        color = infoColor,
         fontFamily = FontFamily.SansSerif,
         fontSize = size,
         maxLines = 1,

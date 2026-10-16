@@ -74,6 +74,7 @@ import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
 import app.screenclock.ui.FieldLabel
+import app.screenclock.ui.GlassBorder
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
@@ -98,10 +99,18 @@ fun SettingsScreen(
     theme: ClockThemeId,
     colorway: ColorwayId,
     showDate: Boolean,
+    showYear: Boolean,
+    showWeekday: Boolean,
+    showLunarDate: Boolean,
+    showHoliday: Boolean,
     onHourMode: (HourMode) -> Unit,
     onTheme: (ClockThemeId) -> Unit,
     onColorway: (ColorwayId) -> Unit,
     onShowDate: (Boolean) -> Unit,
+    onShowYear: (Boolean) -> Unit,
+    onShowWeekday: (Boolean) -> Unit,
+    onShowLunarDate: (Boolean) -> Unit,
+    onShowHoliday: (Boolean) -> Unit,
     onBack: () -> Unit,
     weatherEnabled: Boolean,
     useLocation: Boolean,
@@ -189,6 +198,30 @@ fun SettingsScreen(
                 label = stringResource(R.string.show_date),
                 checked = showDate,
                 onCheckedChange = onShowDate,
+            )
+            ToggleRow(
+                label = stringResource(R.string.show_year),
+                checked = showYear,
+                enabled = showDate,
+                onCheckedChange = onShowYear,
+            )
+            ToggleRow(
+                label = stringResource(R.string.show_weekday),
+                checked = showWeekday,
+                enabled = showDate,
+                onCheckedChange = onShowWeekday,
+            )
+            ToggleRow(
+                label = stringResource(R.string.show_lunar),
+                checked = showLunarDate,
+                enabled = showDate,
+                onCheckedChange = onShowLunarDate,
+            )
+            ToggleRow(
+                label = stringResource(R.string.show_holiday),
+                checked = showHoliday,
+                enabled = showDate,
+                onCheckedChange = onShowHoliday,
             )
         }
         Spacer(modifier = Modifier.height(16.dp))
@@ -309,9 +342,10 @@ private fun themeLabel(id: ClockThemeId): Int {
         ClockThemeId.Flip -> R.string.theme_flip
         ClockThemeId.Tube -> R.string.theme_tube
         ClockThemeId.Digital -> R.string.theme_digital
-        ClockThemeId.Lcd -> R.string.theme_lcd
         ClockThemeId.Analog -> R.string.theme_analog
-        ClockThemeId.Moon -> R.string.theme_moon
+        ClockThemeId.Earth -> R.string.theme_earth
+        ClockThemeId.Fluid -> R.string.theme_fluid
+        ClockThemeId.Neon -> R.string.theme_neon
     }
 }
 
@@ -339,7 +373,7 @@ private fun ThemePreview(
                 .clip(shape)
                 .border(
                     width = if (selected) 1.5.dp else 1.dp,
-                    color = if (selected) Amber else Hairline,
+                    color = if (selected) Amber else GlassBorder,
                     shape = shape,
                 )
                 .background(Ink),

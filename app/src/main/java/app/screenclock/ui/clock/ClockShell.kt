@@ -1,6 +1,12 @@
 package app.screenclock.ui.clock
 
 import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.core.tween
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -16,7 +22,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,13 +35,21 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
@@ -42,11 +58,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.ui.AppIcon
+import app.screenclock.ui.glassPressable
+import app.screenclock.ui.glassSurface
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
@@ -57,6 +77,8 @@ import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.clockContentDescription
 import app.screenclock.domain.weather.formatWeatherLine
 import app.screenclock.ui.theme.ThemedClock
+import app.screenclock.ui.theme.scene.ThemeScene
+import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
@@ -101,12 +123,15 @@ fun ClockShell(viewModel: ClockViewModel) {
             1f,
         ) > 0f
     }
+    var rootSize by remember { mutableStateOf(IntSize.Zero) }
+    var pillPosition by remember { mutableStateOf(Offset.Zero) }
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Ink)
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .clipToBounds(),
+            .clipToBounds()
+            .onGloballyPositioned { rootSize = it.size },
     ) {
         BurnInShift(
             phase = burnIn.phase,
@@ -162,34 +187,64 @@ fun ClockShell(viewModel: ClockViewModel) {
                 )
             }
         }
-        if (chrome.visible) {
-            Row(
+        AnimatedVisibility(
+            visible = chrome.visible,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                .fillMaxWidth(),
+            enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
+            exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
+        ) {
+            Box(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(26.dp))
-                    .background(ChromeBar.copy(alpha = 0.96f))
-                    .border(1.dp, Hairline, RoundedCornerShape(26.dp))
-                    .padding(vertical = 10.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+                    .onGloballyPositioned { pillPosition = it.positionInRoot() }
+                    .glassSurface(corner = 26.dp, fill = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f)),
             ) {
-                ChromeAction(
-                    icon = AppIconKind.Sliders,
-                    label = stringResource(R.string.settings),
-                    onClick = viewModel::openSettings,
-                )
-                ChromeAction(
-                    icon = AppIconKind.Timer,
-                    label = stringResource(R.string.focus),
-                    onClick = viewModel::openFocus,
-                )
-                ChromeAction(
-                    icon = AppIconKind.Heart,
-                    label = stringResource(R.string.occasion),
-                    onClick = { viewModel.openOccasions(fromSettings = false) },
-                )
+                // A blurred copy of the theme scene, shifted so its pixels line up
+                // with the screen behind the glass.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .clipToBounds(),
+                ) {
+                    val density = LocalDensity.current
+                    val sceneWidth = with(density) { rootSize.width.toDp() }
+                    val sceneHeight = with(density) { rootSize.height.toDp() }
+                    ThemeScene(
+                        theme = clock?.theme ?: ClockThemeId.Flip,
+                        modifier = Modifier
+                            .requiredSize(sceneWidth, sceneHeight)
+                            .offset {
+                                IntOffset(-pillPosition.x.roundToInt(), -pillPosition.y.roundToInt())
+                            }
+                            .blur(18.dp),
+                    )
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 10.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    ChromeAction(
+                        icon = AppIconKind.Sliders,
+                        label = stringResource(R.string.settings),
+                        onClick = viewModel::openSettings,
+                    )
+                    ChromeAction(
+                        icon = AppIconKind.Timer,
+                        label = stringResource(R.string.focus),
+                        onClick = viewModel::openFocus,
+                    )
+                    ChromeAction(
+                        icon = AppIconKind.Heart,
+                        label = stringResource(R.string.occasion),
+                        onClick = { viewModel.openOccasions(fromSettings = false) },
+                    )
+                }
             }
         }
     }
@@ -204,7 +259,7 @@ private fun RowScope.ChromeAction(
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(18.dp))
-            .clickable(role = Role.Button, onClick = onClick)
+            .glassPressable(onClick = onClick)
             .padding(horizontal = 20.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {

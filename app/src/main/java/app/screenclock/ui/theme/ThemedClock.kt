@@ -7,9 +7,10 @@ import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.theme.analog.AnalogClock
 import app.screenclock.ui.theme.digital.DigitalClock
+import app.screenclock.ui.theme.earth.EarthClock
+import app.screenclock.ui.theme.fluid.FluidClock
 import app.screenclock.ui.theme.flip.FlipClock
-import app.screenclock.ui.theme.lcd.LcdClock
-import app.screenclock.ui.theme.moon.MoonClock
+import app.screenclock.ui.theme.neon.NeonClock
 import app.screenclock.ui.theme.tube.TubeClock
 
 @Composable
@@ -61,17 +62,6 @@ internal fun ThemedClock(
             preview = preview,
             onOccasionClick = onOccasionClick,
         )
-        ClockThemeId.Lcd -> LcdClock(
-            face = face,
-            dateLine = dateLine,
-            weatherLine = weatherLine,
-            occasionLine = occasionLine,
-            expanded = expanded,
-            animate = animate,
-            modifier = modifier,
-            preview = preview,
-            onOccasionClick = onOccasionClick,
-        )
         ClockThemeId.Analog -> AnalogClock(
             face = face,
             dateLine = dateLine,
@@ -83,7 +73,29 @@ internal fun ThemedClock(
             preview = preview,
             onOccasionClick = onOccasionClick,
         )
-        ClockThemeId.Moon -> MoonClock(
+        ClockThemeId.Earth -> EarthClock(
+            face = face,
+            dateLine = dateLine,
+            weatherLine = weatherLine,
+            occasionLine = occasionLine,
+            expanded = expanded,
+            animate = animate,
+            modifier = modifier,
+            preview = preview,
+            onOccasionClick = onOccasionClick,
+        )
+        ClockThemeId.Fluid -> FluidClock(
+            face = face,
+            dateLine = dateLine,
+            weatherLine = weatherLine,
+            occasionLine = occasionLine,
+            expanded = expanded,
+            animate = animate,
+            modifier = modifier,
+            preview = preview,
+            onOccasionClick = onOccasionClick,
+        )
+        ClockThemeId.Neon -> NeonClock(
             face = face,
             dateLine = dateLine,
             weatherLine = weatherLine,

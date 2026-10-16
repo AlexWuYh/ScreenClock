@@ -1,11 +1,13 @@
 package app.screenclock.controller
 
 import app.screenclock.data.settings.SettingsStore
+import app.screenclock.data.occasion.SixTailCalendar
 import app.screenclock.data.occasion.statutoryHolidayName
 import app.screenclock.data.weather.WeatherStore
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DateParts
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.time.displayMinute
@@ -32,6 +34,10 @@ data class ClockUiState(
     val dateLine: String?,
     val hourMode: HourMode,
     val showDate: Boolean,
+    val showYear: Boolean,
+    val showWeekday: Boolean,
+    val showLunarDate: Boolean,
+    val showHoliday: Boolean,
     val theme: ClockThemeId,
     val colorway: ColorwayId,
     val weatherEnabled: Boolean = false,
@@ -106,12 +112,26 @@ class ClockFaceController(
             face = formatFaceTime(shown.hour, shown.minute, prefs.hourMode, systemIs24Hour),
             dateLine = if (prefs.showDate) {
                 val today = shown.toLocalDate()
-                formatDateLine(today, statutoryHolidayName(today))
+                formatDateLine(
+                    date = today,
+                    lunarLabel = if (prefs.showLunarDate) SixTailCalendar.lunarDateLabel(today) else null,
+                    holidayName = if (prefs.showHoliday) statutoryHolidayName(today) else null,
+                    parts = DateParts(
+                        year = prefs.showYear,
+                        weekday = prefs.showWeekday,
+                        lunar = prefs.showLunarDate,
+                        holiday = prefs.showHoliday,
+                    ),
+                )
             } else {
                 null
             },
             hourMode = prefs.hourMode,
             showDate = prefs.showDate,
+            showYear = prefs.showYear,
+            showWeekday = prefs.showWeekday,
+            showLunarDate = prefs.showLunarDate,
+            showHoliday = prefs.showHoliday,
             theme = prefs.theme,
             colorway = prefs.colorway,
             weatherEnabled = weatherPrefs.enabled,

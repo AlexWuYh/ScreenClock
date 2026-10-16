@@ -1,7 +1,7 @@
 package app.screenclock.ui.theme.flip
 
-const val FLAP_ASPECT: Float = 1.85f
-const val FLAP_GAP_FRACTION: Float = 0.12f
+const val FLAP_ASPECT: Float = 1.6f
+const val FLAP_GAP_FRACTION: Float = 0.1f
 const val FLAP_CORNER_FRACTION: Float = 0.08f
 
 /** Portrait stacks the hour and minute groups. Landscape keeps them on one row. */

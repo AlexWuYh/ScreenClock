@@ -322,6 +322,22 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch { settingsRepository.setShowDate(show) }
     }
 
+    fun setShowYear(show: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowYear(show) }
+    }
+
+    fun setShowWeekday(show: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowWeekday(show) }
+    }
+
+    fun setShowLunarDate(show: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowLunarDate(show) }
+    }
+
+    fun setShowHoliday(show: Boolean) {
+        viewModelScope.launch { settingsRepository.setShowHoliday(show) }
+    }
+
     fun setTheme(theme: ClockThemeId) {
         viewModelScope.launch { settingsRepository.setTheme(theme) }
     }

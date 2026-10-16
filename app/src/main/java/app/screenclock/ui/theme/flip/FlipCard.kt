@@ -242,8 +242,5 @@ private fun Hinge(modifier: Modifier) {
             end = Offset(size.width, y),
             strokeWidth = stroke,
         )
-        val radius = size.height * 0.04f
-        drawCircle(color = Info, radius = radius, center = Offset(radius, y))
-        drawCircle(color = Info, radius = radius, center = Offset(size.width - radius, y))
     }
 }

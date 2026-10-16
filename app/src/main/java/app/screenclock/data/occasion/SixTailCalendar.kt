@@ -18,6 +18,18 @@ object SixTailCalendar : LunarCalendar {
         return Solar.fromYmd(date.year, date.monthValue, date.dayOfMonth).lunar.year
     }
 
+    /** 「五月十六」for the date line,「闰四月廿一」in a leap month. Library naming, not ours. */
+    fun lunarDateLabel(date: LocalDate): String? {
+        return try {
+            val lunar = Solar.fromYmd(date.year, date.monthValue, date.dayOfMonth).lunar
+            val month = lunar.monthInChinese?.takeIf { it.isNotBlank() } ?: return null
+            val day = lunar.dayInChinese?.takeIf { it.isNotBlank() } ?: return null
+            "$month$day"
+        } catch (_: RuntimeException) {
+            null
+        }
+    }
+
     override fun solarOf(lunarYear: Int, month: Int, day: Int, leap: Boolean): LocalDate? {
         if (month !in 1..12 || day !in 1..30) return null
         val lunarMonth = if (leap) -month else month

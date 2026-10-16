@@ -17,8 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
@@ -38,15 +36,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-/** One quiet card per settings section, so headers and rows stop floating on black. */
+private val GlassText = Color(0xFFF6F1E8)
+internal val AmberGlassFill = Amber.copy(alpha = 0.22f)
+internal val AmberGlassBorder = Amber.copy(alpha = 0.5f)
+
+/** One quiet glass card per settings section. */
 @Composable
 internal fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(20.dp))
-            .background(Panel)
-            .border(1.dp, Hairline, RoundedCornerShape(20.dp))
+            .glassSurface(corner = 20.dp)
             .padding(horizontal = 18.dp, vertical = 14.dp),
         content = content,
     )
@@ -62,7 +62,7 @@ internal fun SectionHeader(icon: AppIconKind, text: String) {
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = text,
-            color = Cream,
+            color = GlassText,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.4.sp,
@@ -75,30 +75,29 @@ internal fun SectionHeader(icon: AppIconKind, text: String) {
 internal fun PageTitle(text: String) {
     Text(
         text = text,
-        color = Cream,
+        color = GlassText,
         fontFamily = FontFamily.Serif,
         fontSize = 34.sp,
         modifier = Modifier.semantics { heading() },
     )
 }
 
-/** Circular icon button used for back, steppers and row actions. */
+/** Circular glass icon button used for back, steppers and row actions. */
 @Composable
 internal fun IconBox(
     icon: AppIconKind,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = Cream,
+    tint: Color = GlassText,
     enabled: Boolean = true,
 ) {
     Box(
         modifier = modifier
             .size(44.dp)
-            .clip(RoundedCornerShape(14.dp))
-            .background(PanelHigh)
-            .clickable(role = Role.Button, enabled = enabled, onClick = onClick)
-            .semantics { this.contentDescription = contentDescription },
+            .glassSurface(corner = 14.dp, fill = GlassFillHigh)
+            .semantics { this.contentDescription = contentDescription }
+            .glassPressable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
         AppIcon(kind = icon, tint = if (enabled) tint else Muted, size = 20.dp)
@@ -118,11 +117,11 @@ internal fun ToggleRow(
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
+            .toggleableRow(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, color = if (enabled) Cream else Muted, fontSize = 16.sp)
+            Text(text = label, color = if (enabled) GlassText else Muted, fontSize = 16.sp)
             if (note != null) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(text = note, color = Muted, fontSize = 13.sp)
@@ -139,21 +138,24 @@ internal fun ToggleRow(
     }
 }
 
+private fun Modifier.toggleableRow(value: Boolean, enabled: Boolean, role: Role, onValueChange: (Boolean) -> Unit) =
+    toggleable(value = value, enabled = enabled, role = role, onValueChange = onValueChange)
+
 @Composable
 internal fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = Ink,
-    checkedTrackColor = Amber,
-    checkedBorderColor = Amber,
-    uncheckedThumbColor = Info,
-    uncheckedTrackColor = PanelHigh,
-    uncheckedBorderColor = Hairline,
+    checkedThumbColor = Color(0xFFFFD9A8),
+    checkedTrackColor = Amber.copy(alpha = 0.32f),
+    checkedBorderColor = Amber.copy(alpha = 0.55f),
+    uncheckedThumbColor = Color(0xFFCFC8BC),
+    uncheckedTrackColor = GlassFillHigh,
+    uncheckedBorderColor = GlassBorder,
 )
 
 @Composable
 internal fun appSliderColors() = SliderDefaults.colors(
     thumbColor = Amber,
-    activeTrackColor = Amber,
-    inactiveTrackColor = Hairline,
+    activeTrackColor = Amber.copy(alpha = 0.65f),
+    inactiveTrackColor = GlassFillHigh,
 )
 
 @Composable
@@ -164,23 +166,30 @@ internal fun PrimaryButton(
     enabled: Boolean = true,
     icon: AppIconKind? = null,
 ) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = Amber,
-            contentColor = Ink,
-            disabledContainerColor = PanelHigh,
-            disabledContentColor = Muted,
-        ),
+    val tint = if (enabled) Amber else Muted
+    Box(
+        modifier = modifier
+            .height(52.dp)
+            .glassSurface(
+                corner = 16.dp,
+                fill = if (enabled) AmberGlassFill else GlassFill,
+                border = if (enabled) AmberGlassBorder else GlassBorder,
+            )
+            .glassPressable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        if (icon != null) {
-            AppIcon(kind = icon, tint = if (enabled) Ink else Muted, size = 18.dp)
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                AppIcon(kind = icon, tint = tint, size = 18.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(
+                text = text,
+                color = if (enabled) GlassText else Muted,
+                fontSize = 17.sp,
+                fontWeight = FontWeight.Medium,
+            )
         }
-        Text(text = text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -191,20 +200,20 @@ internal fun TonalButton(
     modifier: Modifier = Modifier,
     icon: AppIconKind? = null,
 ) {
-    Button(
-        onClick = onClick,
-        modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(16.dp),
-        colors = ButtonDefaults.buttonColors(
-            containerColor = PanelHigh,
-            contentColor = Cream,
-        ),
+    Box(
+        modifier = modifier
+            .height(52.dp)
+            .glassButtonSurface()
+            .glassPressable(onClick = onClick),
+        contentAlignment = Alignment.Center,
     ) {
-        if (icon != null) {
-            AppIcon(kind = icon, tint = Cream, size = 18.dp)
-            Spacer(modifier = Modifier.width(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (icon != null) {
+                AppIcon(kind = icon, tint = GlassText, size = 18.dp)
+                Spacer(modifier = Modifier.width(8.dp))
+            }
+            Text(text = text, color = GlassText, fontSize = 17.sp, fontWeight = FontWeight.Medium)
         }
-        Text(text = text, fontSize = 17.sp, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -228,9 +237,7 @@ internal fun StepRow(
         IconBox(icon = AppIconKind.Minus, contentDescription = decreaseLabel, onClick = onDecrease)
         Spacer(modifier = Modifier.width(12.dp))
         val valueBox = if (onPick != null) {
-            Modifier
-                .clip(RoundedCornerShape(12.dp))
-                .clickable(role = Role.Button, onClick = onPick)
+            Modifier.glassPressable(onClick = onPick)
         } else {
             Modifier
         }
@@ -240,7 +247,7 @@ internal fun StepRow(
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = value, color = Cream, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Text(text = value, color = GlassText, fontSize = 18.sp, fontWeight = FontWeight.Medium)
         }
         Spacer(modifier = Modifier.width(12.dp))
         IconBox(icon = AppIconKind.Plus, contentDescription = increaseLabel, onClick = onIncrease)
@@ -264,34 +271,37 @@ internal data class SegmentOption(
     val onClick: () -> Unit,
 )
 
-/** A single-choice pill row: the selection is the only amber on the surface. */
+/** A single-choice pill row on glass: the selection glows amber. */
 @Composable
 internal fun SegmentedRow(options: List<SegmentOption>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(14.dp))
-            .background(PanelHigh)
-            .border(1.dp, Hairline, RoundedCornerShape(14.dp))
-            .padding(4.dp),
+            .glassSurface(corner = 14.dp, fill = GlassFillHigh),
     ) {
         options.forEach { option ->
+            val shape = RoundedCornerShape(10.dp)
             Box(
                 modifier = Modifier
                     .weight(1f)
+                    .padding(4.dp)
                     .height(40.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(if (option.selected) Amber else Color.Transparent)
-                    .selectable(
-                        selected = option.selected,
-                        role = Role.Tab,
-                        onClick = option.onClick,
-                    ),
+                    .then(
+                        if (option.selected) {
+                            Modifier
+                                .clip(shape)
+                                .background(AmberGlassFill)
+                                .border(1.dp, AmberGlassBorder, shape)
+                        } else {
+                            Modifier.clip(shape)
+                        },
+                    )
+                    .glassPressable(role = Role.Tab, onClick = option.onClick),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     text = option.label,
-                    color = if (option.selected) Ink else Info,
+                    color = if (option.selected) GlassText else Info,
                     fontSize = 14.sp,
                     fontWeight = if (option.selected) FontWeight.Medium else FontWeight.Normal,
                     maxLines = 1,
@@ -315,14 +325,14 @@ internal fun NavRow(
             .fillMaxWidth()
             .heightIn(min = 52.dp)
             .clip(RoundedCornerShape(12.dp))
-            .clickable(role = Role.Button, onClick = onClick),
+            .glassPressable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         AppIcon(kind = icon, tint = Amber, size = 18.dp)
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
-            color = Cream,
+            color = GlassText,
             fontSize = 16.sp,
             modifier = Modifier.weight(1f),
         )

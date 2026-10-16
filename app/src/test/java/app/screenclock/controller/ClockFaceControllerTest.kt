@@ -1,5 +1,6 @@
 package app.screenclock.controller
 
+import app.screenclock.data.occasion.SixTailCalendar
 import app.screenclock.data.settings.SettingsStore
 import app.screenclock.data.weather.WeatherStore
 import app.screenclock.domain.time.ClockPreferences
@@ -8,6 +9,7 @@ import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.weather.SavedCity
 import app.screenclock.domain.weather.WeatherCache
+import java.time.LocalDate
 import app.screenclock.domain.weather.WeatherPreferences
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +32,22 @@ private class FakeSettingsStore : SettingsStore {
 
     override suspend fun setShowDate(show: Boolean) {
         state.value = state.value.copy(showDate = show)
+    }
+
+    override suspend fun setShowYear(show: Boolean) {
+        state.value = state.value.copy(showYear = show)
+    }
+
+    override suspend fun setShowWeekday(show: Boolean) {
+        state.value = state.value.copy(showWeekday = show)
+    }
+
+    override suspend fun setShowLunarDate(show: Boolean) {
+        state.value = state.value.copy(showLunarDate = show)
+    }
+
+    override suspend fun setShowHoliday(show: Boolean) {
+        state.value = state.value.copy(showHoliday = show)
     }
 
     override suspend fun setTheme(theme: ClockThemeId) {
@@ -94,6 +112,23 @@ class ClockFaceControllerTest {
     fun theDateLineHidesWhenTurnedOff() {
         val settings = FakeSettingsStore().apply { state.value = ClockPreferences(showDate = false) }
         assertNull(controller(settings = settings).clock.value?.dateLine)
+    }
+
+    @Test
+    fun theDateLinePartsFollowTheirSwitches() {
+        val bare = FakeSettingsStore().apply {
+            state.value = ClockPreferences(
+                showDate = true,
+                showWeekday = false,
+                showLunarDate = false,
+                showHoliday = false,
+            )
+        }
+        assertEquals("2026年10月16日", controller(settings = bare).clock.value?.dateLine)
+
+        val full = FakeSettingsStore()
+        val lunar = SixTailCalendar.lunarDateLabel(LocalDate.of(2026, 10, 16))
+        assertEquals("2026年10月16日 $lunar 星期五", controller(settings = full).clock.value?.dateLine)
     }
 
     @Test
