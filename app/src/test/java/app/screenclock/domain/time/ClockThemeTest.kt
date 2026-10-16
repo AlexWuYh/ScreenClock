@@ -6,6 +6,18 @@ import org.junit.Test
 
 class ClockThemeTest {
     @Test
+    fun everyThemeAndColorwaySurvivesAStoreRoundTrip() {
+        for (theme in ClockThemeId.entries) {
+            assertEquals(theme, ClockThemeId.fromStored(theme.name))
+        }
+        for (colorway in ColorwayId.entries) {
+            assertEquals(colorway, ColorwayId.fromStored(colorway.name))
+        }
+        assertEquals(ClockThemeId.Moon, ClockThemeId.fromStored("Moon"))
+        assertEquals(ColorwayId.SnowWhite, ColorwayId.fromStored("SnowWhite"))
+    }
+
+    @Test
     fun storedThemeAndColorwayFallBackToTheDefaults() {
         assertEquals(ClockThemeId.Flip, ClockThemeId.fromStored(null))
         assertEquals(ClockThemeId.Flip, ClockThemeId.fromStored("slow"))

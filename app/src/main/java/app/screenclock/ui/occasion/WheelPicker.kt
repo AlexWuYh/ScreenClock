@@ -1,6 +1,7 @@
 package app.screenclock.ui.occasion
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.snapping.rememberSnapFlingBehavior
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -31,13 +32,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import app.screenclock.R
-import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.Amber
 import app.screenclock.ui.Cream
+import app.screenclock.ui.Hairline
 import app.screenclock.ui.Info
+import app.screenclock.ui.Muted
+import app.screenclock.ui.Panel
+import app.screenclock.ui.PanelHigh
 
 private val WheelItemHeight = 44.dp
 private const val WheelVisibleItems = 3
@@ -83,8 +89,9 @@ private fun WheelColumn(
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .height(WheelItemHeight)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Cream.copy(alpha = 0.06f)),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(PanelHigh)
+                    .border(1.dp, Hairline, RoundedCornerShape(12.dp)),
             )
             LazyColumn(
                 state = state,
@@ -104,7 +111,8 @@ private fun WheelColumn(
                     ) {
                         Text(
                             text = item,
-                            color = if (index == settled) Cream else Info,
+                            color = if (index == settled) Cream else Muted,
+                            fontWeight = if (index == settled) FontWeight.Medium else FontWeight.Normal,
                             fontSize = 20.sp,
                         )
                     }
@@ -142,8 +150,9 @@ internal fun DateWheelDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
-                .clip(RoundedCornerShape(20.dp))
-                .background(ChromeBar)
+                .clip(RoundedCornerShape(22.dp))
+                .background(Panel)
+                .border(1.dp, Hairline, RoundedCornerShape(22.dp))
                 .padding(horizontal = 20.dp, vertical = 20.dp)
                 .widthIn(min = 280.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -187,7 +196,12 @@ internal fun DateWheelDialog(
                         onPick(pickedYear, pickedMonth, pickedDay.coerceAtMost(dayMax))
                     },
                 ) {
-                    Text(text = stringResource(R.string.occasion_done), color = Cream, fontSize = 16.sp)
+                    Text(
+                        text = stringResource(R.string.occasion_done),
+                        color = Amber,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
                 }
             }
         }

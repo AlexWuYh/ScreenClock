@@ -45,6 +45,10 @@ class SettingsRepository(private val context: Context) : SettingsStore {
             }
         }
     }
+
+    override suspend fun setColorway(colorway: ColorwayId) {
+        context.clockSettingsStore.edit { prefs -> prefs[ColorwayKey] = colorway.name }
+    }
 }
 
 private fun Preferences.toClockPreferences(): ClockPreferences {

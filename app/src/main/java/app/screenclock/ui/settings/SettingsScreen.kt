@@ -4,13 +4,12 @@ import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.net.Uri
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -26,24 +25,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
@@ -59,14 +50,15 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.net.toUri
 import app.screenclock.R
+import app.screenclock.controller.WeatherNotice
+import app.screenclock.controller.WeatherPanel
 import app.screenclock.domain.burnin.normalizeIdleMillis
 import app.screenclock.domain.burnin.normalizeRunMillis
 import app.screenclock.domain.time.ClockThemeId
@@ -78,12 +70,23 @@ import app.screenclock.domain.weather.WeatherCache
 import app.screenclock.domain.weather.formatUpdatedAt
 import app.screenclock.domain.weather.formatWeatherLine
 import app.screenclock.ui.Amber
-import app.screenclock.controller.WeatherNotice
-import app.screenclock.controller.WeatherPanel
-import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.AppIcon
+import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
+import app.screenclock.ui.FieldLabel
+import app.screenclock.ui.Hairline
+import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Muted
+import app.screenclock.ui.NavRow
+import app.screenclock.ui.PageTitle
+import app.screenclock.ui.SectionCard
+import app.screenclock.ui.SectionHeader
+import app.screenclock.ui.SegmentOption
+import app.screenclock.ui.SegmentedRow
+import app.screenclock.ui.ToggleRow
+import app.screenclock.ui.appSliderColors
 import app.screenclock.ui.theme.ThemedClock
 import java.time.ZoneId
 
@@ -97,6 +100,7 @@ fun SettingsScreen(
     showDate: Boolean,
     onHourMode: (HourMode) -> Unit,
     onTheme: (ClockThemeId) -> Unit,
+    onColorway: (ColorwayId) -> Unit,
     onShowDate: (Boolean) -> Unit,
     onBack: () -> Unit,
     weatherEnabled: Boolean,
@@ -135,139 +139,118 @@ fun SettingsScreen(
             .background(Ink)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        TextButton(onClick = onBack) {
-            Text(
-                text = stringResource(R.string.back),
-                color = Cream,
-                fontSize = 16.sp,
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.settings),
-            color = Cream,
-            fontFamily = FontFamily.Serif,
-            fontSize = 36.sp,
-            modifier = Modifier.semantics { heading() },
+        IconBox(
+            icon = AppIconKind.Back,
+            contentDescription = stringResource(R.string.back),
+            onClick = onBack,
         )
-        Spacer(modifier = Modifier.height(28.dp))
-        Text(
-            text = stringResource(R.string.section_display),
-            color = Cream,
-            fontSize = 14.sp,
-            modifier = Modifier.semantics { heading() },
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.hour_mode),
-            color = Info,
-            fontSize = 14.sp,
-        )
-        Column(modifier = Modifier.selectableGroup()) {
-            HourModeRow(
-                label = stringResource(R.string.hour_mode_system),
-                selected = hourMode == HourMode.FollowSystem,
-                onClick = { onHourMode(HourMode.FollowSystem) },
-            )
-            HourModeRow(
-                label = stringResource(R.string.hour_mode_12),
-                selected = hourMode == HourMode.H12,
-                onClick = { onHourMode(HourMode.H12) },
-            )
-            HourModeRow(
-                label = stringResource(R.string.hour_mode_24),
-                selected = hourMode == HourMode.H24,
-                onClick = { onHourMode(HourMode.H24) },
-            )
-        }
-        Spacer(modifier = Modifier.height(20.dp))
-        Text(
-            text = stringResource(R.string.theme),
-            color = Info,
-            fontSize = 14.sp,
-        )
-        Spacer(modifier = Modifier.height(12.dp))
-        ThemePicker(
-            face = face,
-            dateLine = dateLine,
-            theme = theme,
-            colorway = colorway,
-            weather = weather,
-            onTheme = onTheme,
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp)
-                .toggleable(
-                    value = showDate,
-                    role = Role.Switch,
-                    onValueChange = onShowDate,
+        Spacer(modifier = Modifier.height(14.dp))
+        PageTitle(stringResource(R.string.settings))
+        Spacer(modifier = Modifier.height(22.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_display))
+            FieldLabel(stringResource(R.string.hour_mode))
+            Spacer(modifier = Modifier.height(8.dp))
+            SegmentedRow(
+                listOf(
+                    SegmentOption(
+                        label = stringResource(R.string.hour_mode_system),
+                        selected = hourMode == HourMode.FollowSystem,
+                        onClick = { onHourMode(HourMode.FollowSystem) },
+                    ),
+                    SegmentOption(
+                        label = stringResource(R.string.hour_mode_12),
+                        selected = hourMode == HourMode.H12,
+                        onClick = { onHourMode(HourMode.H12) },
+                    ),
+                    SegmentOption(
+                        label = stringResource(R.string.hour_mode_24),
+                        selected = hourMode == HourMode.H24,
+                        onClick = { onHourMode(HourMode.H24) },
+                    ),
                 ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Text(
-                text = stringResource(R.string.show_date),
-                color = Cream,
-                fontSize = 18.sp,
-                modifier = Modifier.weight(1f),
             )
-            Switch(
+            Spacer(modifier = Modifier.height(18.dp))
+            FieldLabel(stringResource(R.string.theme))
+            Spacer(modifier = Modifier.height(8.dp))
+            ThemePicker(
+                face = face,
+                dateLine = dateLine,
+                theme = theme,
+                colorway = colorway,
+                weather = weather,
+                onTheme = onTheme,
+                onColorway = onColorway,
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            ToggleRow(
+                label = stringResource(R.string.show_date),
                 checked = showDate,
-                onCheckedChange = null,
-                modifier = Modifier.clearAndSetSemantics { },
-                colors = SwitchDefaults.colors(
-                    checkedThumbColor = Ink,
-                    checkedTrackColor = Cream,
-                    uncheckedThumbColor = Cream,
-                    uncheckedTrackColor = ChromeBar,
-                    uncheckedBorderColor = Info,
-                ),
+                onCheckedChange = onShowDate,
             )
         }
-        Spacer(modifier = Modifier.height(28.dp))
-        WeatherSection(
-            enabled = weatherEnabled,
-            useLocation = useLocation,
-            cityLabel = cityLabel,
-            weather = weather,
-            panel = panel,
-            onEnabled = onWeatherEnabled,
-            onUseLocation = onUseLocation,
-            onLocate = onLocate,
-            onLocationDenied = onLocationDenied,
-            onSearch = onSearch,
-            onSelectCity = onSelectCity,
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        BurnInSection(
-            enabled = burnInEnabled,
-            idleMillis = burnInIdleMillis,
-            runMillis = burnInRunMillis,
-            onEnabled = onBurnInEnabled,
-            onIdleMillis = onBurnInIdleMillis,
-            onRunMillis = onBurnInRunMillis,
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        NightSection(
-            dimEnabled = nightDimEnabled,
-            startHour = nightStartHour,
-            endHour = nightEndHour,
-            warmEnabled = nightWarmEnabled,
-            chargeKeepAwake = chargeKeepAwake,
-            onDimEnabled = onNightDimEnabled,
-            onStartHour = onNightStartHour,
-            onEndHour = onNightEndHour,
-            onWarmEnabled = onNightWarmEnabled,
-            onChargeKeepAwake = onChargeKeepAwake,
-        )
-        Spacer(modifier = Modifier.height(28.dp))
-        OccasionSection(onOpen = onOpenOccasions)
-        Spacer(modifier = Modifier.height(28.dp))
-        AboutCredit()
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Location, text = stringResource(R.string.section_weather))
+            WeatherSection(
+                enabled = weatherEnabled,
+                useLocation = useLocation,
+                cityLabel = cityLabel,
+                weather = weather,
+                panel = panel,
+                onEnabled = onWeatherEnabled,
+                onUseLocation = onUseLocation,
+                onLocate = onLocate,
+                onLocationDenied = onLocationDenied,
+                onSearch = onSearch,
+                onSelectCity = onSelectCity,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
+            BurnInSection(
+                enabled = burnInEnabled,
+                idleMillis = burnInIdleMillis,
+                runMillis = burnInRunMillis,
+                onEnabled = onBurnInEnabled,
+                onIdleMillis = onBurnInIdleMillis,
+                onRunMillis = onBurnInRunMillis,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Moon, text = stringResource(R.string.section_night))
+            NightSection(
+                dimEnabled = nightDimEnabled,
+                startHour = nightStartHour,
+                endHour = nightEndHour,
+                warmEnabled = nightWarmEnabled,
+                chargeKeepAwake = chargeKeepAwake,
+                onDimEnabled = onNightDimEnabled,
+                onStartHour = onNightStartHour,
+                onEndHour = onNightEndHour,
+                onWarmEnabled = onNightWarmEnabled,
+                onChargeKeepAwake = onChargeKeepAwake,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Heart, text = stringResource(R.string.section_occasion))
+            NavRow(
+                icon = AppIconKind.Heart,
+                label = stringResource(R.string.occasion),
+                onClick = onOpenOccasions,
+            )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Link, text = stringResource(R.string.section_about))
+            AboutCredit()
+        }
+        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
@@ -279,48 +262,56 @@ private fun ThemePicker(
     colorway: ColorwayId,
     weather: WeatherCache?,
     onTheme: (ClockThemeId) -> Unit,
+    onColorway: (ColorwayId) -> Unit,
 ) {
-    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-        val sideBySide = maxWidth >= 520.dp
-        if (sideBySide) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        ClockThemeId.entries.chunked(2).forEach { rowItems ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                ThemePreview(
-                    label = stringResource(R.string.theme_flip),
-                    selected = theme == ClockThemeId.Flip,
-                    onClick = { onTheme(ClockThemeId.Flip) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    ThemeFace(ClockThemeId.Flip, colorway, face, dateLine, weather, expanded = true)
+                rowItems.forEach { id ->
+                    ThemePreview(
+                        label = stringResource(themeLabel(id)),
+                        selected = theme == id,
+                        onClick = { onTheme(id) },
+                        modifier = Modifier.weight(1f),
+                    ) {
+                        ThemeFace(id, colorway, face, dateLine, weather)
+                    }
                 }
-                ThemePreview(
-                    label = stringResource(R.string.theme_tube),
-                    selected = theme == ClockThemeId.Tube,
-                    onClick = { onTheme(ClockThemeId.Tube) },
-                    modifier = Modifier.weight(1f),
-                ) {
-                    ThemeFace(ClockThemeId.Tube, colorway, face, dateLine, weather, expanded = true)
-                }
-            }
-        } else {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                ThemePreview(
-                    label = stringResource(R.string.theme_flip),
-                    selected = theme == ClockThemeId.Flip,
-                    onClick = { onTheme(ClockThemeId.Flip) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ThemeFace(ClockThemeId.Flip, colorway, face, dateLine, weather, expanded = false)
-                }
-                ThemePreview(
-                    label = stringResource(R.string.theme_tube),
-                    selected = theme == ClockThemeId.Tube,
-                    onClick = { onTheme(ClockThemeId.Tube) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ThemeFace(ClockThemeId.Tube, colorway, face, dateLine, weather, expanded = false)
+                if (rowItems.size == 1) {
+                    Spacer(modifier = Modifier.weight(1f))
                 }
             }
         }
+    }
+    if (theme == ClockThemeId.Flip) {
+        Spacer(modifier = Modifier.height(14.dp))
+        FieldLabel(stringResource(R.string.colorway_name))
+        Spacer(modifier = Modifier.height(8.dp))
+        SegmentedRow(
+            listOf(
+                SegmentOption(
+                    label = stringResource(R.string.colorway_ink),
+                    selected = colorway == ColorwayId.InkBlack,
+                    onClick = { onColorway(ColorwayId.InkBlack) },
+                ),
+                SegmentOption(
+                    label = stringResource(R.string.colorway_snow),
+                    selected = colorway == ColorwayId.SnowWhite,
+                    onClick = { onColorway(ColorwayId.SnowWhite) },
+                ),
+            ),
+        )
+    }
+}
+
+private fun themeLabel(id: ClockThemeId): Int {
+    return when (id) {
+        ClockThemeId.Flip -> R.string.theme_flip
+        ClockThemeId.Tube -> R.string.theme_tube
+        ClockThemeId.Digital -> R.string.theme_digital
+        ClockThemeId.Lcd -> R.string.theme_lcd
+        ClockThemeId.Analog -> R.string.theme_analog
+        ClockThemeId.Moon -> R.string.theme_moon
     }
 }
 
@@ -344,11 +335,11 @@ private fun ThemePreview(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(176.dp)
+                .height(132.dp)
                 .clip(shape)
                 .border(
                     width = if (selected) 1.5.dp else 1.dp,
-                    color = if (selected) Amber else ChromeBar,
+                    color = if (selected) Amber else Hairline,
                     shape = shape,
                 )
                 .background(Ink),
@@ -373,54 +364,21 @@ private fun ThemeFace(
     face: FaceTime?,
     dateLine: String?,
     weather: WeatherCache?,
-    expanded: Boolean,
 ) {
     if (face == null) return
-    ThemedClock(
-        theme = theme,
-        colorway = colorway,
-        face = face,
-        dateLine = dateLine,
-        weatherLine = formatWeatherLine(weather, showRange = expanded),
-        occasionLine = null,
-        expanded = expanded,
-        animate = false,
-        modifier = Modifier.fillMaxSize(),
-        preview = true,
-    )
-}
-
-@Composable
-private fun HourModeRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(
-                selected = selected,
-                role = Role.RadioButton,
-                onClick = onClick,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = Cream,
-                unselectedColor = Info,
-            ),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            color = Cream,
-            fontSize = 18.sp,
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val expanded = maxWidth >= 240.dp
+        ThemedClock(
+            theme = theme,
+            colorway = colorway,
+            face = face,
+            dateLine = dateLine,
+            weatherLine = formatWeatherLine(weather, showRange = expanded),
+            occasionLine = null,
+            expanded = expanded,
+            animate = false,
+            modifier = Modifier.fillMaxSize(),
+            preview = true,
         )
     }
 }
@@ -445,92 +403,43 @@ private fun WeatherSection(
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) onLocate(here) else onLocationDenied()
     }
-    Text(
-        text = stringResource(R.string.section_weather),
-        color = Cream,
-        fontSize = 14.sp,
-        modifier = Modifier.semantics { heading() },
+    ToggleRow(
+        label = stringResource(R.string.show_weather),
+        checked = enabled,
+        onCheckedChange = onEnabled,
     )
-    Spacer(modifier = Modifier.height(4.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = enabled, role = Role.Switch, onValueChange = onEnabled),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.show_weather),
-            color = Cream,
-            fontSize = 18.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = enabled,
-            onCheckedChange = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Ink,
-                checkedTrackColor = Cream,
-                uncheckedThumbColor = Cream,
-                uncheckedTrackColor = ChromeBar,
-                uncheckedBorderColor = Info,
-            ),
-        )
-    }
     if (!enabled) {
         Text(
             text = stringResource(R.string.weather_off),
-            color = Info,
-            fontSize = 16.sp,
+            color = Muted,
+            fontSize = 14.sp,
         )
         return
     }
     if (cityLabel != null) {
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(text = cityLabel, color = Cream, fontSize = 18.sp)
+        Spacer(modifier = Modifier.height(6.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppIcon(kind = AppIconKind.Location, tint = Info, size = 16.dp)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(text = cityLabel, color = Cream, fontSize = 16.sp)
+        }
     }
     Spacer(modifier = Modifier.height(8.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(
-                value = useLocation,
-                role = Role.Switch,
-                onValueChange = { want ->
-                    if (!want) {
-                        onUseLocation(false)
-                    } else if (context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
-                        PackageManager.PERMISSION_GRANTED
-                    ) {
-                        onLocate(here)
-                    } else {
-                        permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
-                    }
-                },
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.weather_use_location),
-            color = Cream,
-            fontSize = 18.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = useLocation,
-            onCheckedChange = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Ink,
-                checkedTrackColor = Cream,
-                uncheckedThumbColor = Cream,
-                uncheckedTrackColor = ChromeBar,
-                uncheckedBorderColor = Info,
-            ),
-        )
-    }
+    ToggleRow(
+        label = stringResource(R.string.weather_use_location),
+        checked = useLocation,
+        onCheckedChange = { want ->
+            if (!want) {
+                onUseLocation(false)
+            } else if (context.checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
+            ) {
+                onLocate(here)
+            } else {
+                permission.launch(Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+        },
+    )
     Spacer(modifier = Modifier.height(12.dp))
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -541,31 +450,27 @@ private fun WeatherSection(
             onValueChange = { query = it.take(40) },
             modifier = Modifier.weight(1f),
             singleLine = true,
-            textStyle = TextStyle(color = Cream, fontSize = 18.sp),
+            textStyle = TextStyle(color = Cream, fontSize = 16.sp),
+            shape = RoundedCornerShape(14.dp),
             placeholder = {
-                Text(text = stringResource(R.string.weather_search_hint), color = Info, fontSize = 18.sp)
+                Text(text = stringResource(R.string.weather_search_hint), color = Muted, fontSize = 16.sp)
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             keyboardActions = KeyboardActions(onSearch = { onSearch(query) }),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Cream,
                 unfocusedTextColor = Cream,
-                focusedBorderColor = Cream,
-                unfocusedBorderColor = Info,
-                cursorColor = Cream,
+                focusedBorderColor = Amber,
+                unfocusedBorderColor = Hairline,
+                cursorColor = Amber,
             ),
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        TextButton(
+        Spacer(modifier = Modifier.width(10.dp))
+        IconBox(
+            icon = AppIconKind.Search,
+            contentDescription = stringResource(R.string.weather_search),
             onClick = { onSearch(query) },
-            enabled = !panel.busy && query.isNotBlank(),
-        ) {
-            Text(
-                text = stringResource(R.string.weather_search),
-                color = if (!panel.busy && query.isNotBlank()) Cream else Info,
-                fontSize = 18.sp,
-            )
-        }
+        )
     }
     panel.results.forEach { place ->
         key(place.label, place.latitude, place.longitude) {
@@ -573,10 +478,13 @@ private fun WeatherSection(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(min = 48.dp)
+                    .clip(RoundedCornerShape(12.dp))
                     .clickable { onSelectCity(place) },
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(text = place.label, color = Cream, fontSize = 18.sp)
+                AppIcon(kind = AppIconKind.Location, tint = Muted, size = 16.dp)
+                Spacer(modifier = Modifier.width(10.dp))
+                Text(text = place.label, color = Cream, fontSize = 16.sp)
             }
         }
     }
@@ -589,7 +497,7 @@ private fun WeatherSection(
     }
     if (status != null) {
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = status, color = Info, fontSize = 16.sp)
+        Text(text = status, color = Muted, fontSize = 14.sp)
     }
     if (panel.notice == WeatherNotice.Unavailable && weather != null) {
         Spacer(modifier = Modifier.height(4.dp))
@@ -598,8 +506,8 @@ private fun WeatherSection(
                 R.string.weather_updated,
                 formatUpdatedAt(weather.fetchedAtEpochMillis, ZoneId.systemDefault()),
             ),
-            color = Info,
-            fontSize = 16.sp,
+            color = Muted,
+            fontSize = 14.sp,
         )
     }
 }
@@ -613,39 +521,12 @@ private fun BurnInSection(
     onIdleMillis: (Long) -> Unit,
     onRunMillis: (Long) -> Unit,
 ) {
-    Text(
-        text = stringResource(R.string.section_burnin),
-        color = Cream,
-        fontSize = 14.sp,
-        modifier = Modifier.semantics { heading() },
+    ToggleRow(
+        label = stringResource(R.string.burnin_enable),
+        checked = enabled,
+        onCheckedChange = onEnabled,
     )
-    Spacer(modifier = Modifier.height(4.dp))
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = enabled, role = Role.Switch, onValueChange = onEnabled),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.burnin_enable),
-            color = Cream,
-            fontSize = 18.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = enabled,
-            onCheckedChange = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Ink,
-                checkedTrackColor = Cream,
-                uncheckedThumbColor = Cream,
-                uncheckedTrackColor = ChromeBar,
-                uncheckedBorderColor = Info,
-            ),
-        )
-    }
+    if (!enabled) return
     val idleMinutes = (normalizeIdleMillis(idleMillis) / 60_000L).toFloat()
     var idleValue by remember(idleMinutes) { mutableFloatStateOf(idleMinutes) }
     DurationRow(
@@ -658,11 +539,7 @@ private fun BurnInSection(
         onValueChangeFinished = { onIdleMillis(idleValue.toLong() * 60_000L) },
         valueRange = 1f..60f,
         steps = 58,
-        colors = SliderDefaults.colors(
-            thumbColor = Cream,
-            activeTrackColor = Cream,
-            inactiveTrackColor = ChromeBar,
-        ),
+        colors = appSliderColors(),
     )
     val runSeconds = (normalizeRunMillis(runMillis) / 1_000L).toFloat()
     var runValue by remember(runSeconds) { mutableFloatStateOf(runSeconds) }
@@ -676,11 +553,7 @@ private fun BurnInSection(
         onValueChangeFinished = { onRunMillis(runValue.toLong() * 1_000L) },
         valueRange = 10f..1_800f,
         steps = 178,
-        colors = SliderDefaults.colors(
-            thumbColor = Cream,
-            activeTrackColor = Cream,
-            inactiveTrackColor = ChromeBar,
-        ),
+        colors = appSliderColors(),
     )
 }
 
@@ -689,19 +562,15 @@ private fun DurationRow(label: String, value: String) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 8.dp),
+            .padding(top = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            color = Info,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(1f),
-        )
+        FieldLabel(label)
+        Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             color = Cream,
-            fontSize = 16.sp,
+            fontSize = 15.sp,
         )
     }
 }
@@ -731,14 +600,7 @@ private fun NightSection(
     onWarmEnabled: (Boolean) -> Unit,
     onChargeKeepAwake: (Boolean) -> Unit,
 ) {
-    Text(
-        text = stringResource(R.string.section_night),
-        color = Cream,
-        fontSize = 14.sp,
-        modifier = Modifier.semantics { heading() },
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    SettingSwitch(
+    ToggleRow(
         label = stringResource(R.string.night_dim),
         checked = dimEnabled,
         onCheckedChange = onDimEnabled,
@@ -746,9 +608,10 @@ private fun NightSection(
     if (dimEnabled) {
         Text(
             text = stringResource(R.string.night_hint),
-            color = Info,
-            fontSize = 14.sp,
+            color = Muted,
+            fontSize = 13.sp,
         )
+        Spacer(modifier = Modifier.height(6.dp))
         HourStep(
             label = stringResource(R.string.night_start),
             hour = startHour,
@@ -760,50 +623,16 @@ private fun NightSection(
             onHour = onEndHour,
         )
     }
-    SettingSwitch(
+    ToggleRow(
         label = stringResource(R.string.night_warm),
         checked = warmEnabled,
         onCheckedChange = onWarmEnabled,
     )
-    SettingSwitch(
+    ToggleRow(
         label = stringResource(R.string.charge_keep_awake),
         checked = chargeKeepAwake,
         onCheckedChange = onChargeKeepAwake,
     )
-}
-
-@Composable
-private fun SettingSwitch(
-    label: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = label,
-            color = Cream,
-            fontSize = 18.sp,
-            modifier = Modifier.weight(1f),
-        )
-        Switch(
-            checked = checked,
-            onCheckedChange = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = SwitchDefaults.colors(
-                checkedThumbColor = Ink,
-                checkedTrackColor = Cream,
-                uncheckedThumbColor = Cream,
-                uncheckedTrackColor = ChromeBar,
-                uncheckedBorderColor = Info,
-            ),
-        )
-    }
 }
 
 @Composable
@@ -812,43 +641,29 @@ private fun HourStep(label: String, hour: Int, onHour: (Int) -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .heightIn(min = 48.dp),
+            .heightIn(min = 52.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(
-            text = label,
-            color = Info,
-            fontSize = 14.sp,
-            modifier = Modifier.weight(1f),
+        FieldLabel(label)
+        Spacer(modifier = Modifier.weight(1f))
+        IconBox(
+            icon = AppIconKind.ChevronLeft,
+            contentDescription = stringResource(R.string.night_earlier),
+            onClick = { onHour((shown + 23) % 24) },
         )
-        TextButton(onClick = { onHour((shown + 23) % 24) }) {
-            Text(text = stringResource(R.string.night_earlier), color = Cream, fontSize = 16.sp)
-        }
+        Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = stringResource(R.string.night_hour, shown),
             color = Cream,
             fontSize = 18.sp,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.width(58.dp),
         )
-        TextButton(onClick = { onHour((shown + 1) % 24) }) {
-            Text(text = stringResource(R.string.night_later), color = Cream, fontSize = 16.sp)
-        }
-    }
-}
-
-@Composable
-private fun OccasionSection(onOpen: () -> Unit) {
-    Text(
-        text = stringResource(R.string.section_occasion),
-        color = Cream,
-        fontSize = 14.sp,
-        modifier = Modifier.semantics { heading() },
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    TextButton(onClick = onOpen) {
-        Text(
-            text = stringResource(R.string.occasion),
-            color = Cream,
-            fontSize = 18.sp,
+        Spacer(modifier = Modifier.width(10.dp))
+        IconBox(
+            icon = AppIconKind.ChevronRight,
+            contentDescription = stringResource(R.string.night_later),
+            onClick = { onHour((shown + 1) % 24) },
         )
     }
 }
@@ -856,27 +671,17 @@ private fun OccasionSection(onOpen: () -> Unit) {
 @Composable
 private fun AboutCredit() {
     val context = LocalContext.current
-    Text(
-        text = stringResource(R.string.section_about),
-        color = Cream,
-        fontSize = 14.sp,
-        modifier = Modifier.semantics { heading() },
-    )
-    Spacer(modifier = Modifier.height(4.dp))
-    TextButton(
+    NavRow(
+        icon = AppIconKind.Link,
+        label = stringResource(R.string.weather_credit),
+        trailing = AppIconKind.Link,
         onClick = {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://open-meteo.com/"))
+            val intent = Intent(Intent.ACTION_VIEW, "https://open-meteo.com/".toUri())
             try {
                 context.startActivity(intent)
             } catch (_: ActivityNotFoundException) {
                 // The credit stays on the page when the device has no browser.
             }
         },
-    ) {
-        Text(
-            text = stringResource(R.string.weather_credit),
-            color = Cream,
-            fontSize = 16.sp,
-        )
-    }
+    )
 }

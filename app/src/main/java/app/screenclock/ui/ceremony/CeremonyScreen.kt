@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -44,7 +43,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.domain.occasion.CeremonyMode
 import app.screenclock.domain.occasion.millisUntilCeremonyTick
+import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
+import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
 import app.screenclock.ui.clock.ClockViewModel
@@ -178,13 +179,13 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                 }
             }
         }
-        TextButton(
+        IconBox(
+            icon = AppIconKind.Back,
+            contentDescription = stringResource(R.string.back),
             onClick = viewModel::closeCeremony,
             modifier = Modifier
                 .align(Alignment.TopStart)
                 .padding(horizontal = 12.dp, vertical = 4.dp),
-        ) {
-            Text(text = stringResource(R.string.back), color = Cream, fontSize = 16.sp)
-        }
+        )
     }
 }

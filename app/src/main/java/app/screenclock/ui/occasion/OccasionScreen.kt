@@ -2,6 +2,7 @@ package app.screenclock.ui.occasion
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,9 +17,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.selectable
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -26,10 +24,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -43,29 +37,40 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
+import app.screenclock.controller.OccasionDraftStatus
 import app.screenclock.domain.occasion.OCCASION_LIMIT
 import app.screenclock.domain.occasion.OCCASION_MESSAGE_MAX
 import app.screenclock.domain.occasion.OCCASION_TITLE_MAX
 import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.occasionDayMax
-import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.Alert
+import app.screenclock.ui.Amber
+import app.screenclock.ui.AppIcon
+import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
-import app.screenclock.ui.Info
+import app.screenclock.ui.Hairline
+import app.screenclock.ui.IconBox
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Muted
+import app.screenclock.ui.PageTitle
+import app.screenclock.ui.Panel
+import app.screenclock.ui.Info
+import app.screenclock.ui.PrimaryButton
+import app.screenclock.ui.SegmentOption
+import app.screenclock.ui.SegmentedRow
+import app.screenclock.ui.StepRow
+import app.screenclock.ui.ToggleRow
 import app.screenclock.ui.clock.ClockViewModel
-import app.screenclock.controller.OccasionDraftStatus
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -117,72 +122,45 @@ private fun OccasionList(
             .background(Ink)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        TextButton(onClick = onBack) {
-            Text(text = stringResource(R.string.back), color = Cream, fontSize = 16.sp)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBox(
+                icon = AppIconKind.Back,
+                contentDescription = stringResource(R.string.back),
+                onClick = onBack,
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            AddButton(enabled = !full, onClick = onAdd)
         }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.occasion),
-            color = Cream,
-            fontFamily = FontFamily.Serif,
-            fontSize = 36.sp,
-            modifier = Modifier.semantics { heading() },
-        )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+        PageTitle(stringResource(R.string.occasion))
+        Spacer(modifier = Modifier.height(10.dp))
         if (full) {
-            Text(text = stringResource(R.string.occasion_full), color = Info, fontSize = 16.sp)
-        }
-        TextButton(onClick = onAdd, enabled = !full) {
-            Text(text = stringResource(R.string.occasion_add), color = if (full) Info else Cream, fontSize = 18.sp)
+            Text(text = stringResource(R.string.occasion_full), color = Muted, fontSize = 14.sp)
         }
         if (rows.isEmpty()) {
-            Spacer(modifier = Modifier.height(24.dp))
-            Text(text = stringResource(R.string.occasion_empty), color = Info, fontSize = 18.sp)
+            Spacer(modifier = Modifier.height(28.dp))
+            Text(text = stringResource(R.string.occasion_empty), color = Muted, fontSize = 16.sp)
         }
         rows.forEach { row ->
-            Spacer(modifier = Modifier.height(16.dp))
-            Column(modifier = Modifier.fillMaxWidth()) {
-                Text(
-                    text = row.title,
-                    color = Cream,
-                    fontFamily = FontFamily.Serif,
-                    fontSize = 24.sp,
-                    modifier = Modifier.then(
-                        if (row.canOpen) {
-                            Modifier.clickable { onOpen(row.id) }
-                        } else {
-                            Modifier
-                        },
-                    ),
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = row.detail, color = Info, fontSize = 16.sp)
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(
-                        onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
-                        enabled = row.pinned || row.canPin,
-                    ) {
-                        Text(
-                            text = stringResource(if (row.pinned) R.string.occasion_unpin else R.string.occasion_pin),
-                            color = if (row.pinned || row.canPin) Cream else Info,
-                            fontSize = 16.sp,
-                        )
-                    }
-                    TextButton(onClick = { pendingDelete = row.id }) {
-                        Text(text = stringResource(R.string.occasion_delete), color = Cream, fontSize = 16.sp)
-                    }
-                }
-            }
+            Spacer(modifier = Modifier.height(10.dp))
+            OccasionRowCard(
+                row = row,
+                onOpen = onOpen,
+                onPin = onPin,
+                onUnpin = onUnpin,
+                onDelete = { pendingDelete = row.id },
+            )
         }
+        Spacer(modifier = Modifier.height(24.dp))
     }
     val pending = pendingDelete
     if (pending != null) {
         val row = rows.find { it.id == pending }
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            containerColor = ChromeBar,
+            containerColor = Panel,
             titleContentColor = Cream,
             textContentColor = Info,
             title = { Text(text = stringResource(R.string.occasion_delete_title)) },
@@ -194,7 +172,7 @@ private fun OccasionList(
                         onDelete(pending)
                     },
                 ) {
-                    Text(text = stringResource(R.string.occasion_delete), color = Cream)
+                    Text(text = stringResource(R.string.occasion_delete), color = Alert)
                 }
             },
             dismissButton = {
@@ -202,6 +180,78 @@ private fun OccasionList(
                     Text(text = stringResource(R.string.occasion_cancel), color = Info)
                 }
             },
+        )
+    }
+}
+
+@Composable
+private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.height(44.dp),
+        shape = RoundedCornerShape(14.dp),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = Amber,
+            contentColor = Ink,
+            disabledContainerColor = Panel,
+            disabledContentColor = Muted,
+        ),
+    ) {
+        AppIcon(kind = AppIconKind.Plus, tint = if (enabled) Ink else Muted, size = 18.dp)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = stringResource(R.string.occasion_add), fontSize = 15.sp)
+    }
+}
+
+@Composable
+private fun OccasionRowCard(
+    row: app.screenclock.domain.occasion.OccasionRow,
+    onOpen: (String) -> Unit,
+    onPin: (String) -> Unit,
+    onUnpin: (String) -> Unit,
+    onDelete: () -> Unit,
+) {
+    val open = if (row.canOpen) {
+        Modifier.clickable(role = Role.Button) { onOpen(row.id) }
+    } else {
+        Modifier
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Panel)
+            .border(1.dp, Hairline, RoundedCornerShape(16.dp))
+            .then(open)
+            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = row.title,
+                color = if (row.canOpen) Cream else Muted,
+                fontFamily = FontFamily.Serif,
+                fontSize = 20.sp,
+            )
+            Spacer(modifier = Modifier.height(3.dp))
+            Text(text = row.detail, color = Info, fontSize = 14.sp)
+        }
+        Spacer(modifier = Modifier.width(8.dp))
+        IconBox(
+            icon = AppIconKind.Pin,
+            contentDescription = stringResource(
+                if (row.pinned) R.string.occasion_unpin else R.string.occasion_pin,
+            ),
+            onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
+            enabled = row.pinned || row.canPin,
+            tint = if (row.pinned) Amber else Cream,
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        IconBox(
+            icon = AppIconKind.Trash,
+            contentDescription = stringResource(R.string.occasion_delete),
+            onClick = onDelete,
         )
     }
 }
@@ -252,19 +302,15 @@ private fun OccasionEditor(
             .background(Ink)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = 28.dp, vertical = 12.dp),
+            .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
-        TextButton(onClick = onBack) {
-            Text(text = stringResource(R.string.back), color = Cream, fontSize = 16.sp)
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.occasion_add),
-            color = Cream,
-            fontFamily = FontFamily.Serif,
-            fontSize = 36.sp,
-            modifier = Modifier.semantics { heading() },
+        IconBox(
+            icon = AppIconKind.Back,
+            contentDescription = stringResource(R.string.back),
+            onClick = onBack,
         )
+        Spacer(modifier = Modifier.height(14.dp))
+        PageTitle(stringResource(R.string.occasion_add))
         Spacer(modifier = Modifier.height(20.dp))
         OccasionField(
             value = title,
@@ -272,20 +318,33 @@ private fun OccasionEditor(
             label = stringResource(R.string.occasion_title),
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Column(modifier = Modifier.selectableGroup()) {
-            KindRow(stringResource(R.string.occasion_kind_once), kind == OccasionKind.SolarOnce) {
-                kindName = OccasionKind.SolarOnce.name
-            }
-            KindRow(stringResource(R.string.occasion_kind_solar), kind == OccasionKind.SolarYearly) {
-                kindName = OccasionKind.SolarYearly.name
-            }
-            KindRow(stringResource(R.string.occasion_kind_lunar), kind == OccasionKind.LunarYearly) {
-                kindName = OccasionKind.LunarYearly.name
-            }
-        }
+        SegmentedRow(
+            listOf(
+                SegmentOption(
+                    label = stringResource(R.string.occasion_kind_once),
+                    selected = kind == OccasionKind.SolarOnce,
+                    onClick = { kindName = OccasionKind.SolarOnce.name },
+                ),
+                SegmentOption(
+                    label = stringResource(R.string.occasion_kind_solar),
+                    selected = kind == OccasionKind.SolarYearly,
+                    onClick = { kindName = OccasionKind.SolarYearly.name },
+                ),
+                SegmentOption(
+                    label = stringResource(R.string.occasion_kind_lunar),
+                    selected = kind == OccasionKind.LunarYearly,
+                    onClick = { kindName = OccasionKind.LunarYearly.name },
+                ),
+            ),
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        val stepDecrease = stringResource(R.string.occasion_decrease)
+        val stepIncrease = stringResource(R.string.occasion_increase)
         if (kind == OccasionKind.SolarOnce) {
             StepRow(
                 value = stringResource(R.string.occasion_year_value, year),
+                decreaseLabel = stepDecrease,
+                increaseLabel = stepIncrease,
                 onDecrease = { year = (year - 1).coerceAtLeast(YEAR_MIN) },
                 onIncrease = { year = (year + 1).coerceAtMost(YEAR_MAX) },
                 onPick = { pickingDate = true },
@@ -293,53 +352,27 @@ private fun OccasionEditor(
         }
         StepRow(
             value = stringResource(R.string.occasion_month_value, month),
+            decreaseLabel = stepDecrease,
+            increaseLabel = stepIncrease,
             onDecrease = { month = if (month <= 1) 12 else month - 1 },
             onIncrease = { month = if (month >= 12) 1 else month + 1 },
             onPick = { pickingDate = true },
         )
         StepRow(
             value = stringResource(R.string.occasion_day_value, dayValue),
+            decreaseLabel = stepDecrease,
+            increaseLabel = stepIncrease,
             onDecrease = { day = if (dayValue <= 1) dayMax else dayValue - 1 },
             onIncrease = { day = if (dayValue >= dayMax) 1 else dayValue + 1 },
             onPick = { pickingDate = true },
         )
         if (kind == OccasionKind.LunarYearly) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 48.dp)
-                    .toggleable(
-                        value = leapValue,
-                        enabled = leapAllowed,
-                        role = Role.Switch,
-                        onValueChange = { leap = it },
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.occasion_leap),
-                    color = if (leapAllowed) Cream else Info,
-                    fontSize = 18.sp,
-                    modifier = Modifier.weight(1f),
-                )
-                Switch(
-                    checked = leapValue,
-                    onCheckedChange = null,
-                    enabled = leapAllowed,
-                    modifier = Modifier.clearAndSetSemantics { },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = Ink,
-                        checkedTrackColor = Cream,
-                        uncheckedThumbColor = Cream,
-                        uncheckedTrackColor = ChromeBar,
-                        uncheckedBorderColor = Info,
-                        disabledCheckedThumbColor = Info,
-                        disabledCheckedTrackColor = ChromeBar,
-                        disabledUncheckedThumbColor = Info,
-                        disabledUncheckedTrackColor = ChromeBar,
-                    ),
-                )
-            }
+            ToggleRow(
+                label = stringResource(R.string.occasion_leap),
+                checked = leapValue,
+                enabled = leapAllowed,
+                onCheckedChange = { leap = it },
+            )
         }
         Spacer(modifier = Modifier.height(12.dp))
         OccasionField(
@@ -347,24 +380,27 @@ private fun OccasionEditor(
             onValueChange = { message = it.take(OCCASION_MESSAGE_MAX) },
             label = stringResource(R.string.occasion_message),
         )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(text = preview, color = Info, fontSize = 18.sp)
-        Spacer(modifier = Modifier.height(24.dp))
-        Button(
+        Spacer(modifier = Modifier.height(18.dp))
+        if (preview.isNotBlank()) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                AppIcon(
+                    kind = if (canSave) AppIconKind.Check else AppIconKind.Search,
+                    tint = if (canSave) Amber else Muted,
+                    size = 16.dp,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = preview, color = Cream, fontSize = 15.sp)
+            }
+            Spacer(modifier = Modifier.height(18.dp))
+        }
+        PrimaryButton(
+            text = stringResource(R.string.occasion_save),
+            icon = AppIconKind.Check,
             onClick = { if (viewModel.addOccasion(draft)) onSaved() },
             enabled = canSave,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Cream,
-                contentColor = Ink,
-                disabledContainerColor = ChromeBar,
-                disabledContentColor = Info,
-            ),
-        ) {
-            Text(text = stringResource(R.string.occasion_save), fontSize = 18.sp)
-        }
+            modifier = Modifier.fillMaxWidth(),
+        )
+        Spacer(modifier = Modifier.height(24.dp))
     }
     if (pickingDate) {
         DateWheelDialog(
@@ -393,63 +429,17 @@ private fun OccasionField(value: String, onValueChange: (String) -> Unit, label:
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        textStyle = TextStyle(color = Cream, fontSize = 18.sp),
-        label = { Text(text = label, color = Info) },
+        textStyle = TextStyle(color = Cream, fontSize = 17.sp),
+        shape = RoundedCornerShape(14.dp),
+        label = { Text(text = label) },
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Cream,
             unfocusedTextColor = Cream,
-            focusedBorderColor = Cream,
-            unfocusedBorderColor = Info,
-            cursorColor = Cream,
-            focusedLabelColor = Cream,
-            unfocusedLabelColor = Info,
+            focusedBorderColor = Amber,
+            unfocusedBorderColor = Hairline,
+            cursorColor = Amber,
+            focusedLabelColor = Amber,
+            unfocusedLabelColor = Muted,
         ),
     )
-}
-
-@Composable
-private fun KindRow(label: String, selected: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(selected = selected, role = Role.RadioButton, onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = RadioButtonDefaults.colors(selectedColor = Cream, unselectedColor = Info),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(text = label, color = Cream, fontSize = 18.sp)
-    }
-}
-
-@Composable
-private fun StepRow(value: String, onDecrease: () -> Unit, onIncrease: () -> Unit, onPick: () -> Unit = {}) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        TextButton(onClick = onDecrease) {
-            Text(text = stringResource(R.string.occasion_decrease), color = Cream, fontSize = 16.sp)
-        }
-        Text(
-            text = value,
-            color = Cream,
-            fontSize = 20.sp,
-            modifier = Modifier
-                .weight(1f)
-                .clip(RoundedCornerShape(10.dp))
-                .clickable(role = Role.Button, onClick = onPick)
-                .padding(vertical = 12.dp),
-        )
-        TextButton(onClick = onIncrease) {
-            Text(text = stringResource(R.string.occasion_increase), color = Cream, fontSize = 16.sp)
-        }
-    }
 }

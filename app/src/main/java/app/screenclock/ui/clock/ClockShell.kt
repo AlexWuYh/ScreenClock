@@ -3,18 +3,24 @@ package app.screenclock.ui.clock
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -24,11 +30,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
@@ -38,8 +46,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
+import app.screenclock.ui.AppIcon
+import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
+import app.screenclock.ui.Hairline
 import app.screenclock.ui.Ink
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
@@ -152,42 +163,53 @@ fun ClockShell(viewModel: ClockViewModel) {
             }
         }
         if (chrome.visible) {
-            Box(
+            Row(
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
+                    .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
                     .fillMaxWidth()
-                    .background(ChromeBar)
-                    .padding(horizontal = 24.dp, vertical = 12.dp),
-                contentAlignment = Alignment.Center,
+                    .clip(RoundedCornerShape(26.dp))
+                    .background(ChromeBar.copy(alpha = 0.96f))
+                    .border(1.dp, Hairline, RoundedCornerShape(26.dp))
+                    .padding(vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    TextButton(onClick = viewModel::openSettings) {
-                        Text(
-                            text = stringResource(R.string.settings),
-                            color = Cream,
-                            fontSize = 18.sp,
-                        )
-                    }
-                    TextButton(onClick = viewModel::openFocus) {
-                        Text(
-                            text = stringResource(R.string.focus),
-                            color = Cream,
-                            fontSize = 18.sp,
-                        )
-                    }
-                    TextButton(onClick = { viewModel.openOccasions(fromSettings = false) }) {
-                        Text(
-                            text = stringResource(R.string.occasion),
-                            color = Cream,
-                            fontSize = 18.sp,
-                        )
-                    }
-                }
+                ChromeAction(
+                    icon = AppIconKind.Sliders,
+                    label = stringResource(R.string.settings),
+                    onClick = viewModel::openSettings,
+                )
+                ChromeAction(
+                    icon = AppIconKind.Timer,
+                    label = stringResource(R.string.focus),
+                    onClick = viewModel::openFocus,
+                )
+                ChromeAction(
+                    icon = AppIconKind.Heart,
+                    label = stringResource(R.string.occasion),
+                    onClick = { viewModel.openOccasions(fromSettings = false) },
+                )
             }
         }
+    }
+}
+
+@Composable
+private fun RowScope.ChromeAction(
+    icon: AppIconKind,
+    label: String,
+    onClick: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .clip(RoundedCornerShape(18.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        AppIcon(kind = icon, tint = Cream, size = 22.dp)
+        Spacer(modifier = Modifier.height(4.dp))
+        Text(text = label, color = Cream, fontSize = 13.sp)
     }
 }

@@ -2,8 +2,18 @@ package app.screenclock.domain.time
 
 /** Which clock drawing is on the home screen. Separate from [ColorwayId]. */
 enum class ClockThemeId {
+    /** Two flap cards, the two-stage fold. */
     Flip,
+    /** Glass tubes that glow once per minute. */
     Tube,
+    /** One bold digital line with a quiet colon. */
+    Digital,
+    /** A desk-clock panel with seven-segment digits. */
+    Lcd,
+    /** A dial with hour and minute hands. No second hand on the home screen. */
+    Analog,
+    /** Outlined digits over a drawn moon. */
+    Moon,
     ;
 
     companion object {
@@ -13,9 +23,12 @@ enum class ClockThemeId {
     }
 }
 
-/** Flip finish. v1 only ships ink black, so a future light finish does not rewrite the fold. */
+/** Flip finish. A new finish is colours only; the fold itself never changes. */
 enum class ColorwayId {
+    /** Dark cards, white digits. */
     InkBlack,
+    /** Light cards, dark digits:「素白」. */
+    SnowWhite,
     ;
 
     companion object {

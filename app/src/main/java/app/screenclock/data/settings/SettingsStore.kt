@@ -2,6 +2,7 @@ package app.screenclock.data.settings
 
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
+import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.HourMode
 import kotlinx.coroutines.flow.Flow
 
@@ -11,4 +12,5 @@ interface SettingsStore {
     suspend fun setHourMode(mode: HourMode)
     suspend fun setShowDate(show: Boolean)
     suspend fun setTheme(theme: ClockThemeId)
+    suspend fun setColorway(colorway: ColorwayId)
 }

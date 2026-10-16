@@ -15,7 +15,7 @@
     <string name="occasion_empty">还没有纪念日</string>
     <string name="occasion_full">最多保存 30 条</string>
     <string name="occasion_title">名称</string>
-    <string name="occasion_message">到点之后</string>
+    <string name="occasion_message">到点文案</string>
     <string name="occasion_kind_once">只此一次</string>
     <string name="occasion_kind_solar">每年阳历</string>
     <string name="occasion_kind_lunar">每年农历</string>
@@ -48,6 +48,13 @@
     <string name="theme">主题</string>
     <string name="theme_flip">翻页</string>
     <string name="theme_tube">灯管</string>
+    <string name="theme_digital">数显</string>
+    <string name="theme_lcd">液晶</string>
+    <string name="theme_analog">慢指针</string>
+    <string name="theme_moon">月相</string>
+    <string name="colorway_name">翻页配色</string>
+    <string name="colorway_ink">墨黑</string>
+    <string name="colorway_snow">素白</string>
     <string name="show_date">显示日期</string>
     <string name="section_weather">天气</string>
     <string name="show_weather">显示天气</string>

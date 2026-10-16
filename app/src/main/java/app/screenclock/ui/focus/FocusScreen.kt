@@ -27,14 +27,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
-import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
@@ -77,10 +71,21 @@ import app.screenclock.domain.focus.focusFace
 import app.screenclock.domain.focus.focusSpoken
 import app.screenclock.domain.focus.millisUntilFocusDigitChange
 import app.screenclock.domain.focus.normalizeFocusMinutes
+import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
+import app.screenclock.ui.FieldLabel
+import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Muted
+import app.screenclock.ui.PageTitle
+import app.screenclock.ui.PrimaryButton
+import app.screenclock.ui.SectionCard
+import app.screenclock.ui.SectionHeader
+import app.screenclock.ui.SegmentOption
+import app.screenclock.ui.SegmentedRow
+import app.screenclock.ui.appSliderColors
 import app.screenclock.ui.clock.ClockViewModel
 import app.screenclock.ui.theme.flip.FlipFlaps
 import app.screenclock.ui.theme.flip.focusFlapKey
@@ -140,62 +145,54 @@ private fun FocusPicker(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 28.dp, vertical = 12.dp),
     ) {
-        TextButton(onClick = onBack) {
-            Text(
-                text = stringResource(R.string.back),
-                color = Cream,
-                fontSize = 16.sp,
-            )
-        }
-        Spacer(modifier = Modifier.height(12.dp))
-        Text(
-            text = stringResource(R.string.focus),
-            color = Cream,
-            fontFamily = FontFamily.Serif,
-            fontSize = 36.sp,
-            modifier = Modifier.semantics { heading() },
+        IconBox(
+            icon = AppIconKind.Back,
+            contentDescription = stringResource(R.string.back),
+            onClick = onBack,
         )
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(14.dp))
+        PageTitle(stringResource(R.string.focus))
+        Spacer(modifier = Modifier.height(10.dp))
         Text(
             text = stringResource(R.string.focus_hold_hint),
-            color = Info,
-            fontSize = 16.sp,
+            color = Muted,
+            fontSize = 15.sp,
         )
-        Spacer(modifier = Modifier.height(20.dp))
-        Column(modifier = Modifier.selectableGroup()) {
-            FocusChoiceRow(
-                label = stringResource(R.string.focus_preset_25),
-                selected = choice == FocusChoice.Short,
-                onClick = { choice = FocusChoice.Short },
+        Spacer(modifier = Modifier.height(22.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.focus))
+            SegmentedRow(
+                listOf(
+                    SegmentOption(
+                        label = stringResource(R.string.focus_preset_25),
+                        selected = choice == FocusChoice.Short,
+                        onClick = { choice = FocusChoice.Short },
+                    ),
+                    SegmentOption(
+                        label = stringResource(R.string.focus_preset_50),
+                        selected = choice == FocusChoice.Long,
+                        onClick = { choice = FocusChoice.Long },
+                    ),
+                    SegmentOption(
+                        label = stringResource(R.string.focus_custom),
+                        selected = choice == FocusChoice.Custom,
+                        onClick = { choice = FocusChoice.Custom },
+                    ),
+                ),
             )
-            FocusChoiceRow(
-                label = stringResource(R.string.focus_preset_50),
-                selected = choice == FocusChoice.Long,
-                onClick = { choice = FocusChoice.Long },
-            )
-            FocusChoiceRow(
-                label = stringResource(R.string.focus_custom),
-                selected = choice == FocusChoice.Custom,
-                onClick = { choice = FocusChoice.Custom },
-            )
-        }
         if (choice == FocusChoice.Custom) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(top = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = stringResource(R.string.focus_custom),
-                    color = Info,
-                    fontSize = 14.sp,
-                    modifier = Modifier.weight(1f),
-                )
+                FieldLabel(stringResource(R.string.focus_custom))
+                Spacer(modifier = Modifier.weight(1f))
                 Text(
                     text = stringResource(R.string.focus_minutes, minutes),
                     color = Cream,
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                 )
             }
             Slider(
@@ -203,63 +200,16 @@ private fun FocusPicker(
                 onValueChange = { customMinutes = it },
                 valueRange = FOCUS_MIN_MINUTES.toFloat()..FOCUS_MAX_MINUTES.toFloat(),
                 steps = FOCUS_MAX_MINUTES - FOCUS_MIN_MINUTES - 1,
-                colors = SliderDefaults.colors(
-                    thumbColor = Cream,
-                    activeTrackColor = Cream,
-                    inactiveTrackColor = ChromeBar,
-                ),
+                colors = appSliderColors(),
             )
         }
-        Spacer(modifier = Modifier.height(28.dp))
-        Button(
+        }
+        Spacer(modifier = Modifier.height(22.dp))
+        PrimaryButton(
+            text = stringResource(R.string.focus_start),
+            icon = AppIconKind.Timer,
             onClick = { onStart(minutes) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 48.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Cream,
-                contentColor = Ink,
-            ),
-        ) {
-            Text(
-                text = stringResource(R.string.focus_start),
-                fontSize = 18.sp,
-            )
-        }
-    }
-}
-
-@Composable
-private fun FocusChoiceRow(
-    label: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .selectable(
-                selected = selected,
-                role = Role.RadioButton,
-                onClick = onClick,
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        RadioButton(
-            selected = selected,
-            onClick = null,
-            modifier = Modifier.clearAndSetSemantics { },
-            colors = RadioButtonDefaults.colors(
-                selectedColor = Cream,
-                unselectedColor = Info,
-            ),
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text(
-            text = label,
-            color = Cream,
-            fontSize = 18.sp,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

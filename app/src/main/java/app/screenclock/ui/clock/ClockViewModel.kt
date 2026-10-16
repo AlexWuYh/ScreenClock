@@ -42,6 +42,7 @@ import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionRow
 import app.screenclock.domain.time.ClockThemeId
+import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.weather.CityCandidate
 import java.time.LocalDate
@@ -323,6 +324,10 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setTheme(theme: ClockThemeId) {
         viewModelScope.launch { settingsRepository.setTheme(theme) }
+    }
+
+    fun setColorway(colorway: ColorwayId) {
+        viewModelScope.launch { settingsRepository.setColorway(colorway) }
     }
 
     fun setWeatherEnabled(enabled: Boolean) = weatherController.setEnabled(enabled)

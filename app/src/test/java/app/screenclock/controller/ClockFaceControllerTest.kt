@@ -4,6 +4,7 @@ import app.screenclock.data.settings.SettingsStore
 import app.screenclock.data.weather.WeatherStore
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
+import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.weather.SavedCity
 import app.screenclock.domain.weather.WeatherCache
@@ -33,6 +34,10 @@ private class FakeSettingsStore : SettingsStore {
 
     override suspend fun setTheme(theme: ClockThemeId) {
         state.value = state.value.copy(theme = theme)
+    }
+
+    override suspend fun setColorway(colorway: ColorwayId) {
+        state.value = state.value.copy(colorway = colorway)
     }
 }
 

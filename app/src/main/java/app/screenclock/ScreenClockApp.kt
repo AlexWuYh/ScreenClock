@@ -164,6 +164,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                     showDate = clock?.showDate ?: true,
                     onHourMode = viewModel::setHourMode,
                     onTheme = viewModel::setTheme,
+                    onColorway = viewModel::setColorway,
                     onShowDate = viewModel::setShowDate,
                     onBack = viewModel::closeSettings,
                     weatherEnabled = clock?.weatherEnabled ?: false,
