@@ -65,6 +65,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.ui.AppIcon
+import app.screenclock.ui.FaceBright
+import app.screenclock.ui.GlassDarkBorder
+import app.screenclock.ui.GlassDarkFill
 import app.screenclock.ui.glassPressable
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.AppIconKind
@@ -72,8 +75,11 @@ import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Paper
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.clockContentDescription
 import app.screenclock.domain.weather.formatWeatherLine
 import app.screenclock.ui.theme.ThemedClock
@@ -178,6 +184,8 @@ fun ClockShell(viewModel: ClockViewModel) {
                     occasionLine = occasionLine,
                     expanded = slot == ClockWidth.Expanded,
                     animate = animate,
+                    datePosition = clock?.datePosition ?: DatePosition.Above,
+                    digitSize = clock?.digitSize ?: DigitSize.Regular,
                     onOccasionClick = openId?.let { id ->
                         { viewModel.openCeremony(id, fromList = false) }
                     },
@@ -200,7 +208,7 @@ fun ClockShell(viewModel: ClockViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .onGloballyPositioned { pillPosition = it.positionInRoot() }
-                    .glassSurface(corner = 26.dp, fill = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f)),
+                    .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
             ) {
                 // A blurred copy of the theme scene, shifted so its pixels line up
                 // with the screen behind the glass.
@@ -230,6 +238,11 @@ fun ClockShell(viewModel: ClockViewModel) {
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     ChromeAction(
+                        icon = AppIconKind.Palette,
+                        label = stringResource(R.string.theme),
+                        onClick = viewModel::cycleTheme,
+                    )
+                    ChromeAction(
                         icon = AppIconKind.Sliders,
                         label = stringResource(R.string.settings),
                         onClick = viewModel::openSettings,
@@ -258,13 +271,14 @@ private fun RowScope.ChromeAction(
 ) {
     Column(
         modifier = Modifier
+            .weight(1f)
             .clip(RoundedCornerShape(18.dp))
             .glassPressable(onClick = onClick)
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 4.dp, vertical = 8.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        AppIcon(kind = icon, tint = Cream, size = 22.dp)
+        AppIcon(kind = icon, tint = FaceBright, size = 20.dp)
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, color = Cream, fontSize = 13.sp)
+        Text(text = label, color = FaceBright, fontSize = 12.sp, maxLines = 1)
     }
 }

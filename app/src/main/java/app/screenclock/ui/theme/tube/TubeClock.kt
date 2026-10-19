@@ -142,7 +142,7 @@ private fun TubePair(
     )
     BoxWithConstraints(modifier) {
         val corner = minOf(maxWidth, maxHeight) * 0.18f
-        val digitSize = maxHeight * 0.84f
+        val digitSize = maxHeight * 0.88f
         val shape = RoundedCornerShape(corner)
         Box(
             modifier = Modifier

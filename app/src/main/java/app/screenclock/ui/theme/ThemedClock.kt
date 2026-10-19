@@ -1,9 +1,12 @@
 package app.screenclock.ui.theme
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.theme.analog.AnalogClock
 import app.screenclock.ui.theme.digital.DigitalClock
@@ -23,11 +26,14 @@ internal fun ThemedClock(
     occasionLine: String?,
     expanded: Boolean,
     animate: Boolean,
+    datePosition: DatePosition = DatePosition.Above,
+    digitSize: DigitSize = DigitSize.Regular,
     modifier: Modifier = Modifier,
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
-    when (theme) {
+    CompositionLocalProvider(LocalClockLayout provides ClockLayoutPrefs(datePosition, digitSize)) {
+        when (theme) {
         ClockThemeId.Flip -> FlipClock(
             face = face,
             dateLine = dateLine,
@@ -106,5 +112,6 @@ internal fun ThemedClock(
             preview = preview,
             onOccasionClick = onOccasionClick,
         )
+        }
     }
 }

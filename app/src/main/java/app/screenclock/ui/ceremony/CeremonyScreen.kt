@@ -44,10 +44,12 @@ import app.screenclock.R
 import app.screenclock.domain.occasion.CeremonyMode
 import app.screenclock.domain.occasion.millisUntilCeremonyTick
 import app.screenclock.ui.AppIconKind
-import app.screenclock.ui.Cream
+import app.screenclock.ui.FaceBright
+import app.screenclock.ui.FaceText
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Paper
 import app.screenclock.ui.clock.ClockViewModel
 import app.screenclock.ui.theme.flip.FlipFlaps
 import java.time.LocalDateTime
@@ -130,7 +132,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
             if (face.mode != CeremonyMode.Done) {
                 Text(
                     text = face.title,
-                    color = Cream,
+                    color = FaceBright,
                     fontFamily = FontFamily.Serif,
                     fontSize = if (expanded) 28.sp else 22.sp,
                     textAlign = TextAlign.Center,
@@ -140,7 +142,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = face.solarLabel,
-                        color = Info,
+                        color = FaceText,
                         fontSize = if (expanded) 18.sp else 16.sp,
                         modifier = Modifier.clearAndSetSemantics { },
                     )
@@ -170,7 +172,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                 ) {
                     Text(
                         text = face.message,
-                        color = Cream,
+                        color = FaceBright,
                         fontFamily = FontFamily.Serif,
                         fontSize = if (expanded) 48.sp else 36.sp,
                         textAlign = TextAlign.Center,

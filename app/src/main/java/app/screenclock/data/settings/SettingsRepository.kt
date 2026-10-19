@@ -9,6 +9,8 @@ import androidx.datastore.preferences.preferencesDataStore
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -25,6 +27,8 @@ private val ShowLunarKey = booleanPreferencesKey("show_lunar_date")
 private val ShowHolidayKey = booleanPreferencesKey("show_holiday")
 private val ThemeKey = stringPreferencesKey("theme")
 private val ColorwayKey = stringPreferencesKey("colorway")
+private val DatePositionKey = stringPreferencesKey("date_position")
+private val DigitSizeKey = stringPreferencesKey("digit_size")
 
 class SettingsRepository(private val context: Context) : SettingsStore {
     override val settings: Flow<ClockPreferences> = context.clockSettingsStore.data
@@ -69,6 +73,14 @@ class SettingsRepository(private val context: Context) : SettingsStore {
     override suspend fun setColorway(colorway: ColorwayId) {
         context.clockSettingsStore.edit { prefs -> prefs[ColorwayKey] = colorway.name }
     }
+
+    override suspend fun setDatePosition(position: DatePosition) {
+        context.clockSettingsStore.edit { prefs -> prefs[DatePositionKey] = position.name }
+    }
+
+    override suspend fun setDigitSize(size: DigitSize) {
+        context.clockSettingsStore.edit { prefs -> prefs[DigitSizeKey] = size.name }
+    }
 }
 
 private fun Preferences.toClockPreferences(): ClockPreferences {
@@ -81,5 +93,7 @@ private fun Preferences.toClockPreferences(): ClockPreferences {
         showHoliday = this[ShowHolidayKey] ?: true,
         theme = ClockThemeId.fromStored(this[ThemeKey]),
         colorway = ColorwayId.fromStored(this[ColorwayKey]),
+        datePosition = DatePosition.fromStored(this[DatePositionKey]),
+        digitSize = DigitSize.fromStored(this[DigitSizeKey]),
     )
 }

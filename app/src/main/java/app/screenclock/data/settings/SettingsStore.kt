@@ -3,6 +3,8 @@ package app.screenclock.data.settings
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import kotlinx.coroutines.flow.Flow
 
@@ -17,4 +19,6 @@ interface SettingsStore {
     suspend fun setShowHoliday(show: Boolean)
     suspend fun setTheme(theme: ClockThemeId)
     suspend fun setColorway(colorway: ColorwayId)
+    suspend fun setDatePosition(position: DatePosition)
+    suspend fun setDigitSize(size: DigitSize)
 }

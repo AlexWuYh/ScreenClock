@@ -1,6 +1,7 @@
 package app.screenclock.ui.theme
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -11,9 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -21,11 +24,20 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.screenclock.domain.occasion.occasionBarParts
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.footerLine
-import app.screenclock.ui.Info
+import app.screenclock.ui.FaceText
 import app.screenclock.ui.theme.flip.clockStacked
 import app.screenclock.ui.theme.flip.flapLayout
+
+internal data class ClockLayoutPrefs(
+    val datePosition: DatePosition = DatePosition.Above,
+    val digitSize: DigitSize = DigitSize.Regular,
+)
+
+internal val LocalClockLayout = staticCompositionLocalOf { ClockLayoutPrefs() }
 
 /**
  * Shared slots for every theme: date above, hour and minute in the middle, one footer line below.
@@ -44,10 +56,12 @@ internal fun ClockScaffold(
     modifier: Modifier = Modifier,
     preview: Boolean = false,
     meridiemBelow: Boolean = false,
-    infoColor: Color = Info,
+    infoColor: Color = FaceText,
     onOccasionClick: (() -> Unit)? = null,
     digits: @Composable (stacked: Boolean, cardWidth: Dp, cardHeight: Dp, gap: Dp) -> Unit,
 ) {
+    val layoutPrefs = LocalClockLayout.current
+    val dateBelow = layoutPrefs.datePosition == DatePosition.Below
     val pad = when {
         preview -> 10.dp
         expanded -> 32.dp
@@ -96,13 +110,15 @@ internal fun ClockScaffold(
             reserveSide = side.value,
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            if (dateLine != null) {
+            if (dateLine != null && !dateBelow) {
                 InfoLine(dateLine, infoSize, infoColor)
                 Spacer(modifier = Modifier.height(lineGap))
             }
             if (face.meridiem != null && meridiemBelow) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    ScaledDigits(layoutPrefs.digitSize.factor) {
+                        digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    }
                     Spacer(modifier = Modifier.height(if (preview) 2.dp else 6.dp))
                     Text(
                         text = face.meridiem,
@@ -115,7 +131,9 @@ internal fun ClockScaffold(
                 }
             } else {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    ScaledDigits(layoutPrefs.digitSize.factor) {
+                        digits(layout.stacked, layout.cardWidth.dp, layout.cardHeight.dp, layout.gap.dp)
+                    }
                     if (face.meridiem != null) {
                         Text(
                             text = face.meridiem,
@@ -129,6 +147,10 @@ internal fun ClockScaffold(
                     }
                 }
             }
+            if (dateLine != null && dateBelow) {
+                Spacer(modifier = Modifier.height(lineGap))
+                InfoLine(dateLine, infoSize, infoColor)
+            }
             if (footer != null) {
                 Spacer(modifier = Modifier.height(lineGap))
                 FooterLine(
@@ -141,6 +163,13 @@ internal fun ClockScaffold(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ScaledDigits(scale: Float, content: @Composable () -> Unit) {
+    Box(modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale }) {
+        content()
     }
 }
 

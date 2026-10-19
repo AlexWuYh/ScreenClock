@@ -11,9 +11,9 @@ import androidx.compose.ui.unit.sp
  * area: height-driven on wide canvases, width-driven on tall narrow ones.
  */
 @Composable
-internal fun sceneDigitSize(areaWidth: Dp, areaHeight: Dp, widthGlyphs: Float = 2.75f): TextUnit {
+internal fun sceneDigitSize(areaWidth: Dp, areaHeight: Dp, widthGlyphs: Float = 2.6f): TextUnit {
     val density = LocalDensity.current
     val heightSp = with(density) { areaHeight.toSp() }.value
     val widthSp = with(density) { areaWidth.toSp() }.value
-    return minOf(heightSp * 0.62f, widthSp / widthGlyphs).sp
+    return minOf(heightSp * 0.70f, widthSp / widthGlyphs).sp
 }

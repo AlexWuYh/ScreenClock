@@ -6,6 +6,8 @@ import app.screenclock.data.weather.WeatherStore
 import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.weather.SavedCity
 import app.screenclock.domain.weather.WeatherCache
@@ -57,6 +59,14 @@ private class FakeSettingsStore : SettingsStore {
     override suspend fun setColorway(colorway: ColorwayId) {
         state.value = state.value.copy(colorway = colorway)
     }
+
+    override suspend fun setDatePosition(position: DatePosition) {
+        state.value = state.value.copy(datePosition = position)
+    }
+
+    override suspend fun setDigitSize(size: DigitSize) {
+        state.value = state.value.copy(digitSize = size)
+    }
 }
 
 private class FaceWeatherStore : WeatherStore {
@@ -106,6 +116,16 @@ class ClockFaceControllerTest {
         assertEquals("30", state.face.minuteDigits)
         assertNotNull(state.dateLine)
         assertEquals(morning, controller.minute.value)
+    }
+
+    @Test
+    fun layoutChoicesReachTheClockFace() {
+        val settings = FakeSettingsStore().apply {
+            state.value = ClockPreferences(datePosition = DatePosition.Below, digitSize = DigitSize.Large)
+        }
+        val state = requireNotNull(controller(settings = settings).clock.value)
+        assertEquals(DatePosition.Below, state.datePosition)
+        assertEquals(DigitSize.Large, state.digitSize)
     }
 
     @Test

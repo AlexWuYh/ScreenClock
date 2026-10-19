@@ -36,9 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val GlassText = Color(0xFFF6F1E8)
-internal val AmberGlassFill = Amber.copy(alpha = 0.22f)
-internal val AmberGlassBorder = Amber.copy(alpha = 0.5f)
+private val GlassText = Color(0xFF221F1B)
+internal val AmberGlassFill = Amber.copy(alpha = 0.24f)
+internal val AmberGlassBorder = Amber.copy(alpha = 0.6f)
 
 /** One quiet glass card per settings section. */
 @Composable
@@ -143,19 +143,19 @@ private fun Modifier.toggleableRow(value: Boolean, enabled: Boolean, role: Role,
 
 @Composable
 internal fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = Color(0xFFFFD9A8),
-    checkedTrackColor = Amber.copy(alpha = 0.32f),
-    checkedBorderColor = Amber.copy(alpha = 0.55f),
-    uncheckedThumbColor = Color(0xFFCFC8BC),
+    checkedThumbColor = AmberDeep,
+    checkedTrackColor = Amber.copy(alpha = 0.40f),
+    checkedBorderColor = Amber.copy(alpha = 0.65f),
+    uncheckedThumbColor = Color(0xFF8C8377),
     uncheckedTrackColor = GlassFillHigh,
-    uncheckedBorderColor = GlassBorder,
+    uncheckedBorderColor = Hairline,
 )
 
 @Composable
 internal fun appSliderColors() = SliderDefaults.colors(
-    thumbColor = Amber,
-    activeTrackColor = Amber.copy(alpha = 0.65f),
-    inactiveTrackColor = GlassFillHigh,
+    thumbColor = AmberDeep,
+    activeTrackColor = Amber.copy(alpha = 0.85f),
+    inactiveTrackColor = Color(0x22000000),
 )
 
 @Composable
@@ -185,7 +185,7 @@ internal fun PrimaryButton(
             }
             Text(
                 text = text,
-                color = if (enabled) GlassText else Muted,
+                color = if (enabled) Cream else Muted,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
             )

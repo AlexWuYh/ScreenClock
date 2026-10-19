@@ -8,6 +8,8 @@ import app.screenclock.domain.time.ClockPreferences
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.DateParts
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.time.displayMinute
@@ -40,6 +42,8 @@ data class ClockUiState(
     val showHoliday: Boolean,
     val theme: ClockThemeId,
     val colorway: ColorwayId,
+    val datePosition: DatePosition,
+    val digitSize: DigitSize,
     val weatherEnabled: Boolean = false,
     val useLocation: Boolean = false,
     val cityLabel: String? = null,
@@ -134,6 +138,8 @@ class ClockFaceController(
             showHoliday = prefs.showHoliday,
             theme = prefs.theme,
             colorway = prefs.colorway,
+            datePosition = prefs.datePosition,
+            digitSize = prefs.digitSize,
             weatherEnabled = weatherPrefs.enabled,
             useLocation = weatherPrefs.useLocation,
             cityLabel = weatherPrefs.city?.label,

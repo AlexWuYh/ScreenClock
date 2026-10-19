@@ -67,6 +67,7 @@ import app.screenclock.ui.IconBox
 import app.screenclock.ui.glassPressable
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Paper
 import app.screenclock.ui.Muted
 import app.screenclock.ui.PageTitle
 import app.screenclock.ui.Panel
@@ -125,7 +126,7 @@ private fun OccasionList(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ink)
+            .background(Paper)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -303,7 +304,7 @@ private fun OccasionEditor(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ink)
+            .background(Paper)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp),

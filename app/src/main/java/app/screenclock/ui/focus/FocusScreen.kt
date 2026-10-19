@@ -73,11 +73,13 @@ import app.screenclock.domain.focus.millisUntilFocusDigitChange
 import app.screenclock.domain.focus.normalizeFocusMinutes
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.FaceBright
 import app.screenclock.ui.Cream
 import app.screenclock.ui.FieldLabel
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Paper
 import app.screenclock.ui.Muted
 import app.screenclock.ui.PageTitle
 import app.screenclock.ui.PrimaryButton
@@ -140,7 +142,7 @@ private fun FocusPicker(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ink)
+            .background(Paper)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 28.dp, vertical = 12.dp),
@@ -337,7 +339,7 @@ private fun FocusCountdown(
                     modifier = Modifier
                         .fillMaxWidth(holdProgress.value.coerceIn(0f, 1f))
                         .fillMaxHeight()
-                        .background(Cream),
+                        .background(FaceBright),
                 )
             }
         }

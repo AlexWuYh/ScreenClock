@@ -3,6 +3,7 @@ package app.screenclock.ui.theme.digital
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,7 +14,7 @@ import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import app.screenclock.domain.time.FaceTime
-import app.screenclock.ui.Cream
+import app.screenclock.ui.SceneLight
 import app.screenclock.ui.theme.ClockScaffold
 import app.screenclock.ui.theme.scene.DuskLakeScene
 import app.screenclock.ui.theme.scene.sceneDigitSize
@@ -47,13 +48,13 @@ internal fun DigitalClock(
             modifier = Modifier.fillMaxSize(),
             preview = preview,
             meridiemBelow = true,
-            infoColor = Cream.copy(alpha = 0.88f),
+            infoColor = SceneLight.copy(alpha = 0.74f),
             onOccasionClick = onOccasionClick,
         ) { stacked, cardWidth, cardHeight, gap ->
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
             val areaHeight = if (stacked) cardHeight * 2 + gap else cardHeight
             Row(
-                modifier = Modifier.size(areaWidth, areaHeight),
+                modifier = Modifier.requiredSize(areaWidth, areaHeight),
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

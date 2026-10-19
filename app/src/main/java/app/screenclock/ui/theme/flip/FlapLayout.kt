@@ -1,11 +1,11 @@
 package app.screenclock.ui.theme.flip
 
-const val FLAP_ASPECT: Float = 1.6f
-const val FLAP_GAP_FRACTION: Float = 0.1f
+const val FLAP_ASPECT: Float = 1.05f
+const val FLAP_GAP_FRACTION: Float = 0.08f
 const val FLAP_CORNER_FRACTION: Float = 0.08f
 
-/** Portrait stacks the hour and minute groups. Landscape keeps them on one row. */
-fun clockStacked(width: Float, height: Float): Boolean = height > width
+/** Flap groups always share one row; the hinge is what splits top from bottom. */
+fun clockStacked(width: Float, height: Float): Boolean = false
 
 data class FlapLayout(
     val cardWidth: Float,

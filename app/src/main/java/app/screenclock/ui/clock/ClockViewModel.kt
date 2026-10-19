@@ -43,7 +43,10 @@ import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionRow
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
+import app.screenclock.domain.time.nextShowcaseTheme
 import app.screenclock.domain.weather.CityCandidate
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -344,6 +347,20 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setColorway(colorway: ColorwayId) {
         viewModelScope.launch { settingsRepository.setColorway(colorway) }
+    }
+
+    fun setDatePosition(position: DatePosition) {
+        viewModelScope.launch { settingsRepository.setDatePosition(position) }
+    }
+
+    fun setDigitSize(size: DigitSize) {
+        viewModelScope.launch { settingsRepository.setDigitSize(size) }
+    }
+
+    /** Cycles through existing themes without leaving the full-screen clock. */
+    fun cycleTheme() {
+        val current = clock.value?.theme ?: ClockThemeId.Flip
+        setTheme(nextShowcaseTheme(current))
     }
 
     fun setWeatherEnabled(enabled: Boolean) = weatherController.setEnabled(enabled)

@@ -18,6 +18,19 @@ class ClockThemeTest {
     }
 
     @Test
+    fun showcasedThemesPutTheSixReferencesFirstAndKeepTubeAvailable() {
+        assertEquals(
+            listOf(
+                ClockThemeId.Flip, ClockThemeId.Digital, ClockThemeId.Analog,
+                ClockThemeId.Earth, ClockThemeId.Fluid, ClockThemeId.Neon, ClockThemeId.Tube,
+            ),
+            showcasedThemes,
+        )
+        assertEquals(ClockThemeId.Digital, nextShowcaseTheme(ClockThemeId.Flip))
+        assertEquals(ClockThemeId.Flip, nextShowcaseTheme(ClockThemeId.Tube))
+    }
+
+    @Test
     fun storedThemeAndColorwayFallBackToTheDefaults() {
         assertEquals(ClockThemeId.Flip, ClockThemeId.fromStored(null))
         assertEquals(ClockThemeId.Flip, ClockThemeId.fromStored("slow"))

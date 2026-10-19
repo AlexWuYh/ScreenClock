@@ -6,6 +6,7 @@ import android.graphics.Shader
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -49,7 +50,7 @@ internal fun NeonClock(
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
             val areaHeight = if (stacked) cardHeight * 2 + gap else cardHeight
             val text = "${face.hourDigits}:${face.minuteDigits}"
-            Canvas(modifier = Modifier.size(areaWidth, areaHeight)) {
+            Canvas(modifier = Modifier.requiredSize(areaWidth, areaHeight)) {
                 val w = size.width
                 val h = size.height
                 val base = Paint().apply {
@@ -58,11 +59,11 @@ internal fun NeonClock(
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
                     typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
-                    textSize = h * 0.55f
+                    textSize = h * 0.60f
                 }
                 val measured = base.measureText(text)
                 if (measured > 0f) {
-                    base.textSize = minOf(h * 0.60f, w * 0.86f / measured * base.textSize)
+                    base.textSize = minOf(h * 0.66f, w * 0.92f / measured * base.textSize)
                 }
                 base.shader = LinearGradient(
                     0f,

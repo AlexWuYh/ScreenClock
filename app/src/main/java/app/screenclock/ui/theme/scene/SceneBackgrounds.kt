@@ -284,9 +284,10 @@ internal fun FluidScene(modifier: Modifier = Modifier) {
             ),
         )
         val bands = listOf(
-            Triple(Color(0xFFB7C2E6), 0.34f, 0.46f),
-            Triple(Color(0xFFC9B6DF), 0.48f, 0.60f),
-            Triple(Color(0xFFE8CFC8), 0.63f, 0.72f),
+            Triple(Color(0xFFB8D5ED), 0.25f, 0.34f),
+            Triple(Color(0xFFB7C2E6), 0.37f, 0.49f),
+            Triple(Color(0xFFC9B6DF), 0.53f, 0.63f),
+            Triple(Color(0xFFE8CFC8), 0.68f, 0.76f),
         )
         for ((color, leftY, rightY) in bands) {
             val path = Path().apply {
@@ -359,6 +360,44 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
             ),
             radius = h * 0.75f,
             center = Offset(w * 0.5f, horizon),
+        )
+        // A striped sunset and mountain silhouettes give the grid a horizon.
+        val sun = Offset(w * 0.52f, horizon - h * 0.11f)
+        val sunRadius = h * 0.17f
+        drawCircle(
+            brush = Brush.verticalGradient(
+                0f to Color(0xFFFFB65F),
+                1f to Color(0xFFE9438A),
+                startY = sun.y - sunRadius,
+                endY = sun.y + sunRadius,
+            ),
+            radius = sunRadius,
+            center = sun,
+        )
+        for (stripe in 0..3) {
+            val fraction = 0.22f + stripe * 0.17f
+            val halfWidth = sunRadius * kotlin.math.sqrt(1f - fraction * fraction)
+            drawRect(
+                color = Color(0xFF311143),
+                topLeft = Offset(sun.x - halfWidth, sun.y + sunRadius * fraction),
+                size = Size(halfWidth * 2f, h * (0.003f + stripe * 0.002f)),
+            )
+        }
+        drawPath(
+            path = Path().apply {
+                moveTo(0f, horizon)
+                lineTo(w * 0.12f, horizon - h * 0.10f)
+                lineTo(w * 0.25f, horizon - h * 0.012f)
+                lineTo(w * 0.38f, horizon - h * 0.06f)
+                lineTo(w * 0.53f, horizon)
+                lineTo(w * 0.7f, horizon - h * 0.075f)
+                lineTo(w * 0.85f, horizon - h * 0.012f)
+                lineTo(w, horizon - h * 0.095f)
+                lineTo(w, horizon + h * 0.025f)
+                lineTo(0f, horizon + h * 0.025f)
+                close()
+            },
+            color = Color(0xFF170C2D),
         )
         val grid = Color(0xFFC05BFF).copy(alpha = 0.30f)
         for (i in -7..7) {

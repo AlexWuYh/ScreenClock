@@ -29,10 +29,13 @@ import app.screenclock.domain.bedside.nightDimActive
 import app.screenclock.domain.bedside.warmActive
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
-import app.screenclock.ui.Ink
+import app.screenclock.ui.AmberDeep
+import app.screenclock.ui.Paper
 import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
 import app.screenclock.ui.ceremony.CeremonyScreen
 import app.screenclock.ui.clock.AppDestination
@@ -131,10 +134,10 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     }
     MaterialTheme(
         colorScheme = darkColorScheme(
-            background = Ink,
+            background = Paper,
             surface = ChromeBar,
-            primary = Cream,
-            onPrimary = Ink,
+            primary = AmberDeep,
+            onPrimary = Paper,
             onBackground = Cream,
             onSurface = Cream,
         ),
@@ -148,7 +151,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Ink),
+                        .background(Paper),
                 )
             } else when (destination) {
                 AppDestination.Clock -> ClockShell(viewModel)
@@ -161,6 +164,8 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                     hourMode = clock?.hourMode ?: HourMode.FollowSystem,
                     theme = clock?.theme ?: ClockThemeId.Flip,
                     colorway = clock?.colorway ?: ColorwayId.InkBlack,
+                    datePosition = clock?.datePosition ?: DatePosition.Above,
+                    digitSize = clock?.digitSize ?: DigitSize.Regular,
                     showDate = clock?.showDate ?: true,
                     showYear = clock?.showYear ?: true,
                     showWeekday = clock?.showWeekday ?: true,
@@ -169,6 +174,8 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                     onHourMode = viewModel::setHourMode,
                     onTheme = viewModel::setTheme,
                     onColorway = viewModel::setColorway,
+                    onDatePosition = viewModel::setDatePosition,
+                    onDigitSize = viewModel::setDigitSize,
                     onShowDate = viewModel::setShowDate,
                     onShowYear = viewModel::setShowYear,
                     onShowWeekday = viewModel::setShowWeekday,

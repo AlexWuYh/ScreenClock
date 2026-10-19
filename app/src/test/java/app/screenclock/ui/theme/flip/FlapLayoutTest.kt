@@ -7,10 +7,11 @@ import org.junit.Test
 
 class FlapLayoutTest {
     @Test
-    fun portraitStackKeepsTheGapAndFitsTheHeight() {
-        val layout = flapLayout(width = 360f, height = 640f, stacked = true, reserveSide = 0f)
-        assertTrue(layout.stacked)
-        assertEquals(360f, layout.cardWidth, 0.01f)
+    fun portraitKeepsBothFlapsOnOneRow() {
+        val layout = flapLayout(width = 360f, height = 640f, stacked = clockStacked(360f, 640f), reserveSide = 0f)
+        assertFalse(layout.stacked)
+        assertTrue(layout.cardWidth * 2f + layout.gap <= 360f + 0.05f)
+        assertTrue(layout.cardWidth <= 360f + 0.01f)
         assertEquals(FLAP_GAP_FRACTION, layout.gap / layout.cardWidth, 0.001f)
         assertTrue(layout.cardHeight * 2f + layout.gap <= 640f)
     }
@@ -27,18 +28,18 @@ class FlapLayoutTest {
     }
 
     @Test
-    fun crampedPortraitStillFitsTheHeight() {
-        val layout = flapLayout(width = 400f, height = 100f, stacked = true, reserveSide = 0f)
-        val used = layout.cardHeight * 2f + layout.gap
-        assertEquals(100f, used, 0.05f)
+    fun aCrampedHeightStillFitsBothFlaps() {
+        val layout = flapLayout(width = 400f, height = 100f, stacked = false, reserveSide = 0f)
+        assertEquals(100f, layout.cardHeight, 0.05f)
+        assertTrue(layout.cardWidth * 2f + layout.gap <= 400f + 0.05f)
         assertEquals(FLAP_GAP_FRACTION, layout.gap / layout.cardWidth, 0.001f)
     }
 
     @Test
     fun threeFlapsFitPortraitAndLandscape() {
-        val portrait = flapLayout(width = 360f, height = 640f, stacked = true, reserveSide = 0f, count = 3)
-        val portraitUsed = portrait.cardHeight * 3f + portrait.gap * 2f
-        assertTrue(portraitUsed <= 640f + 0.05f)
+        val portrait = flapLayout(width = 360f, height = 640f, stacked = false, reserveSide = 0f, count = 3)
+        val portraitUsed = portrait.cardWidth * 3f + portrait.gap * 2f
+        assertTrue(portraitUsed <= 360f + 0.05f)
         assertEquals(FLAP_GAP_FRACTION, portrait.gap / portrait.cardWidth, 0.001f)
 
         val landscape = flapLayout(width = 800f, height = 360f, stacked = false, reserveSide = 0f, count = 3)
@@ -48,8 +49,8 @@ class FlapLayoutTest {
     }
 
     @Test
-    fun portraitStacksAndLandscapeSharesOneRow() {
-        assertTrue(clockStacked(width = 360f, height = 640f))
+    fun everyScreenSharesOneRow() {
+        assertFalse(clockStacked(width = 360f, height = 640f))
         assertFalse(clockStacked(width = 800f, height = 360f))
         assertFalse(clockStacked(width = 600f, height = 600f))
     }
@@ -72,9 +73,12 @@ class FlapLayoutTest {
         assertTrue(fit.inkLeft + inkWidth <= cardWidth)
         assertTrue(fit.inkTop + inkHeight <= cardHeight)
         val corner = minOf(cardWidth, cardHeight) * FLAP_CORNER_FRACTION
-        val clearsSide = fit.inkLeft >= corner
-        val clearsTop = fit.inkTop >= corner
-        assertTrue("ink must clear the rounded corner on at least one axis", clearsSide || clearsTop)
+        val horizontal = fit.inkLeft
+        val vertical = fit.inkTop
+        val dx = corner - horizontal
+        val dy = corner - vertical
+        val insideArc = horizontal >= corner || vertical >= corner || dx * dx + dy * dy <= corner * corner
+        assertTrue("ink must clear the rounded corner", insideArc)
     }
 
     @Test
@@ -89,9 +93,9 @@ class FlapLayoutTest {
 
         val portraitWidth = 1600f / density - 64f
         val portraitHeight = 2560f / density - 64f - 56f
-        val portrait = flapLayout(portraitWidth, portraitHeight, stacked = true, reserveSide = 0f)
-        assertTrue(portrait.stacked)
-        assertTrue(portrait.cardHeight * 2f + portrait.gap <= portraitHeight + 0.05f)
-        assertTrue(portrait.cardWidth <= portraitWidth + 0.05f)
+        val portrait = flapLayout(portraitWidth, portraitHeight, stacked = false, reserveSide = 0f)
+        assertFalse(portrait.stacked)
+        assertTrue(portrait.cardWidth * 2f + portrait.gap <= portraitWidth + 0.05f)
+        assertTrue(portrait.cardHeight <= portraitHeight + 0.05f)
     }
 }

@@ -4,6 +4,7 @@ import android.graphics.Paint
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -16,13 +17,14 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.handAngles
-import app.screenclock.ui.Cream
+import app.screenclock.ui.SceneLight
 import app.screenclock.ui.theme.ClockScaffold
 import app.screenclock.ui.theme.scene.MountainScene
 import kotlin.math.cos
 import kotlin.math.sin
 
-private val DialWhite = Color(0xFFF2F2F0)
+private val DialFace = Color(0xFFF5F2EA)
+private val DialInk = Color(0xFF2E343B)
 
 /**
  * 经典模拟：a numbered dial with thin hands over drawn snow ridges.
@@ -50,7 +52,7 @@ internal fun AnalogClock(
             expanded = expanded,
             modifier = Modifier.fillMaxSize(),
             preview = preview,
-            infoColor = Cream.copy(alpha = 0.9f),
+            infoColor = SceneLight.copy(alpha = 0.9f),
             onOccasionClick = onOccasionClick,
         ) { stacked, cardWidth, cardHeight, gap ->
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
@@ -59,16 +61,23 @@ internal fun AnalogClock(
             val hour = face.hourDigits.toIntOrNull() ?: 0
             val minute = face.minuteDigits.toIntOrNull() ?: 0
             val angles = handAngles(hour, minute)
-            Canvas(modifier = Modifier.size(diameter, diameter)) {
+            Canvas(modifier = Modifier.requiredSize(diameter, diameter)) {
                 val r = size.minDimension / 2f
                 val center = Offset(size.width / 2f, size.height / 2f)
+                drawCircle(color = DialFace, radius = r * 0.99f, center = center)
+                drawCircle(
+                    color = Color.White.copy(alpha = 0.75f),
+                    radius = r * 0.94f,
+                    center = center,
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = r * 0.009f),
+                )
                 for (tick in 0 until 60) {
                     val isHour = tick % 5 == 0
                     val angle = Math.toRadians((tick * 6).toDouble())
                     val outer = r * 0.97f
                     val inner = outer - if (isHour) r * 0.075f else r * 0.035f
                     drawLine(
-                        color = DialWhite.copy(alpha = if (isHour) 0.9f else 0.5f),
+                        color = DialInk.copy(alpha = if (isHour) 0.86f else 0.36f),
                         start = center + Offset((sin(angle) * inner).toFloat(), (-cos(angle) * inner).toFloat()),
                         end = center + Offset((sin(angle) * outer).toFloat(), (-cos(angle) * outer).toFloat()),
                         strokeWidth = r * (if (isHour) 0.012f else 0.006f),
@@ -77,10 +86,10 @@ internal fun AnalogClock(
                 }
                 val numeralPaint = Paint().apply {
                     isAntiAlias = true
-                    color = DialWhite.copy(alpha = 0.92f).toArgb()
+                    color = DialInk.copy(alpha = 0.88f).toArgb()
                     textAlign = Paint.Align.CENTER
                     typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
-                    textSize = r * 0.28f
+                    textSize = r * 0.31f
                 }
                 for (number in 1..12) {
                     val angle = Math.toRadians((number * 30).toDouble())
@@ -93,10 +102,10 @@ internal fun AnalogClock(
                         numeralPaint,
                     )
                 }
-                drawHand(center, r, angles.hourDegrees, length = r * 0.42f, width = r * 0.030f, color = DialWhite)
-                drawHand(center, r, angles.minuteDegrees, length = r * 0.62f, width = r * 0.022f, color = DialWhite)
-                drawCircle(color = DialWhite, radius = r * 0.035f, center = center)
-                drawCircle(color = Color(0xFF2C4568), radius = r * 0.014f, center = center)
+                drawHand(center, r, angles.hourDegrees, length = r * 0.42f, width = r * 0.030f, color = DialInk)
+                drawHand(center, r, angles.minuteDegrees, length = r * 0.62f, width = r * 0.022f, color = DialInk)
+                drawCircle(color = DialInk, radius = r * 0.035f, center = center)
+                drawCircle(color = Color(0xFFBE8960), radius = r * 0.014f, center = center)
             }
         }
     }

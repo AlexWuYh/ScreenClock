@@ -53,6 +53,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.net.toUri
@@ -63,13 +64,17 @@ import app.screenclock.domain.burnin.normalizeIdleMillis
 import app.screenclock.domain.burnin.normalizeRunMillis
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.domain.time.ColorwayId
+import app.screenclock.domain.time.DatePosition
+import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
+import app.screenclock.domain.time.showcasedThemes
 import app.screenclock.domain.weather.CityCandidate
 import app.screenclock.domain.weather.WeatherCache
 import app.screenclock.domain.weather.formatUpdatedAt
 import app.screenclock.domain.weather.formatWeatherLine
 import app.screenclock.ui.Amber
+import app.screenclock.ui.AmberDeep
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
@@ -79,6 +84,7 @@ import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
+import app.screenclock.ui.Paper
 import app.screenclock.ui.Muted
 import app.screenclock.ui.NavRow
 import app.screenclock.ui.PageTitle
@@ -98,6 +104,8 @@ fun SettingsScreen(
     hourMode: HourMode,
     theme: ClockThemeId,
     colorway: ColorwayId,
+    datePosition: DatePosition,
+    digitSize: DigitSize,
     showDate: Boolean,
     showYear: Boolean,
     showWeekday: Boolean,
@@ -106,6 +114,8 @@ fun SettingsScreen(
     onHourMode: (HourMode) -> Unit,
     onTheme: (ClockThemeId) -> Unit,
     onColorway: (ColorwayId) -> Unit,
+    onDatePosition: (DatePosition) -> Unit,
+    onDigitSize: (DigitSize) -> Unit,
     onShowDate: (Boolean) -> Unit,
     onShowYear: (Boolean) -> Unit,
     onShowWeekday: (Boolean) -> Unit,
@@ -145,7 +155,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ink)
+            .background(Paper)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 12.dp),
@@ -189,6 +199,8 @@ fun SettingsScreen(
                 dateLine = dateLine,
                 theme = theme,
                 colorway = colorway,
+                datePosition = datePosition,
+                digitSize = digitSize,
                 weather = weather,
                 onTheme = onTheme,
                 onColorway = onColorway,
@@ -223,6 +235,24 @@ fun SettingsScreen(
                 enabled = showDate,
                 onCheckedChange = onShowHoliday,
             )
+        }
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionCard {
+            SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_layout))
+            FieldLabel(stringResource(R.string.date_position))
+            Spacer(modifier = Modifier.height(8.dp))
+            SegmentedRow(listOf(
+                SegmentOption(stringResource(R.string.position_above), datePosition == DatePosition.Above) { onDatePosition(DatePosition.Above) },
+                SegmentOption(stringResource(R.string.position_below), datePosition == DatePosition.Below) { onDatePosition(DatePosition.Below) },
+            ))
+            Spacer(modifier = Modifier.height(16.dp))
+            FieldLabel(stringResource(R.string.digit_size))
+            Spacer(modifier = Modifier.height(8.dp))
+            SegmentedRow(listOf(
+                SegmentOption(stringResource(R.string.digit_compact), digitSize == DigitSize.Compact) { onDigitSize(DigitSize.Compact) },
+                SegmentOption(stringResource(R.string.digit_regular), digitSize == DigitSize.Regular) { onDigitSize(DigitSize.Regular) },
+                SegmentOption(stringResource(R.string.digit_large), digitSize == DigitSize.Large) { onDigitSize(DigitSize.Large) },
+            ))
         }
         Spacer(modifier = Modifier.height(16.dp))
         SectionCard {
@@ -293,21 +323,24 @@ private fun ThemePicker(
     dateLine: String?,
     theme: ClockThemeId,
     colorway: ColorwayId,
+    datePosition: DatePosition,
+    digitSize: DigitSize,
     weather: WeatherCache?,
     onTheme: (ClockThemeId) -> Unit,
     onColorway: (ColorwayId) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        ClockThemeId.entries.chunked(2).forEach { rowItems ->
+        showcasedThemes.chunked(2).forEach { rowItems ->
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { id ->
                     ThemePreview(
-                        label = stringResource(themeLabel(id)),
+                        label = "${showcasedThemes.indexOf(id) + 1}".padStart(2, '0') + " · " + stringResource(themeLabel(id)),
+                        subtitle = stringResource(themeSubtitle(id)),
                         selected = theme == id,
                         onClick = { onTheme(id) },
                         modifier = Modifier.weight(1f),
                     ) {
-                        ThemeFace(id, colorway, face, dateLine, weather)
+                        ThemeFace(id, colorway, datePosition, digitSize, face, dateLine, weather)
                     }
                 }
                 if (rowItems.size == 1) {
@@ -332,9 +365,24 @@ private fun ThemePicker(
                     selected = colorway == ColorwayId.SnowWhite,
                     onClick = { onColorway(ColorwayId.SnowWhite) },
                 ),
+                SegmentOption(
+                    label = stringResource(R.string.colorway_graphite),
+                    selected = colorway == ColorwayId.Graphite,
+                    onClick = { onColorway(ColorwayId.Graphite) },
+                ),
             ),
         )
     }
+}
+
+private fun themeSubtitle(id: ClockThemeId): Int = when (id) {
+    ClockThemeId.Flip -> R.string.theme_flip_desc
+    ClockThemeId.Tube -> R.string.theme_tube_desc
+    ClockThemeId.Digital -> R.string.theme_digital_desc
+    ClockThemeId.Analog -> R.string.theme_analog_desc
+    ClockThemeId.Earth -> R.string.theme_earth_desc
+    ClockThemeId.Fluid -> R.string.theme_fluid_desc
+    ClockThemeId.Neon -> R.string.theme_neon_desc
 }
 
 private fun themeLabel(id: ClockThemeId): Int {
@@ -352,6 +400,7 @@ private fun themeLabel(id: ClockThemeId): Int {
 @Composable
 private fun ThemePreview(
     label: String,
+    subtitle: String,
     selected: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -385,8 +434,15 @@ private fun ThemePreview(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = label,
-            color = if (selected) Amber else Info,
+            color = if (selected) AmberDeep else Cream,
             fontSize = 14.sp,
+        )
+        Text(
+            text = subtitle,
+            color = Muted,
+            fontSize = 12.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
         )
     }
 }
@@ -395,6 +451,8 @@ private fun ThemePreview(
 private fun ThemeFace(
     theme: ClockThemeId,
     colorway: ColorwayId,
+    datePosition: DatePosition,
+    digitSize: DigitSize,
     face: FaceTime?,
     dateLine: String?,
     weather: WeatherCache?,
@@ -411,6 +469,8 @@ private fun ThemeFace(
             occasionLine = null,
             expanded = expanded,
             animate = false,
+            datePosition = datePosition,
+            digitSize = digitSize,
             modifier = Modifier.fillMaxSize(),
             preview = true,
         )
@@ -705,17 +765,44 @@ private fun HourStep(label: String, hour: Int, onHour: (Int) -> Unit) {
 @Composable
 private fun AboutCredit() {
     val context = LocalContext.current
+    Text(
+        text = stringResource(R.string.about_intro),
+        color = Info,
+        fontSize = 14.sp,
+    )
+    Spacer(modifier = Modifier.height(12.dp))
+    NavRow(
+        icon = AppIconKind.Link,
+        label = stringResource(R.string.about_github),
+        trailing = AppIconKind.Link,
+        onClick = { openLink(context, "https://github.com/AlexWuYh/ScreenClock") },
+    )
+    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 44.dp)) {
+        AppIcon(kind = AppIconKind.Heart, tint = Amber, size = 18.dp)
+        Spacer(modifier = Modifier.width(12.dp))
+        Text(text = stringResource(R.string.about_author), color = Cream, fontSize = 16.sp)
+    }
+    Spacer(modifier = Modifier.height(8.dp))
+    Text(text = stringResource(R.string.about_license), color = Cream, fontSize = 16.sp)
+    Spacer(modifier = Modifier.height(2.dp))
+    Text(
+        text = stringResource(R.string.about_license_detail),
+        color = Muted,
+        fontSize = 13.sp,
+    )
+    Spacer(modifier = Modifier.height(4.dp))
     NavRow(
         icon = AppIconKind.Link,
         label = stringResource(R.string.weather_credit),
         trailing = AppIconKind.Link,
-        onClick = {
-            val intent = Intent(Intent.ACTION_VIEW, "https://open-meteo.com/".toUri())
-            try {
-                context.startActivity(intent)
-            } catch (_: ActivityNotFoundException) {
-                // The credit stays on the page when the device has no browser.
-            }
-        },
+        onClick = { openLink(context, "https://open-meteo.com/") },
     )
+}
+
+private fun openLink(context: android.content.Context, url: String) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()))
+    } catch (_: ActivityNotFoundException) {
+        // The text stays on the page when the device has no browser.
+    }
 }

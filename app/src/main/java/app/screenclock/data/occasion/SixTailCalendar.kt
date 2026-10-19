@@ -22,8 +22,9 @@ object SixTailCalendar : LunarCalendar {
     fun lunarDateLabel(date: LocalDate): String? {
         return try {
             val lunar = Solar.fromYmd(date.year, date.monthValue, date.dayOfMonth).lunar
-            val month = lunar.monthInChinese?.takeIf { it.isNotBlank() } ?: return null
+            val monthName = lunar.monthInChinese?.takeIf { it.isNotBlank() } ?: return null
             val day = lunar.dayInChinese?.takeIf { it.isNotBlank() } ?: return null
+            val month = if (monthName.endsWith("月")) monthName else "${monthName}月"
             "$month$day"
         } catch (_: RuntimeException) {
             null

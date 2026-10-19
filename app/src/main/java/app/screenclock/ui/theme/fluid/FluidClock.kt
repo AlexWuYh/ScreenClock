@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -50,7 +51,7 @@ internal fun FluidClock(
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
             val areaHeight = if (stacked) cardHeight * 2 + gap else cardHeight
             Row(
-                modifier = Modifier.size(areaWidth, areaHeight),
+                modifier = Modifier.requiredSize(areaWidth, areaHeight),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {

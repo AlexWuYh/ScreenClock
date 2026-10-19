@@ -25,12 +25,28 @@ enum class ClockThemeId {
     }
 }
 
+/** Six reference designs first; the existing tube remains available as an extra. */
+val showcasedThemes: List<ClockThemeId> = listOf(
+    ClockThemeId.Flip,
+    ClockThemeId.Digital,
+    ClockThemeId.Analog,
+    ClockThemeId.Earth,
+    ClockThemeId.Fluid,
+    ClockThemeId.Neon,
+    ClockThemeId.Tube,
+)
+
+fun nextShowcaseTheme(current: ClockThemeId): ClockThemeId =
+    showcasedThemes[(showcasedThemes.indexOf(current) + 1) % showcasedThemes.size]
+
 /** Flip finish. A new finish is colours only; the fold itself never changes. */
 enum class ColorwayId {
     /** Dark cards, white digits. */
     InkBlack,
     /** Light cards, dark digits:「素白」. */
     SnowWhite,
+    /** A quieter warm-grey mechanical finish:「深灰」. */
+    Graphite,
     ;
 
     companion object {
@@ -49,4 +65,6 @@ data class ClockPreferences(
     val showHoliday: Boolean = true,
     val theme: ClockThemeId = ClockThemeId.Flip,
     val colorway: ColorwayId = ColorwayId.InkBlack,
+    val datePosition: DatePosition = DatePosition.Above,
+    val digitSize: DigitSize = DigitSize.Regular,
 )

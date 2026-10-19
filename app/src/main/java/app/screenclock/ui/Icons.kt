@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 internal enum class AppIconKind {
     Back,
     Sliders,
+    Palette,
     Timer,
     Moon,
     Heart,
@@ -65,6 +66,13 @@ internal fun AppIcon(
                     dot(15f, 6.5f, 2.4f, tint)
                     dot(9f, 12f, 2.4f, tint)
                     dot(15.5f, 17.5f, 2.4f, tint)
+                }
+                AppIconKind.Palette -> {
+                    circle(12f, 12f, 8.6f, tint, line)
+                    dot(8f, 8.5f, 1.3f, tint)
+                    dot(13f, 6.9f, 1.3f, tint)
+                    dot(17f, 10.5f, 1.3f, tint)
+                    dot(8f, 15.4f, 1.3f, tint)
                 }
                 AppIconKind.Timer -> {
                     circle(12f, 14f, 6.5f, tint, line)

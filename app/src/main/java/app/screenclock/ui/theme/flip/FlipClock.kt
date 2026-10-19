@@ -16,6 +16,7 @@ import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.Digit
 import app.screenclock.ui.Flap
+import app.screenclock.ui.GraphiteFlap
 import app.screenclock.ui.SnowDigit
 import app.screenclock.ui.SnowFlap
 import app.screenclock.ui.theme.ClockScaffold
@@ -63,6 +64,7 @@ private fun flipFinish(colorway: ColorwayId): FlipFinish {
     return when (colorway) {
         ColorwayId.InkBlack -> FlipFinish(flap = Flap, digit = Digit)
         ColorwayId.SnowWhite -> FlipFinish(flap = SnowFlap, digit = SnowDigit)
+        ColorwayId.Graphite -> FlipFinish(flap = GraphiteFlap, digit = Digit)
     }
 }
 

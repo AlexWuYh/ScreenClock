@@ -9,13 +9,14 @@ import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,10 +28,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.unit.Dp
@@ -39,7 +42,6 @@ import app.screenclock.domain.time.FLIP_DURATION_MILLIS
 import app.screenclock.domain.time.flipFrame
 import app.screenclock.ui.Digit
 import app.screenclock.ui.Flap
-import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
 
 private const val GLYPH_PROBE = "88"
@@ -82,11 +84,15 @@ internal fun FlipCard(
     BoxWithConstraints(modifier) {
         val corner = minOf(maxWidth, maxHeight) * FLAP_CORNER_FRACTION
         val cardHeight = maxHeight
+        val shape = RoundedCornerShape(corner)
+        val rim = if (flapColor.red > 0.7f) Ink.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.1f)
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .clip(RoundedCornerShape(corner))
-                .background(flapColor),
+                .shadow(8.dp, shape, clip = false)
+                .clip(shape)
+                .background(flapColor)
+                .border(1.dp, rim, shape),
         ) {
             StaticHalf(frame.topBack, top = true, cardHeight = cardHeight, alignment = Alignment.TopCenter, flapColor = flapColor, digitColor = digitColor)
             StaticHalf(frame.bottomBack, top = false, cardHeight = cardHeight, alignment = Alignment.BottomCenter, flapColor = flapColor, digitColor = digitColor)
@@ -119,6 +125,9 @@ internal fun FlipCard(
     }
 }
 
+private fun halfColor(base: Color, top: Boolean): Color =
+    if (top) lerp(base, Color.White, 0.035f) else lerp(base, Color.Black, 0.045f)
+
 private class FlapDigits(start: String) {
     var previous by mutableStateOf(start)
     var current by mutableStateOf(start)
@@ -139,7 +148,7 @@ private fun BoxScope.StaticHalf(
             .fillMaxHeight(0.5f)
             .align(alignment)
             .clipToBounds()
-            .background(flapColor),
+            .background(halfColor(flapColor, top)),
     ) {
         Glyph(digits, top = top, cardHeight = cardHeight, digitColor = digitColor)
     }
@@ -171,7 +180,7 @@ private fun BoxScope.MovingHalf(
                 cameraDistance = 16.dp.toPx()
             }
             .clipToBounds()
-            .background(flapColor),
+            .background(halfColor(flapColor, top)),
     ) {
         Glyph(digits, top = top, cardHeight = cardHeight, digitColor = digitColor)
         Box(
@@ -190,15 +199,16 @@ private fun BoxScope.Glyph(
     digitColor: Color,
 ) {
     val argb = digitColor.toArgb()
+    val cardHeightPx = with(LocalDensity.current) { cardHeight.toPx() }
+    val shift = if (top) 0f else cardHeightPx / 2f
     Canvas(
         modifier = Modifier
             .fillMaxWidth()
-            .height(cardHeight)
-            .align(if (top) Alignment.TopCenter else Alignment.BottomCenter),
+            .fillMaxHeight(),
     ) {
         // Text clips once the glyph is larger than the font atlas. A path stays whole on a tablet.
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL)
+            typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
             textSize = GLYPH_PROBE_SIZE
             fontFeatureSettings = "tnum"
             hinting = Paint.HINTING_OFF
@@ -210,7 +220,7 @@ private fun BoxScope.Glyph(
         if (probe.width() <= 0 || probe.height() <= 0) return@Canvas
         val fit = glyphFit(
             cardWidth = size.width,
-            cardHeight = size.height,
+            cardHeight = cardHeightPx,
             inkWidth = maxOf(probe.width().toFloat(), paint.measureText(GLYPH_PROBE)),
             inkHeight = probe.height().toFloat(),
             measuredSize = paint.textSize,
@@ -218,7 +228,7 @@ private fun BoxScope.Glyph(
         paint.textSize = GLYPH_PROBE_SIZE * fit.sizeScale
         val scaled = Rect()
         paint.getTextBounds(GLYPH_PROBE, 0, GLYPH_PROBE.length, scaled)
-        val baseline = fit.inkTop - scaled.top
+        val baseline = fit.inkTop - scaled.top - shift
         val x = (size.width - paint.measureText(digits)) / 2f
         val path = Path()
         paint.getTextPath(digits, 0, digits.length, x, baseline, path)

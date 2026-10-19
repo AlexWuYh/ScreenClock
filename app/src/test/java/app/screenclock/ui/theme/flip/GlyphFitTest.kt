@@ -36,6 +36,9 @@ class GlyphFitTest {
         val top = fit.inkTop
         val left = fit.inkLeft
         val corner = minOf(cardWidth, cardHeight) * FLAP_CORNER_FRACTION
-        assertTrue(top >= corner || left >= corner)
+        val dx = corner - left
+        val dy = corner - top
+        val insideArc = left >= corner || top >= corner || dx * dx + dy * dy <= corner * corner
+        assertTrue("ink must clear the rounded corner", insideArc)
     }
 }
