@@ -70,6 +70,20 @@ class FocusTest {
     }
 
     @Test
+    fun forwardClockJumpToDoneThenBackwardJumpResumesDigitsAndWait() {
+        val end = 25L * 60_000L
+        assertEquals(FocusPhase.Running, focusFace(end, end - 2_000L).phase)
+        assertEquals(FocusPhase.Done, focusFace(end, end + 60_000L).phase)
+        assertNull(millisUntilFocusDigitChange(end, end + 60_000L))
+
+        // A wall-clock generation change restarts the UI wait from the new time.
+        val resumedAt = end - 60_000L
+        assertEquals(FocusPhase.Running, focusFace(end, resumedAt).phase)
+        assertEquals(listOf("01", "00"), focusFace(end, resumedAt).groups)
+        assertEquals(1_000L, millisUntilFocusDigitChange(end, resumedAt))
+    }
+
+    @Test
     fun digitChangeWaitsForTheNextRoundedSecond() {
         val end = 10_000L
         assertEquals(1000L, millisUntilFocusDigitChange(end, 0L))

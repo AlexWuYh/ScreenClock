@@ -28,10 +28,17 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -45,6 +52,7 @@ import app.screenclock.ui.Info
 import app.screenclock.ui.Muted
 import app.screenclock.ui.Panel
 import app.screenclock.ui.PanelHigh
+import kotlinx.coroutines.launch
 
 private val WheelItemHeight = 44.dp
 private const val WheelVisibleItems = 3
@@ -63,7 +71,14 @@ private fun WheelColumn(
 ) {
     val start = selectedIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0))
     val state = rememberLazyListState(initialFirstVisibleItemIndex = start)
+    val scope = rememberCoroutineScope()
     val fling = rememberSnapFlingBehavior(lazyListState = state)
+    // Keep a column in sync if the other column clamps its selected value.
+    LaunchedEffect(start) {
+        if (!state.isScrollInProgress && state.firstVisibleItemIndex != start) {
+            state.scrollToItem(start)
+        }
+    }
     val settled by remember(items) {
         derivedStateOf {
             val base = state.firstVisibleItemIndex
@@ -79,6 +94,10 @@ private fun WheelColumn(
                 }
             }
     }
+    val visibleIndex = if (state.isScrollInProgress) settled.coerceIn(items.indices) else start
+    val stateText = stringResource(R.string.occasion_wheel_state, label, items[visibleIndex], items.size)
+    val increaseLabel = stringResource(R.string.occasion_wheel_increase, label)
+    val decreaseLabel = stringResource(R.string.occasion_wheel_decrease, label)
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         Box(
             modifier = Modifier
@@ -99,7 +118,34 @@ private fun WheelColumn(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier
                     .height(WheelItemHeight * WheelVisibleItems)
-                    .fillMaxWidth(),
+                    .fillMaxWidth()
+                    // Add state/actions without clearing LazyColumn's built-in scroll semantics.
+                    .semantics {
+                        contentDescription = label
+                        stateDescription = stateText
+                        customActions = buildList {
+                            if (visibleIndex < items.lastIndex) {
+                                add(CustomAccessibilityAction(increaseLabel) {
+                                    val next = visibleIndex + 1
+                                    scope.launch {
+                                        state.scrollToItem(next)
+                                        onSelected(next)
+                                    }
+                                    true
+                                })
+                            }
+                            if (visibleIndex > 0) {
+                                add(CustomAccessibilityAction(decreaseLabel) {
+                                    val previous = visibleIndex - 1
+                                    scope.launch {
+                                        state.scrollToItem(previous)
+                                        onSelected(previous)
+                                    }
+                                    true
+                                })
+                            }
+                        }
+                    },
             ) {
                 itemsIndexed(items) { index, item ->
                     Box(
@@ -113,13 +159,14 @@ private fun WheelColumn(
                             color = if (index == settled) Cream else Muted,
                             fontWeight = if (index == settled) FontWeight.Medium else FontWeight.Normal,
                             fontSize = 20.sp,
+                            modifier = Modifier.clearAndSetSemantics { },
                         )
                     }
                 }
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, color = Info, fontSize = 14.sp)
+        Text(text = label, color = Info, fontSize = 14.sp, modifier = Modifier.clearAndSetSemantics { })
     }
 }
 

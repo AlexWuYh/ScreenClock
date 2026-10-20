@@ -4,6 +4,7 @@ local.properties
 /.idea/
 *.iml
 .gradle/
+.kotlin/
 /build/
 **/build/
 captures/

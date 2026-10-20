@@ -82,8 +82,14 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
-                Lifecycle.Event.ON_START -> viewModel.setBurnInHostHidden(false)
-                Lifecycle.Event.ON_STOP -> viewModel.setBurnInHostHidden(true)
+                Lifecycle.Event.ON_START -> {
+                    viewModel.setWeatherForeground(true)
+                    viewModel.setBurnInHostHidden(false)
+                }
+                Lifecycle.Event.ON_STOP -> {
+                    viewModel.setWeatherForeground(false)
+                    viewModel.setBurnInHostHidden(true)
+                }
                 Lifecycle.Event.ON_RESUME -> {
                     viewModel.onForeground()
                     resumeTick.intValue = resumeTick.intValue + 1
@@ -92,7 +98,10 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+        onDispose {
+            viewModel.setWeatherForeground(false)
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
     val nightOn = nightDimActive(
         bedside.dimEnabled,

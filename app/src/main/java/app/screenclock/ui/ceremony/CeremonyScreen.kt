@@ -1,5 +1,8 @@
 package app.screenclock.ui.ceremony
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
@@ -19,6 +22,7 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.activity.compose.LocalActivity
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,6 +43,9 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.domain.occasion.CeremonyMode
@@ -86,14 +93,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
         return
     }
     val leave = rememberUpdatedState(viewModel::closeCeremony)
-    // One cross-process read per screen entry, not one per second of countdown.
-    val animate = remember(context) {
-        Settings.Global.getFloat(
-            context.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) > 0f
-    }
+    val animate = rememberAnimatorEnabled(context)
     val pad = if (expanded) 32.dp else 16.dp
     Box(
         modifier = Modifier
@@ -190,4 +190,33 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                 .padding(horizontal = 12.dp, vertical = 4.dp),
         )
     }
+}
+
+/** Update on setting changes while visible; refresh after returning from Settings. */
+@Composable
+private fun rememberAnimatorEnabled(context: android.content.Context): Boolean {
+    val owner = LocalLifecycleOwner.current
+    val resolver = context.contentResolver
+    var enabled by remember(resolver) {
+        mutableStateOf(Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f)
+    }
+    DisposableEffect(resolver, owner) {
+        val refresh = {
+            enabled = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+        }
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) = refresh()
+        }
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh()
+        }
+        resolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
+        owner.lifecycle.addObserver(lifecycleObserver)
+        refresh()
+        onDispose {
+            owner.lifecycle.removeObserver(lifecycleObserver)
+            resolver.unregisterContentObserver(observer)
+        }
+    }
+    return enabled
 }

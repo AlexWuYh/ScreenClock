@@ -9,6 +9,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -41,19 +45,21 @@ internal fun FlipFlaps(
                 groups.forEachIndexed { index, digits ->
                     if (index > 0) Spacer(modifier = Modifier.height(layout.gap.dp))
                     key(keyOf(index)) {
-                        FlipCard(digits, animate, card)
+                        FlipCard(digits, animate, card.testTag("flip-group-$index"))
                     }
                 }
             }
         } else {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center,
-            ) {
-                groups.forEachIndexed { index, digits ->
-                    if (index > 0) Spacer(modifier = Modifier.width(layout.gap.dp))
-                    key(keyOf(index)) {
-                        FlipCard(digits, animate, card)
+            CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center,
+                ) {
+                    groups.forEachIndexed { index, digits ->
+                        if (index > 0) Spacer(modifier = Modifier.width(layout.gap.dp))
+                        key(keyOf(index)) {
+                            FlipCard(digits, animate, card.testTag("flip-group-$index"))
+                        }
                     }
                 }
             }

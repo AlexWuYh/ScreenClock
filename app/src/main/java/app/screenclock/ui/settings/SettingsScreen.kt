@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -80,6 +81,8 @@ import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
 import app.screenclock.ui.FieldLabel
 import app.screenclock.ui.GlassBorder
+import app.screenclock.ui.GlassFillHigh
+import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
@@ -96,6 +99,8 @@ import app.screenclock.ui.ToggleRow
 import app.screenclock.ui.appSliderColors
 import app.screenclock.ui.theme.ThemedClock
 import java.time.ZoneId
+
+private val SettingsMaxWidth = 780.dp
 
 @Composable
 fun SettingsScreen(
@@ -156,167 +161,191 @@ fun SettingsScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Paper)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 12.dp),
+            .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
-        IconBox(
-            icon = AppIconKind.Back,
-            contentDescription = stringResource(R.string.back),
-            onClick = onBack,
-        )
-        Spacer(modifier = Modifier.height(14.dp))
-        PageTitle(stringResource(R.string.settings))
-        Spacer(modifier = Modifier.height(22.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_display))
-            FieldLabel(stringResource(R.string.hour_mode))
-            Spacer(modifier = Modifier.height(8.dp))
-            SegmentedRow(
-                listOf(
-                    SegmentOption(
-                        label = stringResource(R.string.hour_mode_system),
-                        selected = hourMode == HourMode.FollowSystem,
-                        onClick = { onHourMode(HourMode.FollowSystem) },
-                    ),
-                    SegmentOption(
-                        label = stringResource(R.string.hour_mode_12),
-                        selected = hourMode == HourMode.H12,
-                        onClick = { onHourMode(HourMode.H12) },
-                    ),
-                    SegmentOption(
-                        label = stringResource(R.string.hour_mode_24),
-                        selected = hourMode == HourMode.H24,
-                        onClick = { onHourMode(HourMode.H24) },
-                    ),
-                ),
-            )
-            Spacer(modifier = Modifier.height(18.dp))
-            FieldLabel(stringResource(R.string.theme))
-            Spacer(modifier = Modifier.height(8.dp))
-            ThemePicker(
-                face = face,
-                dateLine = dateLine,
-                theme = theme,
-                colorway = colorway,
-                datePosition = datePosition,
-                digitSize = digitSize,
-                weather = weather,
-                onTheme = onTheme,
-                onColorway = onColorway,
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            ToggleRow(
-                label = stringResource(R.string.show_date),
-                checked = showDate,
-                onCheckedChange = onShowDate,
-            )
-            ToggleRow(
-                label = stringResource(R.string.show_year),
-                checked = showYear,
-                enabled = showDate,
-                onCheckedChange = onShowYear,
-            )
-            ToggleRow(
-                label = stringResource(R.string.show_weekday),
-                checked = showWeekday,
-                enabled = showDate,
-                onCheckedChange = onShowWeekday,
-            )
-            ToggleRow(
-                label = stringResource(R.string.show_lunar),
-                checked = showLunarDate,
-                enabled = showDate,
-                onCheckedChange = onShowLunarDate,
-            )
-            ToggleRow(
-                label = stringResource(R.string.show_holiday),
-                checked = showHoliday,
-                enabled = showDate,
-                onCheckedChange = onShowHoliday,
-            )
+        // The back action stays reachable while only the form below it scrolls.
+        BoxWithConstraints(
+            modifier = Modifier.fillMaxWidth().glassSurface(corner = 0.dp, fill = GlassFillHigh),
+            contentAlignment = Alignment.Center,
+        ) {
+            Row(
+                modifier = Modifier
+                    .width(minOf(maxWidth, SettingsMaxWidth))
+                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                IconBox(
+                    icon = AppIconKind.Back,
+                    contentDescription = stringResource(R.string.back),
+                    onClick = onBack,
+                )
+                Spacer(modifier = Modifier.width(14.dp))
+                PageTitle(stringResource(R.string.settings))
+            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_layout))
-            FieldLabel(stringResource(R.string.date_position))
-            Spacer(modifier = Modifier.height(8.dp))
-            SegmentedRow(listOf(
-                SegmentOption(stringResource(R.string.position_above), datePosition == DatePosition.Above) { onDatePosition(DatePosition.Above) },
-                SegmentOption(stringResource(R.string.position_below), datePosition == DatePosition.Below) { onDatePosition(DatePosition.Below) },
-            ))
-            Spacer(modifier = Modifier.height(16.dp))
-            FieldLabel(stringResource(R.string.digit_size))
-            Spacer(modifier = Modifier.height(8.dp))
-            SegmentedRow(listOf(
-                SegmentOption(stringResource(R.string.digit_compact), digitSize == DigitSize.Compact) { onDigitSize(DigitSize.Compact) },
-                SegmentOption(stringResource(R.string.digit_regular), digitSize == DigitSize.Regular) { onDigitSize(DigitSize.Regular) },
-                SegmentOption(stringResource(R.string.digit_large), digitSize == DigitSize.Large) { onDigitSize(DigitSize.Large) },
-            ))
+        BoxWithConstraints(
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+            contentAlignment = Alignment.TopCenter,
+        ) {
+            Column(
+                modifier = Modifier
+                    .width(minOf(maxWidth, SettingsMaxWidth))
+                    .fillMaxHeight()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+            ) {
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_display))
+                    FieldLabel(stringResource(R.string.hour_mode))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SegmentedRow(
+                        listOf(
+                            SegmentOption(
+                                label = stringResource(R.string.hour_mode_system),
+                                selected = hourMode == HourMode.FollowSystem,
+                                onClick = { onHourMode(HourMode.FollowSystem) },
+                            ),
+                            SegmentOption(
+                                label = stringResource(R.string.hour_mode_12),
+                                selected = hourMode == HourMode.H12,
+                                onClick = { onHourMode(HourMode.H12) },
+                            ),
+                            SegmentOption(
+                                label = stringResource(R.string.hour_mode_24),
+                                selected = hourMode == HourMode.H24,
+                                onClick = { onHourMode(HourMode.H24) },
+                            ),
+                        ),
+                    )
+                    Spacer(modifier = Modifier.height(18.dp))
+                    FieldLabel(stringResource(R.string.theme))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    ThemePicker(
+                        face = face,
+                        dateLine = dateLine,
+                        theme = theme,
+                        colorway = colorway,
+                        datePosition = datePosition,
+                        digitSize = digitSize,
+                        weather = weather,
+                        onTheme = onTheme,
+                        onColorway = onColorway,
+                    )
+                    Spacer(modifier = Modifier.height(10.dp))
+                    ToggleRow(
+                        label = stringResource(R.string.show_date),
+                        checked = showDate,
+                        onCheckedChange = onShowDate,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.show_year),
+                        checked = showYear,
+                        enabled = showDate,
+                        onCheckedChange = onShowYear,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.show_weekday),
+                        checked = showWeekday,
+                        enabled = showDate,
+                        onCheckedChange = onShowWeekday,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.show_lunar),
+                        checked = showLunarDate,
+                        enabled = showDate,
+                        onCheckedChange = onShowLunarDate,
+                    )
+                    ToggleRow(
+                        label = stringResource(R.string.show_holiday),
+                        checked = showHoliday,
+                        enabled = showDate,
+                        onCheckedChange = onShowHoliday,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_layout))
+                    FieldLabel(stringResource(R.string.date_position))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SegmentedRow(listOf(
+                        SegmentOption(stringResource(R.string.position_above), datePosition == DatePosition.Above) { onDatePosition(DatePosition.Above) },
+                        SegmentOption(stringResource(R.string.position_below), datePosition == DatePosition.Below) { onDatePosition(DatePosition.Below) },
+                    ))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    FieldLabel(stringResource(R.string.digit_size))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SegmentedRow(listOf(
+                        SegmentOption(stringResource(R.string.digit_compact), digitSize == DigitSize.Compact) { onDigitSize(DigitSize.Compact) },
+                        SegmentOption(stringResource(R.string.digit_regular), digitSize == DigitSize.Regular) { onDigitSize(DigitSize.Regular) },
+                        SegmentOption(stringResource(R.string.digit_large), digitSize == DigitSize.Large) { onDigitSize(DigitSize.Large) },
+                    ))
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Location, text = stringResource(R.string.section_weather))
+                    WeatherSection(
+                        enabled = weatherEnabled,
+                        useLocation = useLocation,
+                        cityLabel = cityLabel,
+                        weather = weather,
+                        panel = panel,
+                        onEnabled = onWeatherEnabled,
+                        onUseLocation = onUseLocation,
+                        onLocate = onLocate,
+                        onLocationDenied = onLocationDenied,
+                        onSearch = onSearch,
+                        onSelectCity = onSelectCity,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
+                    BurnInSection(
+                        enabled = burnInEnabled,
+                        idleMillis = burnInIdleMillis,
+                        runMillis = burnInRunMillis,
+                        onEnabled = onBurnInEnabled,
+                        onIdleMillis = onBurnInIdleMillis,
+                        onRunMillis = onBurnInRunMillis,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Moon, text = stringResource(R.string.section_night))
+                    NightSection(
+                        dimEnabled = nightDimEnabled,
+                        startHour = nightStartHour,
+                        endHour = nightEndHour,
+                        warmEnabled = nightWarmEnabled,
+                        chargeKeepAwake = chargeKeepAwake,
+                        onDimEnabled = onNightDimEnabled,
+                        onStartHour = onNightStartHour,
+                        onEndHour = onNightEndHour,
+                        onWarmEnabled = onNightWarmEnabled,
+                        onChargeKeepAwake = onChargeKeepAwake,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Heart, text = stringResource(R.string.section_occasion))
+                    NavRow(
+                        icon = AppIconKind.Heart,
+                        label = stringResource(R.string.occasion),
+                        onClick = onOpenOccasions,
+                    )
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                SectionCard {
+                    SectionHeader(icon = AppIconKind.Link, text = stringResource(R.string.section_about))
+                    AboutCredit()
+                }
+                Spacer(modifier = Modifier.height(24.dp))
+            }
         }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Location, text = stringResource(R.string.section_weather))
-            WeatherSection(
-                enabled = weatherEnabled,
-                useLocation = useLocation,
-                cityLabel = cityLabel,
-                weather = weather,
-                panel = panel,
-                onEnabled = onWeatherEnabled,
-                onUseLocation = onUseLocation,
-                onLocate = onLocate,
-                onLocationDenied = onLocationDenied,
-                onSearch = onSearch,
-                onSelectCity = onSelectCity,
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
-            BurnInSection(
-                enabled = burnInEnabled,
-                idleMillis = burnInIdleMillis,
-                runMillis = burnInRunMillis,
-                onEnabled = onBurnInEnabled,
-                onIdleMillis = onBurnInIdleMillis,
-                onRunMillis = onBurnInRunMillis,
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Moon, text = stringResource(R.string.section_night))
-            NightSection(
-                dimEnabled = nightDimEnabled,
-                startHour = nightStartHour,
-                endHour = nightEndHour,
-                warmEnabled = nightWarmEnabled,
-                chargeKeepAwake = chargeKeepAwake,
-                onDimEnabled = onNightDimEnabled,
-                onStartHour = onNightStartHour,
-                onEndHour = onNightEndHour,
-                onWarmEnabled = onNightWarmEnabled,
-                onChargeKeepAwake = onChargeKeepAwake,
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Heart, text = stringResource(R.string.section_occasion))
-            NavRow(
-                icon = AppIconKind.Heart,
-                label = stringResource(R.string.occasion),
-                onClick = onOpenOccasions,
-            )
-        }
-        Spacer(modifier = Modifier.height(16.dp))
-        SectionCard {
-            SectionHeader(icon = AppIconKind.Link, text = stringResource(R.string.section_about))
-            AboutCredit()
-        }
-        Spacer(modifier = Modifier.height(24.dp))
     }
 }
 
+/** Keep real clock previews proportionate instead of stretching them into wide strips. */
 @Composable
 private fun ThemePicker(
     face: FaceTime?,
@@ -329,51 +358,66 @@ private fun ThemePicker(
     onTheme: (ClockThemeId) -> Unit,
     onColorway: (ColorwayId) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        showcasedThemes.chunked(2).forEach { rowItems ->
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                rowItems.forEach { id ->
-                    ThemePreview(
-                        label = "${showcasedThemes.indexOf(id) + 1}".padStart(2, '0') + " · " + stringResource(themeLabel(id)),
-                        subtitle = stringResource(themeSubtitle(id)),
-                        selected = theme == id,
-                        onClick = { onTheme(id) },
-                        modifier = Modifier.weight(1f),
-                    ) {
-                        ThemeFace(id, colorway, datePosition, digitSize, face, dateLine, weather)
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val gridWidth = minOf(maxWidth, 680.dp)
+        val columns = themePreviewColumns(gridWidth.value)
+        Column(
+            modifier = Modifier
+                .width(gridWidth)
+                .align(Alignment.TopCenter),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            showcasedThemes.chunked(columns).forEach { rowItems ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    if (columns == 2 && rowItems.size == 1) Spacer(Modifier.weight(0.5f))
+                    rowItems.forEach { id ->
+                        ThemePreview(
+                            label = "${showcasedThemes.indexOf(id) + 1}".padStart(2, '0') + " · " + stringResource(themeLabel(id)),
+                            subtitle = stringResource(themeSubtitle(id)),
+                            selected = theme == id,
+                            onClick = { onTheme(id) },
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            ThemeFace(id, colorway, datePosition, digitSize, face, dateLine, weather)
+                        }
                     }
+                    if (columns == 2 && rowItems.size == 1) Spacer(Modifier.weight(0.5f))
                 }
-                if (rowItems.size == 1) {
-                    Spacer(modifier = Modifier.weight(1f))
-                }
+            }
+            if (theme == ClockThemeId.Flip) {
+                FieldLabel(stringResource(R.string.colorway_name))
+                SegmentedRow(
+                    listOf(
+                        SegmentOption(
+                            label = stringResource(R.string.colorway_ink),
+                            selected = colorway == ColorwayId.InkBlack,
+                            onClick = { onColorway(ColorwayId.InkBlack) },
+                        ),
+                        SegmentOption(
+                            label = stringResource(R.string.colorway_snow),
+                            selected = colorway == ColorwayId.SnowWhite,
+                            onClick = { onColorway(ColorwayId.SnowWhite) },
+                        ),
+                        SegmentOption(
+                            label = stringResource(R.string.colorway_graphite),
+                            selected = colorway == ColorwayId.Graphite,
+                            onClick = { onColorway(ColorwayId.Graphite) },
+                        ),
+                    ),
+                )
             }
         }
     }
-    if (theme == ClockThemeId.Flip) {
-        Spacer(modifier = Modifier.height(14.dp))
-        FieldLabel(stringResource(R.string.colorway_name))
-        Spacer(modifier = Modifier.height(8.dp))
-        SegmentedRow(
-            listOf(
-                SegmentOption(
-                    label = stringResource(R.string.colorway_ink),
-                    selected = colorway == ColorwayId.InkBlack,
-                    onClick = { onColorway(ColorwayId.InkBlack) },
-                ),
-                SegmentOption(
-                    label = stringResource(R.string.colorway_snow),
-                    selected = colorway == ColorwayId.SnowWhite,
-                    onClick = { onColorway(ColorwayId.SnowWhite) },
-                ),
-                SegmentOption(
-                    label = stringResource(R.string.colorway_graphite),
-                    selected = colorway == ColorwayId.Graphite,
-                    onClick = { onColorway(ColorwayId.Graphite) },
-                ),
-            ),
-        )
-    }
 }
+
+/** Mobile gets one legible preview per row; larger screens can show two. */
+internal fun themePreviewColumns(widthDp: Float): Int = if (widthDp < 360f) 1 else 2
+
+/** Preserve an image-like ratio while keeping both small and tablet cards useful. */
+internal fun themePreviewHeight(widthDp: Float): Float = (widthDp * 0.62f).coerceIn(132f, 220f)
 
 private fun themeSubtitle(id: ClockThemeId): Int = when (id) {
     ClockThemeId.Flip -> R.string.theme_flip_desc
@@ -415,20 +459,22 @@ private fun ThemePreview(
         ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(132.dp)
-                .clip(shape)
-                .border(
-                    width = if (selected) 1.5.dp else 1.dp,
-                    color = if (selected) Amber else GlassBorder,
-                    shape = shape,
-                )
-                .background(Ink),
-        ) {
-            Box(Modifier.fillMaxSize().clearAndSetSemantics { }) {
-                face()
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(themePreviewHeight(maxWidth.value).dp)
+                    .clip(shape)
+                    .border(
+                        width = if (selected) 1.5.dp else 1.dp,
+                        color = if (selected) Amber else GlassBorder,
+                        shape = shape,
+                    )
+                    .background(Ink),
+            ) {
+                Box(Modifier.fillMaxSize().clearAndSetSemantics { }) {
+                    face()
+                }
             }
         }
         Spacer(modifier = Modifier.height(8.dp))

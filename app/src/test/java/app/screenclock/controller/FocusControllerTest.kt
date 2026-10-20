@@ -16,6 +16,7 @@ import org.junit.Test
 private class FakeFocusStore : FocusStore {
     override val endEpochMillis = MutableStateFlow<Long?>(null)
     var failNextWrite = false
+    var failNextClear = false
 
     /** When set, writes suspend until the test opens the gate, in call order. */
     var gate: CompletableDeferred<Unit>? = null
@@ -28,6 +29,7 @@ private class FakeFocusStore : FocusStore {
 
     override suspend fun clear() {
         gate?.await()
+        if (failNextClear) throw IOException("disk full during clear")
         endEpochMillis.value = null
     }
 }
@@ -89,6 +91,41 @@ class FocusControllerTest {
         assertNull(controller.focusEnd.value)
         assertTrue(events.contains(FocusEvent.PersistFailed))
         job.cancel()
+    }
+
+    @Test
+    fun failedClearRestoresDurableSessionAndCanBeRetried() {
+        val store = FakeFocusStore()
+        val scope = CoroutineScope(Dispatchers.Unconfined)
+        val controller = FocusController(scope, store, FakeClockTime())
+        val events = mutableListOf<FocusEvent>()
+        val job = scope.launch { controller.events.collect { events += it } }
+        val end = controller.start(25)
+        store.failNextClear = true
+        controller.abandon()
+        assertEquals(end, store.endEpochMillis.value)
+        assertEquals(end, controller.focusEnd.value)
+        assertTrue(events.contains(FocusEvent.ClearFailed))
+        assertEquals(end, this.controller(store).focusEnd.value) // restart sees same active session
+        store.failNextClear = false
+        controller.abandon()
+        assertNull(store.endEpochMillis.value)
+        assertNull(controller.focusEnd.value)
+        assertNull(this.controller(store).focusEnd.value)
+        job.cancel()
+    }
+
+    @Test
+    fun failedClearDoesNotUndoANewerStart() {
+        val store = FakeFocusStore()
+        val controller = controller(store)
+        controller.start(25)
+        store.gate = CompletableDeferred()
+        store.failNextClear = true
+        controller.abandon()
+        val newer = controller.start(50)
+        store.gate!!.complete(Unit)
+        assertEquals(newer, controller.focusEnd.value)
     }
 
     @Test

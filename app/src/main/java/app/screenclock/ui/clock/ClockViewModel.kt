@@ -12,8 +12,10 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import app.screenclock.R
 import app.screenclock.controller.BurnInController
 import app.screenclock.controller.CeremonyExit
 import app.screenclock.controller.ClockFaceController
@@ -48,6 +50,7 @@ import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.time.nextShowcaseTheme
 import app.screenclock.domain.weather.CityCandidate
+import java.io.IOException
 import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -116,6 +119,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val wallClockGeneration: StateFlow<Int> = wallClockGenerationState.asStateFlow()
 
     private var occasionsFromSettings = false
+    private var pendingThemeSelection: ClockThemeId? = null
 
     val clock: StateFlow<ClockUiState?> = faceController.clock
     val minuteOfDay: StateFlow<Int> = faceController.minuteOfDay
@@ -146,7 +150,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             application.contentResolver.unregisterContentObserver(observer)
         }
         watchBattery(application)
-        weatherController.refreshIfNeeded()
+        // Forecast refresh waits until the Activity is started and visible.
         viewModelScope.launch {
             // A restored focus session takes the screen unless a page is already open.
             focusController.focusEnd.collect { end ->
@@ -157,9 +161,18 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
+            faceController.clock.collect { shown ->
+                if (shown != null && shown.theme == pendingThemeSelection) pendingThemeSelection = null
+            }
+        }
+        viewModelScope.launch {
             focusController.events.collect { event ->
-                if (event == FocusEvent.PersistFailed) {
-                    leaveBlockingPage()
+                when (event) {
+                    FocusEvent.PersistFailed -> leaveBlockingPage()
+                    FocusEvent.ClearFailed -> {
+                        val app = getApplication<Application>()
+                        Toast.makeText(app, app.getString(R.string.focus_end_failed), Toast.LENGTH_SHORT).show()
+                    }
                 }
             }
         }
@@ -204,6 +217,11 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onChromeTick(nowEpochMillis: Long) {
         chromeState.value = chromeState.value.after(nowEpochMillis)
+    }
+
+    fun onChromeInteraction(nowEpochMillis: Long) {
+        burnInController.onContact()
+        chromeState.value = chromeState.value.onInteraction(nowEpochMillis)
     }
 
     fun openSettings() {
@@ -311,7 +329,10 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         wallClockGenerationState.value = wallClockGenerationState.value + 1
     }
 
-    /** App is in front. Weather refresh stays off the minute loop. */
+    /** Network refresh is permitted only while the Activity is visible. */
+    fun setWeatherForeground(visible: Boolean) = weatherController.setForeground(visible)
+
+    /** App returned to the foreground; reconcile timers and retry stale weather. */
     fun onForeground() {
         onTimeChanged()
         weatherController.notifyForeground()
@@ -342,7 +363,14 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setTheme(theme: ClockThemeId) {
-        viewModelScope.launch { settingsRepository.setTheme(theme) }
+        pendingThemeSelection = theme
+        viewModelScope.launch {
+            try {
+                settingsRepository.setTheme(theme)
+            } catch (_: IOException) {
+                if (pendingThemeSelection == theme) pendingThemeSelection = null
+            }
+        }
     }
 
     fun setColorway(colorway: ColorwayId) {
@@ -359,7 +387,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Cycles through existing themes without leaving the full-screen clock. */
     fun cycleTheme() {
-        val current = clock.value?.theme ?: ClockThemeId.Flip
+        val current = pendingThemeSelection ?: clock.value?.theme ?: ClockThemeId.Flip
         setTheme(nextShowcaseTheme(current))
     }
 

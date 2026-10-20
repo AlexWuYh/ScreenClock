@@ -245,7 +245,7 @@ private fun BoxScope.Glyph(
 private fun Hinge(modifier: Modifier) {
     Canvas(modifier) {
         val y = size.height / 2f
-        val stroke = (size.height * 0.012f).coerceAtLeast(1f)
+        val stroke = 1.dp.toPx().coerceAtLeast(1f)
         drawLine(
             color = Ink,
             start = Offset(0f, y),

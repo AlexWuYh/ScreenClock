@@ -1,5 +1,8 @@
 package app.screenclock.ui.clock
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
@@ -33,6 +36,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,7 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -62,6 +66,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.ui.AppIcon
@@ -121,13 +127,28 @@ fun ClockShell(viewModel: ClockViewModel) {
     }
     val openOccasionLabel = stringResource(R.string.occasion_open)
     val openId = pinnedOccasionId?.takeIf { !occasionLine.isNullOrBlank() }
-    // One cross-process read per composition entry, not one per recomposition.
-    val animate = remember(context) {
-        Settings.Global.getFloat(
-            context.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) > 0f
+    val resolver = context.contentResolver
+    fun animatorEnabled() = Settings.Global.getFloat(
+        resolver,
+        Settings.Global.ANIMATOR_DURATION_SCALE,
+        1f,
+    ) > 0f
+    var animate by remember(resolver) { mutableStateOf(animatorEnabled()) }
+    DisposableEffect(resolver) {
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) {
+                animate = animatorEnabled()
+            }
+        }
+        resolver.registerContentObserver(
+            Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE),
+            false,
+            observer,
+        )
+        onDispose { resolver.unregisterContentObserver(observer) }
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        animate = animatorEnabled()
     }
     var rootSize by remember { mutableStateOf(IntSize.Zero) }
     var pillPosition by remember { mutableStateOf(Offset.Zero) }
@@ -208,7 +229,8 @@ fun ClockShell(viewModel: ClockViewModel) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .onGloballyPositioned { pillPosition = it.positionInRoot() }
-                    .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
+                    .shadow(6.dp, RoundedCornerShape(26.dp))
+                    .clip(RoundedCornerShape(26.dp)),
             ) {
                 // A blurred copy of the theme scene, shifted so its pixels line up
                 // with the screen behind the glass.
@@ -230,6 +252,13 @@ fun ClockShell(viewModel: ClockViewModel) {
                             .blur(18.dp),
                     )
                 }
+                // This overlays even the sharp API 26 fallback scene; on API 31+ the
+                // underlying copy is RenderEffect-blurred before the glass is drawn.
+                Box(
+                    modifier = Modifier
+                        .matchParentSize()
+                        .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
+                )
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -240,7 +269,10 @@ fun ClockShell(viewModel: ClockViewModel) {
                     ChromeAction(
                         icon = AppIconKind.Palette,
                         label = stringResource(R.string.theme),
-                        onClick = viewModel::cycleTheme,
+                        onClick = {
+                            viewModel.cycleTheme()
+                            viewModel.onChromeInteraction(System.currentTimeMillis())
+                        },
                     )
                     ChromeAction(
                         icon = AppIconKind.Sliders,

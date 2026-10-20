@@ -23,6 +23,16 @@ class ChromeStateTest {
     }
 
     @Test
+    fun visibleChromeWaitsFourSecondsAfterItsLastAction() {
+        val shown = ChromeState().onBlankTap(1_000L)
+        val refreshed = shown.onInteraction(4_500L)
+        assertEquals(8_500L, refreshed.hideAtEpochMillis)
+        assertTrue(refreshed.after(5_000L).visible)
+        assertFalse(refreshed.after(8_500L).visible)
+        assertEquals(ChromeState(), ChromeState().onInteraction(9_000L))
+    }
+
+    @Test
     fun timeReachingHideAtHidesChrome() {
         val shown = ChromeState().onBlankTap(1_000L)
         assertEquals(shown, shown.after(4_999L))

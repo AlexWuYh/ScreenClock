@@ -58,6 +58,7 @@ import app.screenclock.ui.AmberGlassBorder
 import app.screenclock.ui.AmberGlassFill
 import app.screenclock.ui.GlassBorder
 import app.screenclock.ui.GlassFill
+import app.screenclock.ui.GlassFillHigh
 import app.screenclock.ui.Amber
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
@@ -167,7 +168,10 @@ private fun OccasionList(
         val row = rows.find { it.id == pending }
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            containerColor = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.10f),
+            modifier = Modifier.glassSurface(corner = 20.dp, fill = GlassFillHigh),
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(20.dp),
             titleContentColor = Cream,
             textContentColor = Info,
             title = { Text(text = stringResource(R.string.occasion_delete_title)) },

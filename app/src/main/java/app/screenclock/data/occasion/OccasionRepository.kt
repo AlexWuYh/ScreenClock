@@ -6,7 +6,10 @@ import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
-class OccasionRepository(private val directory: File) : OccasionStore {
+class OccasionRepository(
+    private val directory: File,
+    private val moveFile: (File, File, Boolean) -> Unit = ::moveOccasionFile,
+) : OccasionStore {
     override fun load(): List<Occasion> {
         val file = File(directory, FILE_NAME)
         if (!file.isFile) return emptyList()
@@ -27,20 +30,16 @@ class OccasionRepository(private val directory: File) : OccasionStore {
         temp.writeText(text, Charsets.UTF_8)
         try {
             try {
-                Files.move(
-                    temp.toPath(),
-                    dest.toPath(),
-                    StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE,
-                )
-            } catch (_: IOException) {
-                // Plain replace is still a rename on the same volume, so the file is
-                // never left half written between these two steps.
-                Files.move(temp.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING)
+                moveFile(temp, dest, true)
+            } catch (atomicFailure: IOException) {
+                // A regular same-directory replace is still a rename; never write to dest.
+                try {
+                    moveFile(temp, dest, false)
+                } catch (replaceFailure: IOException) {
+                    replaceFailure.addSuppressed(atomicFailure)
+                    throw replaceFailure
+                }
             }
-        } catch (_: IOException) {
-            // Last resort. A failed write keeps the in-memory list; the next edit retries.
-            dest.writeText(text, Charsets.UTF_8)
         } finally {
             if (temp.exists() && !temp.delete()) temp.deleteOnExit()
         }
@@ -48,5 +47,18 @@ class OccasionRepository(private val directory: File) : OccasionStore {
 
     private companion object {
         const val FILE_NAME: String = "occasions.json"
+    }
+}
+
+private fun moveOccasionFile(temp: File, dest: File, atomic: Boolean) {
+    if (atomic) {
+        Files.move(
+            temp.toPath(),
+            dest.toPath(),
+            StandardCopyOption.REPLACE_EXISTING,
+            StandardCopyOption.ATOMIC_MOVE,
+        )
+    } else {
+        Files.move(temp.toPath(), dest.toPath(), StandardCopyOption.REPLACE_EXISTING)
     }
 }

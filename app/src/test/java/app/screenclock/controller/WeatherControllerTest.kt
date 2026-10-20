@@ -75,9 +75,11 @@ class WeatherControllerTest {
         source: FakeWeatherSource = FakeWeatherSource(),
         locator: FakeLocator = FakeLocator(),
         time: FakeClockTime = FakeClockTime(),
+        foreground: Boolean = true,
     ): WeatherController {
         val scope = CoroutineScope(Dispatchers.Unconfined)
         return WeatherController(scope, store, source, locator, time, io = Dispatchers.Unconfined)
+            .also { if (foreground) it.setForeground(true) }
     }
 
     private val hangzhou = SavedCity("杭州 · 浙江", 30.27, 120.15)
@@ -160,12 +162,48 @@ class WeatherControllerTest {
     }
 
     @Test
+    fun backgroundCrossingTtlMakesNoRequestsUntilVisibleAgain() {
+        val store = FakeWeatherStore()
+        val time = FakeClockTime(nowMillis = 1_000L)
+        store.state.value = WeatherPreferences(
+            enabled = true,
+            city = hangzhou,
+            cache = WeatherCache(18, 0, null, null, time.nowMillis),
+        )
+        val source = FakeWeatherSource()
+        val controller = controller(store, source = source, time = time)
+        assertTrue(source.forecasts.isEmpty())
+        controller.setForeground(false)
+        time.nowMillis += 31L * 60_000L
+        controller.refreshIfNeeded()
+        controller.refreshNow()
+        controller.searchCity("杭州")
+        assertTrue(source.forecasts.isEmpty())
+        assertTrue(source.searches.isEmpty())
+        controller.setForeground(true)
+        assertEquals(1, source.forecasts.size)
+        controller.refreshIfNeeded()
+        assertEquals(1, source.forecasts.size)
+    }
+
+    @Test
+    fun foregroundReturnRetriesAFailedRequestBeforeItsAttemptTtl() {
+        val store = FakeWeatherStore()
+        store.state.value = WeatherPreferences(enabled = true, city = hangzhou)
+        val source = FakeWeatherSource().apply { fail = true }
+        val controller = controller(store, source = source)
+        assertEquals(1, source.forecasts.size)
+        controller.setForeground(false)
+        controller.setForeground(true)
+        assertEquals(2, source.forecasts.size)
+    }
+
+    @Test
     fun comingBackToTheFrontMayRetryAtOnce() {
         val store = FakeWeatherStore()
         store.state.value = WeatherPreferences(enabled = true, city = hangzhou)
         val source = FakeWeatherSource().apply { fail = true }
         val controller = controller(store, source = source)
-        controller.refreshIfNeeded()
         controller.refreshIfNeeded()
         assertEquals(1, source.forecasts.size)
         controller.notifyForeground()

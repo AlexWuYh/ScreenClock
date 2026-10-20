@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.Text
@@ -17,7 +19,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
@@ -111,7 +117,7 @@ internal fun ClockScaffold(
         )
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (dateLine != null && !dateBelow) {
-                InfoLine(dateLine, infoSize, infoColor)
+                DateLine(dateLine, infoSize, infoColor, boardWidth)
                 Spacer(modifier = Modifier.height(lineGap))
             }
             if (face.meridiem != null && meridiemBelow) {
@@ -149,7 +155,7 @@ internal fun ClockScaffold(
             }
             if (dateLine != null && dateBelow) {
                 Spacer(modifier = Modifier.height(lineGap))
-                InfoLine(dateLine, infoSize, infoColor)
+                DateLine(dateLine, infoSize, infoColor, boardWidth)
             }
             if (footer != null) {
                 Spacer(modifier = Modifier.height(lineGap))
@@ -233,6 +239,63 @@ private fun RowScope.OccasionBar(
                 softWrap = false,
             )
         }
+    }
+}
+
+internal fun dateLineCandidates(line: String): List<String> {
+    val base = line.substringBefore(" · ")
+    val pieces = base.split(' ').filter { it.isNotBlank() }
+    if (pieces.isEmpty()) return listOf(line)
+    val candidates = mutableListOf(line)
+    if (base != line) candidates += base // Holiday is least important on a narrow screen.
+    for (count in pieces.size - 1 downTo 1) {
+        candidates += pieces.take(count).joinToString(" ")
+    }
+    val monthDay = pieces.first().substringAfter('年', missingDelimiterValue = pieces.first())
+    candidates += monthDay
+    return candidates.distinct()
+}
+
+internal fun fitDateLine(
+    line: String,
+    availableWidthPx: Int,
+    sizesSp: List<Float>,
+    measureWidthPx: (String, Float) -> Int,
+): Pair<String, Float> {
+    require(sizesSp.isNotEmpty())
+    val candidates = dateLineCandidates(line)
+    for (fontSp in sizesSp) {
+        for (candidate in candidates) {
+            if (measureWidthPx(candidate, fontSp) <= availableWidthPx) return candidate to fontSp
+        }
+    }
+    // The final Text has explicit Ellipsis if even month/day cannot fit.
+    return candidates.last() to sizesSp.last()
+}
+
+@Composable
+private fun DateLine(text: String, size: TextUnit, infoColor: Color, maxLineWidth: Dp) {
+    val measurer = rememberTextMeasurer()
+    BoxWithConstraints(modifier = Modifier.width(maxLineWidth), contentAlignment = Alignment.Center) {
+        val selected = fitDateLine(text, constraints.maxWidth, listOf(size.value, size.value * 0.875f)) { candidate, fontSp ->
+            measurer.measure(
+                text = AnnotatedString(candidate),
+                style = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = fontSp.sp),
+                maxLines = 1,
+                softWrap = false,
+            ).size.width
+        }
+        Text(
+            text = selected.first,
+            color = infoColor,
+            fontFamily = FontFamily.SansSerif,
+            fontSize = selected.second.sp,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.fillMaxWidth(),
+        )
     }
 }
 

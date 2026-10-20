@@ -3,7 +3,7 @@ package app.screenclock.ui.clock
 /**
  * Whether the control layer is on screen.
  *
- * A blank tap shows it and arms one hide time. Another blank tap hides it.
+ * A blank tap shows it and arms an idle hide time. Interacting with chrome resets it; another blank tap hides it.
  * Once [hideAtEpochMillis] is reached, it hides and stays hidden until the next tap.
  */
 data class ChromeState(
@@ -20,6 +20,12 @@ data class ChromeState(
                 hideAtEpochMillis = nowEpochMillis + hideAfterMillis,
             )
         }
+    }
+
+    /** Any action on visible chrome restarts its idle countdown. */
+    fun onInteraction(nowEpochMillis: Long, hideAfterMillis: Long = HIDE_AFTER_MILLIS): ChromeState {
+        require(hideAfterMillis > 0L) { "hideAfterMillis must be positive" }
+        return if (visible) copy(hideAtEpochMillis = nowEpochMillis + hideAfterMillis) else this
     }
 
     fun after(nowEpochMillis: Long): ChromeState {

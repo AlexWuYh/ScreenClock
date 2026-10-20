@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -98,13 +101,15 @@ private fun TubeGroups(
             TubePair(minute, animate, Modifier.size(cardWidth, cardHeight))
         }
     } else {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            TubePair(hour, animate, Modifier.size(cardWidth, cardHeight))
-            Spacer(modifier = Modifier.width(gap))
-            TubePair(minute, animate, Modifier.size(cardWidth, cardHeight))
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                TubePair(hour, animate, Modifier.size(cardWidth, cardHeight))
+                Spacer(modifier = Modifier.width(gap))
+                TubePair(minute, animate, Modifier.size(cardWidth, cardHeight))
+            }
         }
     }
 }

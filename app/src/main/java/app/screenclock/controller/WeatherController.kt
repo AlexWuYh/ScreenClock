@@ -56,21 +56,37 @@ class WeatherController(
     private var refreshJob: Job? = null
     private var searchJob: Job? = null
     private var weatherAttemptAtEpochMillis: Long? = null
+    @Volatile private var foreground = false
+
+    /** ON_START/ON_STOP visibility. Foreground return checks expiry immediately. */
+    fun setForeground(visible: Boolean) {
+        if (foreground == visible) return
+        foreground = visible
+        if (visible) {
+            notifyForeground()
+        } else {
+            refreshJob?.cancel()
+            searchJob?.cancel()
+            panelState.value = panelState.value.copy(busy = false)
+        }
+    }
 
     /** Called once per minute and on foreground. Cheap while the cache is fresh. */
     fun refreshIfNeeded() {
-        if (refreshJob?.isActive == true) return
+        if (!foreground || refreshJob?.isActive == true) return
         refreshJob = scope.launch { fetchForecast(force = false) }
     }
 
     /** User-driven: picking a city or enabling the switch. Bypasses the attempt gate. */
     fun refreshNow() {
+        if (!foreground) return
         refreshJob?.cancel()
         refreshJob = scope.launch { fetchForecast(force = true) }
     }
 
     /** Returning to the front may retry at once; only the minute loop is throttled. */
     fun notifyForeground() {
+        if (!foreground) return
         weatherAttemptAtEpochMillis = null
         refreshIfNeeded()
     }
@@ -136,20 +152,25 @@ class WeatherController(
     }
 
     fun searchCity(raw: String) {
+        if (!foreground) return
         val query = normalizeCityQuery(raw) ?: return
         if (panelState.value.busy) return
         searchJob?.cancel()
         searchJob = scope.launch {
-            if (!store.weather.first().enabled) return@launch
+            if (!foreground || !store.weather.first().enabled) return@launch
             panelState.value = panelState.value.copy(
                 busy = true,
                 results = emptyList(),
                 notice = WeatherNotice.None,
             )
             try {
-                val places = withContext(io) { source.search(query) }
+                val places = withContext(io) {
+                    coroutineContext.ensureActive()
+                    if (!foreground) return@withContext emptyList<CityCandidate>()
+                    source.search(query)
+                }
                 coroutineContext.ensureActive()
-                if (!store.weather.first().enabled) return@launch
+                if (!foreground || !store.weather.first().enabled) return@launch
                 panelState.value = if (places.isEmpty()) {
                     WeatherPanel(notice = WeatherNotice.NotFound)
                 } else {
@@ -177,6 +198,7 @@ class WeatherController(
     }
 
     private suspend fun fetchForecast(force: Boolean) {
+        if (!foreground) return
         val prefs = store.weather.first()
         val city = prefs.city
         val nowMillis = time.nowMillis()
@@ -186,13 +208,16 @@ class WeatherController(
             shouldFetchWeather(prefs.enabled, city, prefs.cache, nowMillis) &&
                 weatherAttemptAllowed(weatherAttemptAtEpochMillis, nowMillis)
         }
-        if (!want || city == null) return
+        if (!foreground || !want || city == null) return
         weatherAttemptAtEpochMillis = nowMillis
         try {
             val cache = withContext(io) {
+                coroutineContext.ensureActive()
+                if (!foreground) return@withContext null
                 source.forecast(city.latitude, city.longitude, time.nowMillis())
-            }
+            } ?: return
             coroutineContext.ensureActive()
+            if (!foreground) return
             val latest = store.weather.first()
             if (!latest.enabled || latest.city != city) return
             store.saveCache(cache)

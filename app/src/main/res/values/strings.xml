@@ -28,6 +28,9 @@
     <string name="occasion_wheel_year">年</string>
     <string name="occasion_wheel_month">月</string>
     <string name="occasion_wheel_day">日</string>
+    <string name="occasion_wheel_state">%1$s，当前%2$s，共%3$d项</string>
+    <string name="occasion_wheel_increase">增加%1$s</string>
+    <string name="occasion_wheel_decrease">减少%1$s</string>
     <string name="occasion_decrease">减少</string>
     <string name="occasion_increase">增加</string>
     <string name="occasion_open">打开仪式</string>
@@ -39,6 +42,7 @@
     <string name="focus_minutes">%1$d 分钟</string>
     <string name="focus_hold_hint">开始后，长按可以结束</string>
     <string name="focus_end_action">结束专注</string>
+    <string name="focus_end_failed">未能结束专注，请重试</string>
     <string name="back">返回</string>
     <string name="section_display">显示</string>
     <string name="hour_mode">小时制</string>

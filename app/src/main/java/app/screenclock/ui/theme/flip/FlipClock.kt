@@ -8,6 +8,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
@@ -89,13 +92,15 @@ private fun FlapPair(
             FlipCard(minute, animate, Modifier.size(cardWidth, cardHeight), flapColor, digitColor)
         }
     } else {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center,
-        ) {
-            FlipCard(hour, animate, Modifier.size(cardWidth, cardHeight), flapColor, digitColor)
-            Spacer(modifier = Modifier.width(gap))
-            FlipCard(minute, animate, Modifier.size(cardWidth, cardHeight), flapColor, digitColor)
+        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                FlipCard(hour, animate, Modifier.size(cardWidth, cardHeight), flapColor, digitColor)
+                Spacer(modifier = Modifier.width(gap))
+                FlipCard(minute, animate, Modifier.size(cardWidth, cardHeight), flapColor, digitColor)
+            }
         }
     }
 }

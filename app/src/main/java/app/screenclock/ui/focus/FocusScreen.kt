@@ -1,5 +1,8 @@
 package app.screenclock.ui.focus
 
+import android.database.ContentObserver
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
@@ -33,6 +36,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -59,6 +63,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
 import app.screenclock.domain.focus.FOCUS_HOLD_MILLIS
@@ -119,8 +126,10 @@ fun FocusScreen(viewModel: ClockViewModel) {
             onBack = viewModel::closeFocusPicker,
         )
     } else {
+        val generation by viewModel.wallClockGeneration.collectAsStateWithLifecycle()
         FocusCountdown(
             endEpochMillis = session,
+            wallClockGeneration = generation,
             onGiveUp = viewModel::abandonFocus,
             onFinished = viewModel::abandonFocus,
         )
@@ -220,6 +229,7 @@ private fun FocusPicker(
 @Composable
 private fun FocusCountdown(
     endEpochMillis: Long,
+    wallClockGeneration: Int,
     onGiveUp: () -> Unit,
     onFinished: () -> Unit,
 ) {
@@ -229,7 +239,8 @@ private fun FocusCountdown(
     val context = LocalContext.current
     val expanded = calculateWindowSizeClass(activity).widthSizeClass != WindowWidthSizeClass.Compact
     var nowMillis by remember(endEpochMillis) { mutableLongStateOf(System.currentTimeMillis()) }
-    LaunchedEffect(endEpochMillis) {
+    // The wait ends at zero; a clock correction or foreground return must revive it.
+    LaunchedEffect(endEpochMillis, wallClockGeneration) {
         while (isActive) {
             val now = System.currentTimeMillis()
             nowMillis = now
@@ -244,14 +255,8 @@ private fun FocusCountdown(
     val phase = rememberUpdatedState(face.phase)
     val giveUp = rememberUpdatedState(onGiveUp)
     val finished = rememberUpdatedState(onFinished)
-    // One cross-process read per screen entry, not one per second of countdown.
-    val animate = remember(context) {
-        Settings.Global.getFloat(
-            context.contentResolver,
-            Settings.Global.ANIMATOR_DURATION_SCALE,
-            1f,
-        ) > 0f
-    }
+    val animate = rememberAnimatorEnabled(context)
+
     val pad = if (expanded) 32.dp else 16.dp
     val view = LocalView.current
     var holding by remember { mutableStateOf(false) }
@@ -346,4 +351,31 @@ private fun FocusCountdown(
     }
 }
 
-
+/** One setting observer per visible countdown, with a resume read for missed changes. */
+@Composable
+private fun rememberAnimatorEnabled(context: android.content.Context): Boolean {
+    val owner = LocalLifecycleOwner.current
+    val resolver = context.contentResolver
+    var enabled by remember(resolver) {
+        mutableStateOf(Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f)
+    }
+    DisposableEffect(resolver, owner) {
+        val refresh = {
+            enabled = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+        }
+        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
+            override fun onChange(selfChange: Boolean) = refresh()
+        }
+        val lifecycleObserver = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refresh()
+        }
+        resolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
+        owner.lifecycle.addObserver(lifecycleObserver)
+        refresh()
+        onDispose {
+            owner.lifecycle.removeObserver(lifecycleObserver)
+            resolver.unregisterContentObserver(observer)
+        }
+    }
+    return enabled
+}

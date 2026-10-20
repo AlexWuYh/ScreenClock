@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 sealed interface FocusEvent {
     /** The end moment could not be written; the session was rolled back. */
     data object PersistFailed : FocusEvent
+    /** Clearing a stored end failed; the old session remains active and can be retried. */
+    data object ClearFailed : FocusEvent
 }
 
 /**
@@ -39,6 +41,7 @@ class FocusController(
 
     private var pendingFocusEnd: Long? = null
     private var awaitFocusClear = false
+    private var mutationGeneration = 0L
 
     init {
         scope.launch {
@@ -49,6 +52,7 @@ class FocusController(
     /** Starts a session and returns its end moment, so the caller can navigate at once. */
     fun start(minutes: Int): Long {
         val end = focusEndEpochMillis(time.nowMillis(), minutes)
+        mutationGeneration++
         pendingFocusEnd = end
         awaitFocusClear = false
         focusEndState.value = end
@@ -67,10 +71,23 @@ class FocusController(
 
     /** Long-press cancel and the tap after zero both clear the stored end. */
     fun abandon() {
+        val priorEnd = focusEndState.value
+        val generation = ++mutationGeneration
         pendingFocusEnd = null
         awaitFocusClear = true
         focusEndState.value = null
-        scope.launch { store.clear() }
+        scope.launch {
+            try {
+                store.clear()
+            } catch (_: IOException) {
+                if (mutationGeneration != generation) return@launch
+                awaitFocusClear = false
+                // The old value is still durable. Do not silently leave a ghost session
+                // that would only return on the next process launch.
+                focusEndState.value = priorEnd
+                eventState.tryEmit(FocusEvent.ClearFailed)
+            }
+        }
     }
 
     private fun placeFocus(stored: Long?) {

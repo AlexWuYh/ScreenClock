@@ -26,9 +26,9 @@ internal fun ThemedClock(
     occasionLine: String?,
     expanded: Boolean,
     animate: Boolean,
+    modifier: Modifier = Modifier,
     datePosition: DatePosition = DatePosition.Above,
     digitSize: DigitSize = DigitSize.Regular,
-    modifier: Modifier = Modifier,
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
