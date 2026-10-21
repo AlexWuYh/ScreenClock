@@ -6,6 +6,12 @@ import org.junit.Test
 
 class GlyphFitTest {
     @Test
+    fun newTypefaceKeepsTheExistingDigitSizeLimits() {
+        assertEquals(0.96f, GLYPH_WIDTH_FRACTION, 0.0001f)
+        assertEquals(0.92f, GLYPH_HEIGHT_FRACTION, 0.0001f)
+    }
+
+    @Test
     fun tallInkIsLimitedByHeightAndStaysCentered() {
         val fit = glyphFit(cardWidth = 370f, cardHeight = 200f, inkWidth = 80f, inkHeight = 100f, measuredSize = 100f)
         val drawnWidth = 80f * fit.sizeScale
@@ -26,6 +32,13 @@ class GlyphFitTest {
         assertEquals((370f - drawnWidth) / 2f, fit.inkLeft, 0.01f)
         assertEquals((200f - drawnHeight) / 2f, fit.inkTop, 0.01f)
         assertEquals(50f * fit.sizeScale, 50f * (370f * GLYPH_WIDTH_FRACTION / 300f), 0.01f)
+    }
+
+    @Test
+    fun hingeGrooveIsClearlySplitOnSmallCardsAndCappedOnTablets() {
+        assertEquals(3f, hingeStrokePx(140f, 3f, 6f), 0.01f)
+        assertEquals(4.8f, hingeStrokePx(400f, 3f, 6f), 0.01f)
+        assertEquals(6f, hingeStrokePx(800f, 3f, 6f), 0.01f)
     }
 
     @Test

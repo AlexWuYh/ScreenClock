@@ -36,9 +36,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val GlassText = Color(0xFF221F1B)
-internal val AmberGlassFill = Amber.copy(alpha = 0.24f)
-internal val AmberGlassBorder = Amber.copy(alpha = 0.6f)
+private val GlassText = Cream
+internal val UiAccentGlassFill = UiAccent.copy(alpha = 0.18f)
+internal val UiAccentGlassBorder = UiAccent.copy(alpha = 0.52f)
 
 /** One quiet glass card per settings section. */
 @Composable
@@ -58,7 +58,7 @@ internal fun SectionHeader(icon: AppIconKind, text: String) {
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(bottom = 10.dp),
     ) {
-        AppIcon(kind = icon, tint = Amber, size = 17.dp)
+        AppIcon(kind = icon, tint = UiAccentDeep, size = 17.dp)
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = text,
@@ -143,18 +143,18 @@ private fun Modifier.toggleableRow(value: Boolean, enabled: Boolean, role: Role,
 
 @Composable
 internal fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = AmberDeep,
-    checkedTrackColor = Amber.copy(alpha = 0.40f),
-    checkedBorderColor = Amber.copy(alpha = 0.65f),
-    uncheckedThumbColor = Color(0xFF8C8377),
+    checkedThumbColor = UiAccentDeep,
+    checkedTrackColor = UiAccent.copy(alpha = 0.30f),
+    checkedBorderColor = UiAccent.copy(alpha = 0.55f),
+    uncheckedThumbColor = Color(0xFF899AA5),
     uncheckedTrackColor = GlassFillHigh,
     uncheckedBorderColor = Hairline,
 )
 
 @Composable
 internal fun appSliderColors() = SliderDefaults.colors(
-    thumbColor = AmberDeep,
-    activeTrackColor = Amber.copy(alpha = 0.85f),
+    thumbColor = UiAccentDeep,
+    activeTrackColor = UiAccent.copy(alpha = 0.78f),
     inactiveTrackColor = Color(0x22000000),
 )
 
@@ -166,14 +166,14 @@ internal fun PrimaryButton(
     enabled: Boolean = true,
     icon: AppIconKind? = null,
 ) {
-    val tint = if (enabled) Amber else Muted
+    val tint = if (enabled) UiAccentDeep else Muted
     Box(
         modifier = modifier
             .height(52.dp)
             .glassSurface(
                 corner = 16.dp,
-                fill = if (enabled) AmberGlassFill else GlassFill,
-                border = if (enabled) AmberGlassBorder else GlassBorder,
+                fill = if (enabled) UiAccentGlassFill else GlassFill,
+                border = if (enabled) UiAccentGlassBorder else GlassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -271,7 +271,7 @@ internal data class SegmentOption(
     val onClick: () -> Unit,
 )
 
-/** A single-choice pill row on glass: the selection glows amber. */
+/** A single-choice pill row on glass: selected blue stays separate from face amber. */
 @Composable
 internal fun SegmentedRow(options: List<SegmentOption>) {
     Row(
@@ -290,8 +290,8 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
                         if (option.selected) {
                             Modifier
                                 .clip(shape)
-                                .background(AmberGlassFill)
-                                .border(1.dp, AmberGlassBorder, shape)
+                                .background(UiAccentGlassFill)
+                                .border(1.dp, UiAccentGlassBorder, shape)
                         } else {
                             Modifier.clip(shape)
                         },
@@ -328,7 +328,7 @@ internal fun NavRow(
             .glassPressable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = icon, tint = Amber, size = 18.dp)
+        AppIcon(kind = icon, tint = UiAccentDeep, size = 18.dp)
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,

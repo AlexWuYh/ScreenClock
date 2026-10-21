@@ -44,7 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import app.screenclock.R
-import app.screenclock.ui.Amber
+import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.Cream
 import app.screenclock.ui.GlassFillHigh
 import app.screenclock.ui.glassSurface
@@ -242,7 +242,7 @@ internal fun DateWheelDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.occasion_done),
-                        color = Amber,
+                        color = UiAccentDeep,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                     )

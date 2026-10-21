@@ -54,12 +54,12 @@ import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.occasionDayMax
 import app.screenclock.ui.Alert
-import app.screenclock.ui.AmberGlassBorder
-import app.screenclock.ui.AmberGlassFill
+import app.screenclock.ui.UiAccentGlassBorder
+import app.screenclock.ui.UiAccentGlassFill
 import app.screenclock.ui.GlassBorder
 import app.screenclock.ui.GlassFill
 import app.screenclock.ui.GlassFillHigh
-import app.screenclock.ui.Amber
+import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
@@ -202,8 +202,8 @@ private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
             .height(44.dp)
             .glassSurface(
                 corner = 14.dp,
-                fill = if (enabled) AmberGlassFill else GlassFill,
-                border = if (enabled) AmberGlassBorder else GlassBorder,
+                fill = if (enabled) UiAccentGlassFill else GlassFill,
+                border = if (enabled) UiAccentGlassBorder else GlassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
@@ -254,7 +254,7 @@ private fun OccasionRowCard(
             ),
             onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
             enabled = row.pinned || row.canPin,
-            tint = if (row.pinned) Amber else Cream,
+            tint = if (row.pinned) UiAccentDeep else Cream,
         )
         Spacer(modifier = Modifier.width(4.dp))
         IconBox(
@@ -394,7 +394,7 @@ private fun OccasionEditor(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppIcon(
                     kind = if (canSave) AppIconKind.Check else AppIconKind.Search,
-                    tint = if (canSave) Amber else Muted,
+                    tint = if (canSave) UiAccentDeep else Muted,
                     size = 16.dp,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
@@ -444,10 +444,10 @@ private fun OccasionField(value: String, onValueChange: (String) -> Unit, label:
         colors = OutlinedTextFieldDefaults.colors(
             focusedTextColor = Cream,
             unfocusedTextColor = Cream,
-            focusedBorderColor = Amber,
+            focusedBorderColor = UiAccentDeep,
             unfocusedBorderColor = Hairline,
-            cursorColor = Amber,
-            focusedLabelColor = Amber,
+            cursorColor = UiAccentDeep,
+            focusedLabelColor = UiAccentDeep,
             unfocusedLabelColor = Muted,
         ),
     )

@@ -8,6 +8,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import kotlin.math.cos
@@ -28,8 +29,10 @@ internal fun DuskLakeScene(modifier: Modifier = Modifier) {
         drawRect(
             brush = Brush.verticalGradient(
                 0f to Color(0xFF28406E),
-                0.30f to Color(0xFF7A5B84),
-                0.48f to Color(0xFFE39A62),
+                0.26f to Color(0xFF6A587E),
+                0.54f to Color(0xFFB57A7E),
+                0.82f to Color(0xFFE7A679),
+                1f to Color(0xFFD99A6C),
                 startY = 0f,
                 endY = horizon,
             ),
@@ -39,6 +42,8 @@ internal fun DuskLakeScene(modifier: Modifier = Modifier) {
         drawRect(
             brush = Brush.verticalGradient(
                 0f to Color(0xFFD99A6C),
+                0.23f to Color(0xFFB98B7F),
+                0.68f to Color(0xFF82617A),
                 1f to Color(0xFF5E4B70),
                 startY = horizon,
                 endY = h,
@@ -121,7 +126,8 @@ internal fun MountainScene(modifier: Modifier = Modifier) {
         )
         drawRect(
             brush = Brush.verticalGradient(
-                0f to Color(0xFF9FB6CE),
+                0f to Color(0xFFB9CBDD),
+                0.24f to Color(0xFF9FB6CE),
                 1f to Color(0xFF22375A),
                 startY = horizon,
                 endY = h,
@@ -297,7 +303,16 @@ internal fun FluidScene(modifier: Modifier = Modifier) {
                 lineTo(0f, h)
                 close()
             }
-            drawPath(path = path, color = color.copy(alpha = 0.92f))
+            drawPath(
+                path = path,
+                brush = Brush.verticalGradient(
+                    0f to lerp(color, Color.White, 0.22f).copy(alpha = 0.85f),
+                    0.38f to color.copy(alpha = 0.92f),
+                    1f to color.copy(alpha = 0.96f),
+                    startY = h * (minOf(leftY, rightY) - 0.12f),
+                    endY = h * (maxOf(leftY, rightY) + 0.35f),
+                ),
+            )
         }
         for ((index, curve) in bands.withIndex()) {
             val (color, leftY, rightY) = curve

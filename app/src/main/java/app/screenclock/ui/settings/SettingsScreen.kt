@@ -46,6 +46,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -74,8 +76,8 @@ import app.screenclock.domain.weather.CityCandidate
 import app.screenclock.domain.weather.WeatherCache
 import app.screenclock.domain.weather.formatUpdatedAt
 import app.screenclock.domain.weather.formatWeatherLine
-import app.screenclock.ui.Amber
-import app.screenclock.ui.AmberDeep
+import app.screenclock.ui.UiAccent
+import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
@@ -160,7 +162,13 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .background(
+                brush = Brush.verticalGradient(
+                    0f to Color(0xFFE9F3F8),
+                    0.55f to Paper,
+                    1f to Color(0xFFE6F1F6),
+                ),
+            )
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         // The back action stays reachable while only the form below it scrolls.
@@ -467,7 +475,7 @@ private fun ThemePreview(
                     .clip(shape)
                     .border(
                         width = if (selected) 1.5.dp else 1.dp,
-                        color = if (selected) Amber else GlassBorder,
+                        color = if (selected) UiAccent else GlassBorder,
                         shape = shape,
                     )
                     .background(Ink),
@@ -480,7 +488,7 @@ private fun ThemePreview(
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = label,
-            color = if (selected) AmberDeep else Cream,
+            color = if (selected) UiAccentDeep else Cream,
             fontSize = 14.sp,
         )
         Text(
@@ -600,9 +608,9 @@ private fun WeatherSection(
             colors = OutlinedTextFieldDefaults.colors(
                 focusedTextColor = Cream,
                 unfocusedTextColor = Cream,
-                focusedBorderColor = Amber,
+                focusedBorderColor = UiAccent,
                 unfocusedBorderColor = Hairline,
-                cursorColor = Amber,
+                cursorColor = UiAccent,
             ),
         )
         Spacer(modifier = Modifier.width(10.dp))
@@ -824,7 +832,7 @@ private fun AboutCredit() {
         onClick = { openLink(context, "https://github.com/AlexWuYh/ScreenClock") },
     )
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 44.dp)) {
-        AppIcon(kind = AppIconKind.Heart, tint = Amber, size = 18.dp)
+        AppIcon(kind = AppIconKind.Heart, tint = UiAccent, size = 18.dp)
         Spacer(modifier = Modifier.width(12.dp))
         Text(text = stringResource(R.string.about_author), color = Cream, fontSize = 16.sp)
     }

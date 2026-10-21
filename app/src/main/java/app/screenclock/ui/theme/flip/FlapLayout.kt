@@ -4,6 +4,10 @@ const val FLAP_ASPECT: Float = 1.05f
 const val FLAP_GAP_FRACTION: Float = 0.08f
 const val FLAP_CORNER_FRACTION: Float = 0.08f
 
+/** A readable split on phones and tablets without scaling into an oversized stripe. */
+internal fun hingeStrokePx(cardHeightPx: Float, minStrokePx: Float, maxStrokePx: Float): Float =
+    (cardHeightPx * 0.012f).coerceIn(minStrokePx, maxStrokePx)
+
 /** Flap groups always share one row; the hinge is what splits top from bottom. */
 fun clockStacked(width: Float, height: Float): Boolean = false
 
@@ -15,7 +19,8 @@ data class FlapLayout(
 )
 
 /**
- * Portrait stacks the flaps. Landscape puts them in one row.
+ * Production clock groups share one row in every orientation; the optional stacked
+ * branch remains for callers of [flapLayout] that request it explicitly.
  * [count] is 2 for the home clock, and 2 or 3 for a countdown.
  * The gap stays a fraction of card width, including after the row is scaled to fit.
  */

@@ -11,7 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -34,7 +34,7 @@ import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
-import app.screenclock.ui.AmberDeep
+import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.Paper
 import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
 import app.screenclock.ui.ceremony.CeremonyScreen
@@ -142,10 +142,10 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
         onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
     MaterialTheme(
-        colorScheme = darkColorScheme(
+        colorScheme = lightColorScheme(
             background = Paper,
             surface = ChromeBar,
-            primary = AmberDeep,
+            primary = UiAccentDeep,
             onPrimary = Paper,
             onBackground = Cream,
             onSurface = Cream,

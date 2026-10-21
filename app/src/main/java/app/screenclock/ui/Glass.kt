@@ -29,9 +29,9 @@ import androidx.compose.ui.unit.dp
  * The glass look: translucent fills, a hairline light border, a soft top sheen,
  * and press feedback that brightens instead of rippling.
  */
-internal val GlassFill = Color.White.copy(alpha = 0.55f)
-internal val GlassFillHigh = Color.White.copy(alpha = 0.72f)
-internal val GlassBorder = Color.White.copy(alpha = 0.85f)
+internal val GlassFill = Color.White.copy(alpha = 0.62f)
+internal val GlassFillHigh = Color.White.copy(alpha = 0.78f)
+internal val GlassBorder = Color.White.copy(alpha = 0.90f)
 // The same glass read against a dark clock face.
 internal val GlassDarkFill = Color.White.copy(alpha = 0.10f)
 internal val GlassDarkBorder = Color.White.copy(alpha = 0.18f)
@@ -43,8 +43,11 @@ internal fun Modifier.glassSurface(
     border: Color = GlassBorder,
 ): Modifier {
     val shape = RoundedCornerShape(corner)
+    val dark = fill == GlassDarkFill
+    val ambient = if (dark) Color(0x14000000) else Color(0x1A315F78)
+    val spot = if (dark) Color(0x14000000) else Color(0x12315F78)
     return this
-        .shadow(elevation = 6.dp, shape = shape, clip = false, ambientColor = Color(0x14000000), spotColor = Color(0x14000000))
+        .shadow(elevation = 6.dp, shape = shape, clip = false, ambientColor = ambient, spotColor = spot)
         .clip(shape)
         .background(fill)
         .drawBehind {
@@ -100,8 +103,8 @@ internal fun Modifier.glassPressable(
 }
 
 /** Glass button fill: brighter than a panel, still translucent. */
-internal val GlassButtonFill = Color.White.copy(alpha = 0.65f)
-internal val GlassButtonBorder = Color.White.copy(alpha = 0.85f)
+internal val GlassButtonFill = Color.White.copy(alpha = 0.70f)
+internal val GlassButtonBorder = Color.White.copy(alpha = 0.90f)
 
 internal fun Modifier.glassButtonSurface(): Modifier =
     glassSurface(corner = 16.dp, fill = GlassButtonFill, border = GlassButtonBorder)

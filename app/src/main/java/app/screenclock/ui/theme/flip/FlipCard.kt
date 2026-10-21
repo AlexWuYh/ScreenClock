@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
@@ -42,10 +43,12 @@ import app.screenclock.domain.time.FLIP_DURATION_MILLIS
 import app.screenclock.domain.time.flipFrame
 import app.screenclock.ui.Digit
 import app.screenclock.ui.Flap
+import app.screenclock.ui.FlipDarkFlap
 import app.screenclock.ui.Ink
 
 private const val GLYPH_PROBE = "88"
 private const val GLYPH_PROBE_SIZE = 100f
+private const val FLIP_DIGIT_FONT = "fonts/IBMPlexMono-Bold.ttf"
 
 @Composable
 internal fun FlipCard(
@@ -85,11 +88,15 @@ internal fun FlipCard(
         val corner = minOf(maxWidth, maxHeight) * FLAP_CORNER_FRACTION
         val cardHeight = maxHeight
         val shape = RoundedCornerShape(corner)
-        val rim = if (flapColor.red > 0.7f) Ink.copy(alpha = 0.12f) else Color.White.copy(alpha = 0.1f)
+        val rim = when {
+            flapColor == FlipDarkFlap -> Color.White.copy(alpha = 0.06f)
+            flapColor.red > 0.7f -> Ink.copy(alpha = 0.12f)
+            else -> Color.White.copy(alpha = 0.1f)
+        }
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .shadow(8.dp, shape, clip = false)
+                .shadow(if (flapColor == FlipDarkFlap) 4.dp else 8.dp, shape, clip = false)
                 .clip(shape)
                 .background(flapColor)
                 .border(1.dp, rim, shape),
@@ -120,13 +127,17 @@ internal fun FlipCard(
                     hingeAtBottom = false,
                 )
             }
-            Hinge(Modifier.fillMaxSize())
+            Hinge(Modifier.fillMaxSize(), flapColor)
         }
     }
 }
 
-private fun halfColor(base: Color, top: Boolean): Color =
-    if (top) lerp(base, Color.White, 0.035f) else lerp(base, Color.Black, 0.045f)
+private fun halfColor(base: Color, top: Boolean): Color = when {
+    base == FlipDarkFlap && top -> lerp(base, Color.White, 0.012f)
+    base == FlipDarkFlap -> lerp(base, Color.Black, 0.035f)
+    top -> lerp(base, Color.White, 0.035f)
+    else -> lerp(base, Color.Black, 0.045f)
+}
 
 private class FlapDigits(start: String) {
     var previous by mutableStateOf(start)
@@ -199,6 +210,8 @@ private fun BoxScope.Glyph(
     digitColor: Color,
 ) {
     val argb = digitColor.toArgb()
+    val context = LocalContext.current
+    val digitTypeface = remember(context) { Typeface.createFromAsset(context.assets, FLIP_DIGIT_FONT) }
     val cardHeightPx = with(LocalDensity.current) { cardHeight.toPx() }
     val shift = if (top) 0f else cardHeightPx / 2f
     Canvas(
@@ -208,7 +221,7 @@ private fun BoxScope.Glyph(
     ) {
         // Text clips once the glyph is larger than the font atlas. A path stays whole on a tablet.
         val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            typeface = Typeface.create("sans-serif-black", Typeface.NORMAL)
+            typeface = digitTypeface
             textSize = GLYPH_PROBE_SIZE
             fontFeatureSettings = "tnum"
             hinting = Paint.HINTING_OFF
@@ -228,6 +241,11 @@ private fun BoxScope.Glyph(
         paint.textSize = GLYPH_PROBE_SIZE * fit.sizeScale
         val scaled = Rect()
         paint.getTextBounds(GLYPH_PROBE, 0, GLYPH_PROBE.length, scaled)
+        // A narrow round contour softens the square joins without changing ink size or font weight.
+        paint.style = Paint.Style.FILL_AND_STROKE
+        paint.strokeJoin = Paint.Join.ROUND
+        paint.strokeCap = Paint.Cap.ROUND
+        paint.strokeWidth = scaled.height() * 0.012f
         val baseline = fit.inkTop - scaled.top - shift
         val x = (size.width - paint.measureText(digits)) / 2f
         val path = Path()
@@ -242,15 +260,29 @@ private fun BoxScope.Glyph(
 }
 
 @Composable
-private fun Hinge(modifier: Modifier) {
+private fun Hinge(modifier: Modifier, flapColor: Color) {
     Canvas(modifier) {
         val y = size.height / 2f
-        val stroke = 1.dp.toPx().coerceAtLeast(1f)
+        val stroke = hingeStrokePx(size.height, 3.dp.toPx(), 6.dp.toPx())
+        val edge = if (flapColor.red > 0.7f) Ink else Color.White
         drawLine(
-            color = Ink,
+            color = if (flapColor.red > 0.7f) Color(0xFF5E5953) else Ink,
             start = Offset(0f, y),
             end = Offset(size.width, y),
             strokeWidth = stroke,
+        )
+        // Two restrained edges make the top and bottom read as separate leaves.
+        drawLine(
+            color = edge.copy(alpha = 0.10f),
+            start = Offset(0f, y - stroke / 2f - 0.6.dp.toPx()),
+            end = Offset(size.width, y - stroke / 2f - 0.6.dp.toPx()),
+            strokeWidth = 0.8.dp.toPx(),
+        )
+        drawLine(
+            color = edge.copy(alpha = 0.20f),
+            start = Offset(0f, y + stroke / 2f + 0.6.dp.toPx()),
+            end = Offset(size.width, y + stroke / 2f + 0.6.dp.toPx()),
+            strokeWidth = 1.dp.toPx(),
         )
     }
 }

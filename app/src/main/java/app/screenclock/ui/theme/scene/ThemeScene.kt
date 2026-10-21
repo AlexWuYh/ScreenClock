@@ -6,6 +6,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import app.screenclock.domain.time.ClockThemeId
 import app.screenclock.ui.Ink
+import app.screenclock.ui.FlipBackdrop
 
 /**
  * The drawn backdrop of a theme, without its digits. Glass surfaces sample this
@@ -19,6 +20,7 @@ internal fun ThemeScene(theme: ClockThemeId, modifier: Modifier = Modifier) {
         ClockThemeId.Earth -> EarthScene(modifier)
         ClockThemeId.Fluid -> FluidScene(modifier)
         ClockThemeId.Neon -> NeonScene(modifier)
-        ClockThemeId.Flip, ClockThemeId.Tube -> Box(modifier.background(Ink))
+        ClockThemeId.Flip -> Box(modifier.background(FlipBackdrop))
+        ClockThemeId.Tube -> Box(modifier.background(Ink))
     }
 }

@@ -1,5 +1,6 @@
 package app.screenclock.ui.theme.flip
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -18,7 +19,8 @@ import androidx.compose.ui.graphics.Color
 import app.screenclock.domain.time.ColorwayId
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.Digit
-import app.screenclock.ui.Flap
+import app.screenclock.ui.FlipBackdrop
+import app.screenclock.ui.FlipDarkFlap
 import app.screenclock.ui.GraphiteFlap
 import app.screenclock.ui.SnowDigit
 import app.screenclock.ui.SnowFlap
@@ -44,7 +46,7 @@ internal fun FlipClock(
         weatherLine = weatherLine,
         occasionLine = occasionLine,
         expanded = expanded,
-        modifier = modifier,
+        modifier = modifier.background(FlipBackdrop),
         preview = preview,
         onOccasionClick = onOccasionClick,
     ) { stacked, cardWidth, cardHeight, gap ->
@@ -62,10 +64,10 @@ internal fun FlipClock(
     }
 }
 
-/** Ink black is the only finish in v1. A later finish adds a branch here, not a new fold. */
+/** The colour finish changes without rewriting the two-stage fold. */
 private fun flipFinish(colorway: ColorwayId): FlipFinish {
     return when (colorway) {
-        ColorwayId.InkBlack -> FlipFinish(flap = Flap, digit = Digit)
+        ColorwayId.InkBlack -> FlipFinish(flap = FlipDarkFlap, digit = Digit)
         ColorwayId.SnowWhite -> FlipFinish(flap = SnowFlap, digit = SnowDigit)
         ColorwayId.Graphite -> FlipFinish(flap = GraphiteFlap, digit = Digit)
     }

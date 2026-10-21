@@ -115,6 +115,6 @@
     <string name="about_github">GitHub 仓库</string>
     <string name="about_author">作者：AlexWuYh</string>
     <string name="about_license">License：MIT</string>
-    <string name="about_license_detail">本应用以 MIT 许可发布。农历换算来自 cn.6tail:lunar（MIT）；天气数据来自 Open-Meteo（CC BY 4.0）。</string>
+    <string name="about_license_detail">本应用以 MIT 许可发布。农历换算来自 cn.6tail:lunar（MIT）；天气数据来自 Open-Meteo（CC BY 4.0）；翻页数字使用 IBM Plex Mono Bold（SIL OFL 1.1），字体许可随应用附带。</string>
     <string name="weather_credit">天气数据来自 Open-Meteo</string>
 </resources>
