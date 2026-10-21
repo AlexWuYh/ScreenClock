@@ -1,40 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:pathData="M0,0h108v108h-108z">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="linear"
-                android:startX="0"
-                android:startY="0"
-                android:endX="0"
-                android:endY="108">
-                <item android:offset="0" android:color="#FFF8F2E7" />
-                <item android:offset="1" android:color="#FFE7DCC8" />
-            </gradient>
-        </aapt:attr>
-    </path>
+    <!-- Keep the mark inside the adaptive icon's central safe area. -->
     <path
-        android:fillColor="#2B2724"
-        android:pathData="M38,28H70A12,12 0 0 1 82,40V54H26V40A12,12 0 0 1 38,28Z" />
+        android:fillColor="#FF22282B"
+        android:pathData="M33,23H75C82.18,23 88,28.82 88,36V54H20V36C20,28.82 25.82,23 33,23Z" />
     <path
-        android:fillColor="#211D1A"
-        android:pathData="M26,54H82V68A12,12 0 0 1 70,80H38A12,12 0 0 1 26,68Z" />
+        android:fillColor="#FF15191B"
+        android:pathData="M20,54H88V72C88,79.18 82.18,85 75,85H33C25.82,85 20,79.18 20,72Z" />
     <path
-        android:fillColor="#E6A15C"
-        android:pathData="M26,53.1H82V54.9H26Z" />
+        android:fillColor="#00000000"
+        android:strokeColor="#FF515C60"
+        android:strokeWidth="1.1"
+        android:pathData="M33,23H75C82.18,23 88,28.82 88,36V72C88,79.18 82.18,85 75,85H33C25.82,85 20,79.18 20,72V36C20,28.82 25.82,23 33,23Z" />
+    <!-- Bold, mechanically grounded numerals that remain legible at launcher size. -->
     <path
-        android:fillColor="#F2EDE3"
-        android:pathData="M38,38H42A4,4 0 0 1 46,42V66A4,4 0 0 1 42,70H38A4,4 0 0 1 34,66V42A4,4 0 0 1 38,38Z" />
+        android:fillColor="#FFF7F4EE"
+        android:pathData="M31,44L38,37H45V70H49V75H30V70H38V46L34,50Z" />
     <path
-        android:fillColor="#F2EDE3"
-        android:pathData="M27,48L37,38L37,54L31,54A3,3 0 0 1 28,51A3,3 0 0 1 27,48Z" />
-    <path
-        android:fillColor="#F2EDE3"
+        android:fillColor="#FFF7F4EE"
         android:fillType="evenOdd"
-        android:pathData="M58,38H70A6,6 0 0 1 76,44V46A6,6 0 0 1 70,52H58A6,6 0 0 1 52,46V44A6,6 0 0 1 58,38Z M61,42H67A2,2 0 0 1 69,44V46A2,2 0 0 1 67,48H61A2,2 0 0 1 59,46V44A2,2 0 0 1 61,42Z M58,52H70A7,7 0 0 1 77,59V61A7,7 0 0 1 70,68H58A7,7 0 0 1 51,61V59A7,7 0 0 1 58,52Z M61,56H67A3,3 0 0 1 70,59V61A3,3 0 0 1 67,64H61A3,3 0 0 1 58,61V59A3,3 0 0 1 61,56Z" />
+        android:pathData="M65,37C72.18,37 77,41.1 77,47.2C77,50.8 75.2,53.4 72.1,55C76.15,56.75 78,59.65 78,64.1C78,71.2 72.5,75 65,75C57.5,75 52,71.2 52,64.1C52,59.65 53.85,56.75 57.9,55C54.8,53.4 53,50.8 53,47.2C53,41.1 57.82,37 65,37Z M65,42C61.4,42 59.5,44.1 59.5,47.1C59.5,50.05 61.4,52 65,52C68.6,52 70.5,50.05 70.5,47.1C70.5,44.1 68.6,42 65,42Z M65,58C60.95,58 58.6,60.25 58.6,63.9C58.6,67.65 60.95,69.9 65,69.9C69.05,69.9 71.4,67.65 71.4,63.9C71.4,60.25 69.05,58 65,58Z" />
+    <path
+        android:fillColor="#FF070A0C"
+        android:pathData="M20,53H88V56H20Z" />
+    <path
+        android:fillColor="#FF50595D"
+        android:pathData="M25,55.6H83V56.4H25Z" />
 </vector>

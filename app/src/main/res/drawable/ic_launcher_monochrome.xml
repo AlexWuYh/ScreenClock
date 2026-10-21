@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Android tints this silhouette for themed icons. No opaque background. -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M33,23H75C82.18,23 88,28.82 88,36V72C88,79.18 82.18,85 75,85H33C25.82,85 20,79.18 20,72V36C20,28.82 25.82,23 33,23Z M33,26C27.48,26 23,30.48 23,36V72C23,77.52 27.48,82 33,82H75C80.52,82 85,77.52 85,72V36C85,30.48 80.52,26 75,26Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M31,44L38,37H45V70H49V75H30V70H38V46L34,50Z" />
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M65,37C72.18,37 77,41.1 77,47.2C77,50.8 75.2,53.4 72.1,55C76.15,56.75 78,59.65 78,64.1C78,71.2 72.5,75 65,75C57.5,75 52,71.2 52,64.1C52,59.65 53.85,56.75 57.9,55C54.8,53.4 53,50.8 53,47.2C53,41.1 57.82,37 65,37Z M65,42C61.4,42 59.5,44.1 59.5,47.1C59.5,50.05 61.4,52 65,52C68.6,52 70.5,50.05 70.5,47.1C70.5,44.1 68.6,42 65,42Z M65,58C60.95,58 58.6,60.25 58.6,63.9C58.6,67.65 60.95,69.9 65,69.9C69.05,69.9 71.4,67.65 71.4,63.9C71.4,60.25 69.05,58 65,58Z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M20,54H88V56H20Z" />
+</vector>
