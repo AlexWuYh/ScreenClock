@@ -83,6 +83,18 @@ sdk.dir=/path/to/Android/sdk
 
 维护者更新 `app/build.gradle.kts` 中的 `versionName` 与 `versionCode` 后，在该提交上推送匹配的 `vX.Y.Z` tag，即会自动运行单测、lint、签名打包，发布 APK 与 SHA-256 文件。发布签名保存在 GitHub Actions Secrets，私钥和口令不进入仓库；密钥必须安全离线备份，否则以后无法以同一签名覆盖升级。
 
-## 作者与许可
+## 许可
 
-作者：[AlexWuYh](https://github.com/AlexWuYh)。项目以 [MIT License](LICENSE) 发布。农历换算使用 [`cn.6tail:lunar`](https://github.com/6tail/lunar-java)（MIT）；天气数据由 [Open-Meteo](https://open-meteo.com/) 提供（CC BY 4.0）。翻页数字使用随应用附带的 **IBM Plex Mono Bold**，遵循 [SIL Open Font License 1.1](app/src/main/assets/fonts/IBMPlexMono-OFL.txt)；其余主题的数字字体（Outfit、Jost、Cormorant Garamond、Exo 2、Quicksand、Orbitron、Fredoka、Nunito、Lilita One、Titan One）同为 SIL OFL 1.1 许可，随应用附带于 `app/src/main/assets/fonts`。地球景观的背景使用 NASA 提供的地球照片。
+本项目以 [MIT License](LICENSE) 发布。
+
+### 第三方内容
+
+| 内容 | 用途 | 许可 |
+| --- | --- | --- |
+| [`cn.6tail:lunar`](https://github.com/6tail/lunar-java) | 农历换算 | MIT |
+| [Open-Meteo](https://open-meteo.com/) | 天气数据 | CC BY 4.0 |
+| IBM Plex Mono Bold | 翻页主题数字 | [SIL OFL 1.1](app/src/main/assets/fonts/IBMPlexMono-OFL.txt) |
+| Outfit、Jost、Cormorant Garamond、Exo 2、Quicksand、Orbitron、Fredoka、Nunito、Lilita One、Titan One | 其余主题数字 | SIL OFL 1.1 |
+| NASA 地球照片 | 地球景观背景 | NASA 提供 |
+
+字体文件随应用附带，位于 `app/src/main/assets/fonts`。
