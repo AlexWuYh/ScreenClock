@@ -6,6 +6,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.ui.text.font.FontWeight
 import app.screenclock.domain.time.DateSegment
+import app.screenclock.ui.clock.LocalBurnInOffset
 import app.screenclock.domain.time.DateSegmentKind
 import app.screenclock.domain.time.dateSegments
 import androidx.compose.foundation.layout.Box
@@ -122,7 +123,15 @@ internal fun ClockScaffold(
             stacked = stacked,
             reserveSide = side.value,
         )
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        val burnInOffset = LocalBurnInOffset.current
+        Column(
+            modifier = Modifier.graphicsLayer {
+                val shift = burnInOffset()
+                translationX = shift.xPx
+                translationY = shift.yPx
+            },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             if (dateLine != null && !dateBelow) {
                 DateLine(dateLine, infoSize, infoColor, boardWidth)
                 Spacer(modifier = Modifier.height(lineGap))

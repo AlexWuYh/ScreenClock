@@ -3,7 +3,9 @@ package app.screenclock.ui.settings
 import android.Manifest
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
+import app.screenclock.ui.glassPressable
 import androidx.compose.ui.semantics.LiveRegionMode
 import android.provider.Settings
 import android.net.Uri
@@ -20,6 +22,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -717,6 +720,12 @@ private fun BurnInSection(
         checked = enabled,
         onCheckedChange = onEnabled,
     )
+    Text(
+        text = stringResource(R.string.burnin_hint),
+        color = Muted,
+        fontSize = 13.sp,
+    )
+    Spacer(modifier = Modifier.height(6.dp))
     if (!enabled) return
     val idleMinutes = (normalizeIdleMillis(idleMillis) / 60_000L).toFloat()
     var idleValue by remember(idleMinutes) { mutableFloatStateOf(idleMinutes) }
@@ -862,38 +871,95 @@ private fun HourStep(label: String, hour: Int, onHour: (Int) -> Unit) {
 @Composable
 private fun AboutCredit() {
     val context = LocalContext.current
-    Text(
-        text = stringResource(R.string.about_intro),
-        color = Info,
-        fontSize = 14.sp,
-    )
-    Spacer(modifier = Modifier.height(12.dp))
+    val version = remember(context) {
+        try {
+            context.packageManager.getPackageInfo(context.packageName, 0).versionName.orEmpty()
+        } catch (_: Exception) {
+            ""
+        }
+    }
+    Row(verticalAlignment = Alignment.Bottom) {
+        Text(
+            text = stringResource(R.string.app_name),
+            color = Cream,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+        if (version.isNotEmpty()) {
+            Spacer(modifier = Modifier.width(10.dp))
+            Text(
+                text = stringResource(R.string.about_version, version),
+                color = Muted,
+                fontSize = 14.sp,
+                modifier = Modifier.padding(bottom = 2.dp),
+            )
+        }
+    }
+    Spacer(modifier = Modifier.height(6.dp))
+    Text(text = stringResource(R.string.about_intro), color = Info, fontSize = 14.sp)
+    Spacer(modifier = Modifier.height(10.dp))
     NavRow(
         icon = AppIconKind.Link,
         label = stringResource(R.string.about_github),
         trailing = AppIconKind.Link,
         onClick = { openLink(context, "https://github.com/AlexWuYh/ScreenClock") },
     )
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.heightIn(min = 44.dp)) {
-        AppIcon(kind = AppIconKind.Heart, tint = UiAccent, size = 18.dp)
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(text = stringResource(R.string.about_author), color = Cream, fontSize = 16.sp)
-    }
-    Spacer(modifier = Modifier.height(8.dp))
-    Text(text = stringResource(R.string.about_license), color = Cream, fontSize = 16.sp)
-    Spacer(modifier = Modifier.height(2.dp))
+
+    AboutDivider()
     Text(
-        text = stringResource(R.string.about_license_detail),
-        color = Muted,
-        fontSize = 13.sp,
+        text = stringResource(R.string.about_license_title),
+        color = Cream,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.semantics { heading() },
     )
     Spacer(modifier = Modifier.height(4.dp))
-    NavRow(
-        icon = AppIconKind.Link,
-        label = stringResource(R.string.weather_credit),
-        trailing = AppIconKind.Link,
+    Text(text = stringResource(R.string.about_license_mit), color = Info, fontSize = 14.sp)
+
+    AboutDivider()
+    Text(
+        text = stringResource(R.string.about_third_party),
+        color = Cream,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    CreditRow(R.string.credit_lunar_name, R.string.credit_lunar_detail)
+    CreditRow(
+        R.string.credit_meteo_name,
+        R.string.credit_meteo_detail,
         onClick = { openLink(context, "https://open-meteo.com/") },
     )
+    CreditRow(R.string.credit_fonts_name, R.string.credit_fonts_detail)
+    CreditRow(R.string.credit_nasa_name, R.string.credit_nasa_detail)
+}
+
+@Composable
+private fun AboutDivider() {
+    Spacer(modifier = Modifier.height(14.dp))
+    Box(modifier = Modifier.fillMaxWidth().height(1.dp).background(Hairline))
+    Spacer(modifier = Modifier.height(14.dp))
+}
+
+/** One credited work: its name, then what it is used for and its licence beneath. */
+@Composable
+private fun CreditRow(name: Int, detail: Int, onClick: (() -> Unit)? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .then(if (onClick != null) Modifier.clip(RoundedCornerShape(12.dp)).glassPressable(onClick = onClick) else Modifier)
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = stringResource(name), color = Cream, fontSize = 15.sp)
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(text = stringResource(detail), color = Muted, fontSize = 13.sp)
+        }
+        if (onClick != null) AppIcon(kind = AppIconKind.Link, tint = Muted, size = 18.dp)
+    }
 }
 
 private fun openLink(context: android.content.Context, url: String) {

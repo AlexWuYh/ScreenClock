@@ -20,7 +20,7 @@ import app.screenclock.ui.theme.digital.digitalStyle
 import app.screenclock.ui.theme.rememberThemeFamily
 import app.screenclock.ui.theme.scene.sceneDigitSize
 
-/** 极简：hairline digits on pure black, nothing else. Black pixels are off pixels on OLED. */
+/** 极简：bold digits on pure black, nothing else. Black pixels are off pixels on OLED. */
 @Composable
 internal fun MinimalClock(
     face: FaceTime,

@@ -4,6 +4,8 @@ import android.os.SystemClock
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,7 +15,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.dp
 import app.screenclock.domain.burnin.BurnInMotion
@@ -58,14 +59,19 @@ internal fun BurnInShift(
             }
         }
     }
-    Box(
-        modifier = modifier.graphicsLayer {
-            translationX = offset.xPx
-            translationY = offset.yPx
-        },
-        contentAlignment = contentAlignment,
-        content = content,
-    )
+    // Only the digits and info lines move (see ClockScaffold); the backdrop stays put, so a
+    // shifted frame never uncovers the black window behind a light scene.
+    val offsetState = rememberUpdatedState(offset)
+    CompositionLocalProvider(LocalBurnInOffset provides { offsetState.value }) {
+        Box(
+            modifier = modifier,
+            contentAlignment = contentAlignment,
+            content = content,
+        )
+    }
 }
+
+/** The current burn-in shift in pixels, read at draw time so the clock does not recompose. */
+internal val LocalBurnInOffset = staticCompositionLocalOf<() -> BurnInOffset> { { BurnInOffset(0f, 0f) } }
 
 private const val DRIFT_FRAME_MILLIS: Long = 1_000L

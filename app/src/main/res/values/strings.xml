@@ -67,7 +67,7 @@
     <string name="theme_fluid">流体光影</string>
     <string name="theme_neon">复古霓虹</string>
     <string name="theme_minimal">极简</string>
-    <string name="theme_minimal_desc">纯黑底 · 细线数字</string>
+    <string name="theme_minimal_desc">纯黑底 · 粗体数字</string>
     <string name="theme_couple">情侣</string>
     <string name="theme_family">温馨小屋</string>
     <string name="theme_family_desc">晴空草地 · 暖暖的家</string>
@@ -118,6 +118,7 @@
     <string name="weather_no_location">暂时无法获取位置</string>
     <string name="section_burnin">防烧屏</string>
     <string name="burnin_enable">开启防烧屏</string>
+    <string name="burnin_hint">只在屏幕一直亮着时才有用：请同时开启下方「夜间 → 充电时常亮」，或把系统休眠时间调长。屏保只移动数字和日期，背景保持不动。</string>
     <string name="burnin_idle">无操作多久后启动屏保</string>
     <string name="burnin_run">屏保每次持续多久</string>
     <string name="burnin_minutes">%1$d 分钟</string>
@@ -134,10 +135,18 @@
     <string name="night_warm">夜间暖色</string>
     <string name="charge_keep_awake">充电时常亮</string>
     <string name="section_about">关于</string>
-    <string name="about_intro">ScreenClock 是一部放在床头或桌上的全屏时钟：翻页、灯管等多套主题，日期、天气和重要日子共用同一块钟面。</string>
+    <string name="about_intro">一块放在床头或桌上的全屏时钟。提供多款可切换的主题，可在钟面上显示日期、农历、天气和重要日子，并附带专注倒计时与防烧屏。</string>
+    <string name="about_version">版本 %1$s</string>
     <string name="about_github">GitHub 仓库</string>
-    <string name="about_author">作者：AlexWuYh</string>
-    <string name="about_license">License：MIT</string>
-    <string name="about_license_detail">本应用以 MIT 许可发布。农历换算来自 cn.6tail:lunar（MIT）；天气数据来自 Open-Meteo（CC BY 4.0）；翻页数字使用 IBM Plex Mono Bold（SIL OFL 1.1），其余主题数字分别使用 Outfit、Jost、Cormorant Garamond、Exo 2、Quicksand、Orbitron、Fredoka、Nunito、Lilita One、Titan One（均为 SIL OFL 1.1）；地球景观使用 NASA 提供的地球照片。</string>
-    <string name="weather_credit">天气数据来自 Open-Meteo</string>
+    <string name="about_license_title">许可</string>
+    <string name="about_license_mit">本应用以 MIT License 发布。</string>
+    <string name="about_third_party">第三方内容</string>
+    <string name="credit_lunar_name">cn.6tail:lunar</string>
+    <string name="credit_lunar_detail">农历换算 · MIT</string>
+    <string name="credit_meteo_name">Open-Meteo</string>
+    <string name="credit_meteo_detail">天气数据 · CC BY 4.0</string>
+    <string name="credit_fonts_name">字体</string>
+    <string name="credit_fonts_detail">IBM Plex Mono、Outfit、Jost、Cormorant Garamond、Exo 2、Quicksand、Orbitron、Fredoka、Nunito、Lilita One、Titan One · SIL OFL 1.1</string>
+    <string name="credit_nasa_name">NASA 地球照片</string>
+    <string name="credit_nasa_detail">地球景观背景 · NASA 提供</string>
 </resources>
