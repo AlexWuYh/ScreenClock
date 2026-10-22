@@ -18,6 +18,9 @@ import androidx.compose.ui.text.style.LineHeightStyle
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.SceneLight
 import app.screenclock.ui.theme.ClockScaffold
+import app.screenclock.ui.theme.SplitDigits
+import app.screenclock.ui.theme.ThemeFont
+import app.screenclock.ui.theme.rememberThemeFamily
 import app.screenclock.ui.theme.scene.DuskLakeScene
 import app.screenclock.ui.theme.scene.sceneDigitSize
 
@@ -39,6 +42,7 @@ internal fun DigitalClock(
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
+    val themeFont = rememberThemeFamily(ThemeFont.Digital)
     Box(modifier = modifier) {
         DuskLakeScene(modifier = Modifier.fillMaxSize())
         ClockScaffold(
@@ -60,19 +64,14 @@ internal fun DigitalClock(
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "${face.hourDigits}:${face.minuteDigits}",
-                    color = DigitTint,
+                SplitDigits(
+                    hour = face.hourDigits,
+                    minute = face.minuteDigits,
                     fontSize = sceneDigitSize(areaWidth, areaHeight),
-                    fontWeight = FontWeight.Light,
-                    // Warm sky can be close to the ivory numerals; a quiet ink shadow
-                    // preserves readability without changing the landscape palette.
+                    color = DigitTint,
+                    family = themeFont,
                     style = digitalStyle().copy(
-                        shadow = Shadow(
-                            color = Color(0x770E1C34),
-                            offset = Offset(0f, 2f),
-                            blurRadius = 10f,
-                        ),
+                        shadow = Shadow(color = Color(0xAA0E1C34), offset = Offset(0f, 2f), blurRadius = 16f),
                     ),
                 )
             }

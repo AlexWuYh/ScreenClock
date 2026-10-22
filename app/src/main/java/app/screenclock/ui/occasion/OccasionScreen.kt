@@ -65,6 +65,8 @@ import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
+import app.screenclock.ui.centeredPage
+import app.screenclock.ui.glassBackdrop
 import app.screenclock.ui.glassPressable
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Ink
@@ -127,9 +129,10 @@ private fun OccasionList(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .glassBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
+            .centeredPage()
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -199,7 +202,7 @@ private fun OccasionList(
 private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
     Row(
         modifier = Modifier
-            .height(44.dp)
+            .heightIn(min = 48.dp)
             .glassSurface(
                 corner = 14.dp,
                 fill = if (enabled) UiAccentGlassFill else GlassFill,
@@ -256,7 +259,7 @@ private fun OccasionRowCard(
             enabled = row.pinned || row.canPin,
             tint = if (row.pinned) UiAccentDeep else Cream,
         )
-        Spacer(modifier = Modifier.width(4.dp))
+        Spacer(modifier = Modifier.width(12.dp))
         IconBox(
             icon = AppIconKind.Trash,
             contentDescription = stringResource(R.string.occasion_delete),
@@ -305,18 +308,24 @@ private fun OccasionEditor(
     }
     val preview = draftStatus.preview
     val canSave = draftStatus.canSave
+    // Leaving with typed text asks first; a bedside swipe-back must not eat a draft.
+    var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+    val dirty = title.isNotBlank() || message.isNotBlank()
+    val leave = { if (dirty) confirmDiscard = true else onBack() }
+    BackHandler(onBack = leave)
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .glassBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
+            .centeredPage()
             .padding(horizontal = 20.dp, vertical = 12.dp),
     ) {
         IconBox(
             icon = AppIconKind.Back,
             contentDescription = stringResource(R.string.back),
-            onClick = onBack,
+            onClick = leave,
         )
         Spacer(modifier = Modifier.height(14.dp))
         PageTitle(stringResource(R.string.occasion_add))
@@ -347,13 +356,14 @@ private fun OccasionEditor(
             ),
         )
         Spacer(modifier = Modifier.height(16.dp))
-        val stepDecrease = stringResource(R.string.occasion_decrease)
-        val stepIncrease = stringResource(R.string.occasion_increase)
+        val yearName = stringResource(R.string.occasion_wheel_year)
+        val monthName = stringResource(R.string.occasion_wheel_month)
+        val dayName = stringResource(R.string.occasion_wheel_day)
         if (kind == OccasionKind.SolarOnce) {
             StepRow(
                 value = stringResource(R.string.occasion_year_value, year),
-                decreaseLabel = stepDecrease,
-                increaseLabel = stepIncrease,
+                decreaseLabel = stringResource(R.string.occasion_wheel_decrease, yearName),
+                increaseLabel = stringResource(R.string.occasion_wheel_increase, yearName),
                 onDecrease = { year = (year - 1).coerceAtLeast(YEAR_MIN) },
                 onIncrease = { year = (year + 1).coerceAtMost(YEAR_MAX) },
                 onPick = { pickingDate = true },
@@ -361,16 +371,16 @@ private fun OccasionEditor(
         }
         StepRow(
             value = stringResource(R.string.occasion_month_value, month),
-            decreaseLabel = stepDecrease,
-            increaseLabel = stepIncrease,
+            decreaseLabel = stringResource(R.string.occasion_wheel_decrease, monthName),
+            increaseLabel = stringResource(R.string.occasion_wheel_increase, monthName),
             onDecrease = { month = if (month <= 1) 12 else month - 1 },
             onIncrease = { month = if (month >= 12) 1 else month + 1 },
             onPick = { pickingDate = true },
         )
         StepRow(
             value = stringResource(R.string.occasion_day_value, dayValue),
-            decreaseLabel = stepDecrease,
-            increaseLabel = stepIncrease,
+            decreaseLabel = stringResource(R.string.occasion_wheel_decrease, dayName),
+            increaseLabel = stringResource(R.string.occasion_wheel_increase, dayName),
             onDecrease = { day = if (dayValue <= 1) dayMax else dayValue - 1 },
             onIncrease = { day = if (dayValue >= dayMax) 1 else dayValue + 1 },
             onPick = { pickingDate = true },
@@ -402,6 +412,16 @@ private fun OccasionEditor(
             }
             Spacer(modifier = Modifier.height(18.dp))
         }
+        if (!canSave) {
+            Text(
+                text = stringResource(
+                    if (title.isBlank()) R.string.occasion_need_title else R.string.occasion_need_date,
+                ),
+                color = Muted,
+                fontSize = 13.sp,
+                modifier = Modifier.padding(bottom = 10.dp),
+            )
+        }
         PrimaryButton(
             text = stringResource(R.string.occasion_save),
             icon = AppIconKind.Check,
@@ -410,6 +430,29 @@ private fun OccasionEditor(
             modifier = Modifier.fillMaxWidth(),
         )
         Spacer(modifier = Modifier.height(24.dp))
+    }
+    if (confirmDiscard) {
+        AlertDialog(
+            onDismissRequest = { confirmDiscard = false },
+            modifier = Modifier.glassSurface(corner = 20.dp, fill = GlassFillHigh),
+            containerColor = androidx.compose.ui.graphics.Color.Transparent,
+            tonalElevation = 0.dp,
+            shape = RoundedCornerShape(20.dp),
+            titleContentColor = Cream,
+            textContentColor = Info,
+            title = { Text(text = stringResource(R.string.occasion_discard_title)) },
+            text = { Text(text = stringResource(R.string.occasion_discard_body)) },
+            confirmButton = {
+                TextButton(onClick = { confirmDiscard = false; onBack() }) {
+                    Text(text = stringResource(R.string.occasion_discard), color = Alert)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmDiscard = false }) {
+                    Text(text = stringResource(R.string.occasion_keep_editing), color = Info)
+                }
+            },
+        )
     }
     if (pickingDate) {
         DateWheelDialog(

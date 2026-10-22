@@ -8,25 +8,33 @@
 
 ## 安装与上手
 
-首个版本可从 [GitHub Releases](https://github.com/AlexWuYh/ScreenClock/releases/latest) 下载 `ScreenClock-v0.1.0.apk`。该 APK 使用项目专用发布密钥签名；下载后在 Android 8.0 或更新的设备上打开安装，若系统要求允许当前来源安装，请自行确认。随 Release 提供同名 `.sha256` 校验文件。
+可从 [GitHub Releases](https://github.com/AlexWuYh/ScreenClock/releases/latest) 下载最新的 `ScreenClock-v*.apk`。该 APK 使用项目专用发布密钥签名；下载后在 Android 8.0 或更新的设备上打开安装，若系统要求允许当前来源安装，请自行确认。随 Release 提供同名 `.sha256` 校验文件。
 
 **已有自行编译或先前提供的 Debug APK？** 调试版与正式版的签名不同，Android 无法直接覆盖安装；卸载旧版会清除应用内设置和纪念日。请先妥善备份这些数据，再决定是否切换到正式版。此后的正式版将使用同一把发布密钥，可覆盖升级。贡献者仍可按下方的[自行构建](#自行构建)步骤生成 Debug APK。
 
-打开应用后，**点一下钟面空白处**，底部会出现「主题」「设置」「专注」「纪念日」；闲置约 4 秒会自动收起。点「主题」可快速循环切换，想挑选配色或调整布局则进入「设置」。
+打开应用后，**点一下钟面空白处**，底部会出现「主题」「设置」「专注」「纪念日」；首次启动会多停留几秒并给出提示，之后闲置约 8 秒会自动收起；开启读屏等无障碍服务时会按系统建议的时长更久。钟面上按一次返回键先收起按钮，再按一次才退出。点「主题」可快速循环切换，想挑选配色或调整布局则进入「设置」。
 
 ## 挑一块喜欢的钟面
 
-「设置 → 显示」里有七款主题，选择时可以直接看预览：
+「设置 → 显示」里有多款主题，选择时可以直接看预览；底部「主题」按钮会依次循环切换：
 
 | 主题 | 风格 |
 | --- | --- |
 | 翻页 | 机械页片翻折；另有**墨黑、素白、深灰**三种配色 |
 | 简约数字 | 晚霞与湖面的渐变背景 |
-| 经典模拟 | 指针式表盘与雪山背景 |
-| 地球景观 | 夜色地球与发光数字 |
+| 经典模拟 | 衬线罗马风数字的指针式表盘与雪山背景 |
+| 地球景观 | NASA 拍摄的地球照片与发光数字 |
 | 流体光影 | 柔和波带与渐变 |
-| 复古霓虹 | 霓虹、落日与网格 |
+| 复古霓虹 | 霓虹方体数字、落日与网格 |
 | 灯管 | 暗琥珀色数字，每次换分短暂亮起 |
+| 情侣 | 樱花粉天空、爱心与樱花树 |
+| 温馨小屋 | 晴空草地上的小房子，无人物 |
+| 海绵宝宝&派大星 | 蔚蓝海底，粗描边卡通数字 |
+| 皮老板&蟹老板 | 深海、蟹黄堡与金币 |
+| 比奇堡居民 | 一排表情淡定的路人鱼 |
+| 极简 | 纯黑底、粗体白色数字 |
+
+除翻页外，各主题的数字字体各不相同。日期行把日期、农历、星期、节日分成不同样式的标签，一眼能分清。海绵宝宝系列中的角色是本项目自行绘制的粉丝向示意图，相关形象的权利归原权利人所有。
 
 钟面可跟随系统小时制，或固定为 12/24 小时制。日期、年份、农历、星期、节日可分别开关；日期可放在数字上方或下方，数字有紧凑、标准、醒目三档。节日名称仅在适用的日期显示，窄屏上较长的信息可能被省略。**普通钟面不显示秒**；不是所有主题都有持续动画，翻页会翻，灯管会在换分时发光。
 
@@ -77,4 +85,4 @@ sdk.dir=/path/to/Android/sdk
 
 ## 作者与许可
 
-作者：[AlexWuYh](https://github.com/AlexWuYh)。项目以 [MIT License](LICENSE) 发布。农历换算使用 [`cn.6tail:lunar`](https://github.com/6tail/lunar-java)（MIT）；天气数据由 [Open-Meteo](https://open-meteo.com/) 提供（CC BY 4.0）。翻页数字使用随应用附带的 **IBM Plex Mono Bold**，遵循 [SIL Open Font License 1.1](app/src/main/assets/fonts/IBMPlexMono-OFL.txt)。
+作者：[AlexWuYh](https://github.com/AlexWuYh)。项目以 [MIT License](LICENSE) 发布。农历换算使用 [`cn.6tail:lunar`](https://github.com/6tail/lunar-java)（MIT）；天气数据由 [Open-Meteo](https://open-meteo.com/) 提供（CC BY 4.0）。翻页数字使用随应用附带的 **IBM Plex Mono Bold**，遵循 [SIL Open Font License 1.1](app/src/main/assets/fonts/IBMPlexMono-OFL.txt)；其余主题的数字字体（Outfit、Jost、Cormorant Garamond、Exo 2、Quicksand、Orbitron、Fredoka、Nunito、Lilita One、Titan One）同为 SIL OFL 1.1 许可，随应用附带于 `app/src/main/assets/fonts`。地球景观的背景使用 NASA 提供的地球照片。

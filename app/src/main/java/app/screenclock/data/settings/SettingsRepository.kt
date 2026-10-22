@@ -15,6 +15,7 @@ import app.screenclock.domain.time.HourMode
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 internal val Context.clockSettingsStore by preferencesDataStore(name = "clock_settings")
@@ -33,6 +34,7 @@ private val DigitSizeKey = stringPreferencesKey("digit_size")
 class SettingsRepository(private val context: Context) : SettingsStore {
     override val settings: Flow<ClockPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toClockPreferences() }
+        .distinctUntilChanged()
         .catch { error ->
             if (error is IOException) emit(ClockPreferences()) else throw error
         }

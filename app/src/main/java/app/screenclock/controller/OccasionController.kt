@@ -30,8 +30,11 @@ import java.util.UUID
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
@@ -63,6 +66,11 @@ class OccasionController(
     private val io: CoroutineDispatcher = Dispatchers.IO,
 ) {
     private val occasionLock = Mutex()
+    private val saveFailedState = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
+    /** Emits when the list could not be written; the new item exists only until the app closes. */
+    val saveFailed: SharedFlow<Unit> = saveFailedState.asSharedFlow()
+
     private val occasionsState = MutableStateFlow<List<Occasion>>(emptyList())
     private val occasionRowsState = MutableStateFlow<List<OccasionRow>>(emptyList())
     val occasionRows: StateFlow<List<OccasionRow>> = occasionRowsState.asStateFlow()
@@ -246,6 +254,7 @@ class OccasionController(
             withContext(io) { store.save(items) }
         } catch (_: IOException) {
             // The in-memory list stays. The next edit writes the file again.
+            saveFailedState.tryEmit(Unit)
         }
     }
 

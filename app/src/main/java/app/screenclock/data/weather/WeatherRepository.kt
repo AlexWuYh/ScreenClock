@@ -17,6 +17,7 @@ import app.screenclock.domain.weather.weatherCacheOrNull
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val EnabledKey = booleanPreferencesKey("weather_enabled")
@@ -33,6 +34,7 @@ private val FetchedKey = longPreferencesKey("weather_fetched_at")
 class WeatherRepository(private val context: Context) : WeatherStore {
     override val weather: Flow<WeatherPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toWeatherPreferences() }
+        .distinctUntilChanged()
         .catch { error ->
             if (error is IOException) emit(WeatherPreferences()) else throw error
         }

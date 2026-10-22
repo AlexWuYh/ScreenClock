@@ -7,6 +7,7 @@ import app.screenclock.data.settings.clockSettingsStore
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val EndKey = longPreferencesKey("focus_end_epoch_millis")
@@ -14,6 +15,7 @@ private val EndKey = longPreferencesKey("focus_end_epoch_millis")
 class FocusRepository(private val context: Context) : FocusStore {
     override val endEpochMillis: Flow<Long?> = context.clockSettingsStore.data
         .map { prefs -> prefs[EndKey] }
+        .distinctUntilChanged()
         .catch { error ->
             if (error is IOException) emit(null) else throw error
         }

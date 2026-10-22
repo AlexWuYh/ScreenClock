@@ -16,6 +16,18 @@ enum class ClockThemeId {
     Fluid,
     /** Neon gradient digits on a synthwave grid. */
     Neon,
+    /** Hairline digits on pure black. */
+    Minimal,
+    /** Two cartoon sweethearts under a cherry tree. */
+    Couple,
+    /** A sunny house on a meadow, no people. */
+    Family,
+    /** SpongeBob and Patrick in the sea. */
+    SpongePat,
+    /** Mr. Krabs and Plankton with their coins. */
+    Krabs,
+    /** The residents of Bikini Bottom in a row. */
+    Bikini,
     ;
 
     companion object {
@@ -25,7 +37,7 @@ enum class ClockThemeId {
     }
 }
 
-/** Six reference designs first; the existing tube remains available as an extra. */
+/** Six reference designs first; the tube, the sweetheart theme, minimal and three Bikini Bottom themes follow as extras. */
 val showcasedThemes: List<ClockThemeId> = listOf(
     ClockThemeId.Flip,
     ClockThemeId.Digital,
@@ -34,6 +46,12 @@ val showcasedThemes: List<ClockThemeId> = listOf(
     ClockThemeId.Fluid,
     ClockThemeId.Neon,
     ClockThemeId.Tube,
+    ClockThemeId.Couple,
+    ClockThemeId.Family,
+    ClockThemeId.SpongePat,
+    ClockThemeId.Krabs,
+    ClockThemeId.Bikini,
+    ClockThemeId.Minimal,
 )
 
 fun nextShowcaseTheme(current: ClockThemeId): ClockThemeId =

@@ -14,6 +14,7 @@ import app.screenclock.domain.bedside.normalizeHour
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val DimKey = booleanPreferencesKey("night_dim_enabled")
@@ -25,6 +26,7 @@ private val ChargeKey = booleanPreferencesKey("charge_keep_awake")
 class BedsideRepository(private val context: Context) : BedsideStore {
     override val preferences: Flow<BedsidePreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toBedsidePreferences() }
+        .distinctUntilChanged()
         .catch { error ->
             if (error is IOException) emit(BedsidePreferences()) else throw error
         }

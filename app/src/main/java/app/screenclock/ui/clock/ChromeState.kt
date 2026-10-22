@@ -37,7 +37,7 @@ data class ChromeState(
     }
 
     companion object {
-        const val HIDE_AFTER_MILLIS: Long = 4_000L
+        const val HIDE_AFTER_MILLIS: Long = 8_000L
     }
 }
 

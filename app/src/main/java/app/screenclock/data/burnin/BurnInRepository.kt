@@ -13,6 +13,7 @@ import app.screenclock.domain.burnin.normalizeRunMillis
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val EnabledKey = booleanPreferencesKey("burnin_enabled")
@@ -22,6 +23,7 @@ private val RunKey = longPreferencesKey("burnin_run_millis")
 class BurnInRepository(private val context: Context) : BurnInStore {
     override val preferences: Flow<BurnInPreferences> = context.clockSettingsStore.data
         .map { prefs -> prefs.toBurnInPreferences() }
+        .distinctUntilChanged()
         .catch { error ->
             if (error is IOException) emit(BurnInPreferences()) else throw error
         }

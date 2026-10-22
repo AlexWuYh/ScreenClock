@@ -15,6 +15,8 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
@@ -35,6 +37,7 @@ import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.UiAccentDeep
+import app.screenclock.ui.Ink
 import app.screenclock.ui.Paper
 import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
 import app.screenclock.ui.ceremony.CeremonyScreen
@@ -141,6 +144,17 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
         }
         onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
+    // Bars are hidden, but a swipe reveals them briefly: icons must read on the page behind.
+    val lightPage = destination == AppDestination.Settings ||
+        (destination == AppDestination.Occasions) ||
+        (destination == AppDestination.Focus && focusEnd == null)
+    val barView = LocalView.current
+    SideEffect {
+        val window = (barView.context as? android.app.Activity)?.window ?: return@SideEffect
+        val controller = androidx.core.view.WindowCompat.getInsetsController(window, barView)
+        controller.isAppearanceLightStatusBars = lightPage
+        controller.isAppearanceLightNavigationBars = lightPage
+    }
     MaterialTheme(
         colorScheme = lightColorScheme(
             background = Paper,
@@ -160,7 +174,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .background(Paper),
+                        .background(Ink),
                 )
             } else when (destination) {
                 AppDestination.Clock -> ClockShell(viewModel)

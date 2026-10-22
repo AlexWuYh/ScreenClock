@@ -1,6 +1,12 @@
 package app.screenclock.ui.settings
 
 import android.Manifest
+import androidx.compose.material3.TextButton
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.LiveRegionMode
+import android.provider.Settings
+import android.net.Uri
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -83,7 +89,9 @@ import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.Cream
 import app.screenclock.ui.FieldLabel
 import app.screenclock.ui.GlassBorder
+import app.screenclock.ui.GlassFill
 import app.screenclock.ui.GlassFillHigh
+import app.screenclock.ui.glassBackdrop
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.IconBox
@@ -162,18 +170,12 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                brush = Brush.verticalGradient(
-                    0f to Color(0xFFE9F3F8),
-                    0.55f to Paper,
-                    1f to Color(0xFFE6F1F6),
-                ),
-            )
+            .glassBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing),
     ) {
         // The back action stays reachable while only the form below it scrolls.
         BoxWithConstraints(
-            modifier = Modifier.fillMaxWidth().glassSurface(corner = 0.dp, fill = GlassFillHigh),
+            modifier = Modifier.fillMaxWidth().glassSurface(corner = 0.dp, fill = GlassFill),
             contentAlignment = Alignment.Center,
         ) {
             Row(
@@ -435,9 +437,15 @@ private fun themeSubtitle(id: ClockThemeId): Int = when (id) {
     ClockThemeId.Earth -> R.string.theme_earth_desc
     ClockThemeId.Fluid -> R.string.theme_fluid_desc
     ClockThemeId.Neon -> R.string.theme_neon_desc
+    ClockThemeId.Couple -> R.string.theme_couple_desc
+    ClockThemeId.Minimal -> R.string.theme_minimal_desc
+    ClockThemeId.Family -> R.string.theme_family_desc
+    ClockThemeId.SpongePat -> R.string.theme_spongepat_desc
+    ClockThemeId.Krabs -> R.string.theme_krabs_desc
+    ClockThemeId.Bikini -> R.string.theme_bikini_desc
 }
 
-private fun themeLabel(id: ClockThemeId): Int {
+internal fun themeLabel(id: ClockThemeId): Int {
     return when (id) {
         ClockThemeId.Flip -> R.string.theme_flip
         ClockThemeId.Tube -> R.string.theme_tube
@@ -446,6 +454,12 @@ private fun themeLabel(id: ClockThemeId): Int {
         ClockThemeId.Earth -> R.string.theme_earth
         ClockThemeId.Fluid -> R.string.theme_fluid
         ClockThemeId.Neon -> R.string.theme_neon
+        ClockThemeId.Couple -> R.string.theme_couple
+        ClockThemeId.Minimal -> R.string.theme_minimal
+        ClockThemeId.Family -> R.string.theme_family
+        ClockThemeId.SpongePat -> R.string.theme_spongepat
+        ClockThemeId.Krabs -> R.string.theme_krabs
+        ClockThemeId.Bikini -> R.string.theme_bikini
     }
 }
 
@@ -618,6 +632,16 @@ private fun WeatherSection(
             icon = AppIconKind.Search,
             contentDescription = stringResource(R.string.weather_search),
             onClick = { onSearch(query) },
+            enabled = !panel.busy,
+        )
+    }
+    if (panel.busy) {
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = stringResource(R.string.weather_busy),
+            color = Muted,
+            fontSize = 14.sp,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
         )
     }
     panel.results.forEach { place ->
@@ -645,7 +669,26 @@ private fun WeatherSection(
     }
     if (status != null) {
         Spacer(modifier = Modifier.height(8.dp))
-        Text(text = status, color = Muted, fontSize = 14.sp)
+        Text(
+            text = status,
+            color = Muted,
+            fontSize = 14.sp,
+            modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
+    if (panel.notice == WeatherNotice.NoPermission) {
+        // After two refusals the system stops asking, so offer the page where it can be turned on.
+        TextButton(
+            onClick = {
+                context.startActivity(
+                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                        .setData(Uri.fromParts("package", context.packageName, null))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
+            },
+        ) {
+            Text(text = stringResource(R.string.weather_open_settings), color = UiAccentDeep)
+        }
     }
     if (panel.notice == WeatherNotice.Unavailable && weather != null) {
         Spacer(modifier = Modifier.height(4.dp))

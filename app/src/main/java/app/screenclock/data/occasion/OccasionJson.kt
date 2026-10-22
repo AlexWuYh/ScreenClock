@@ -7,10 +7,17 @@ import app.screenclock.domain.occasion.Occasion
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.normalizeMessage
 import app.screenclock.domain.occasion.normalizeTitle
+import app.screenclock.domain.occasion.occasionDayMax
 
 internal fun encodeOccasions(items: List<Occasion>): String {
     val body = items.joinToString(separator = ",") { encodeItem(it) }
     return "{\"items\":[$body]}"
+}
+
+/** True when [text] is a well-formed occasions document, even an empty one. */
+internal fun isOccasionDocument(text: String): Boolean {
+    val root = parseJson(text) as? JsonValue.Obj ?: return false
+    return root.fields["items"] is JsonValue.Arr
 }
 
 internal fun decodeOccasions(text: String): List<Occasion> {
@@ -23,7 +30,11 @@ internal fun decodeOccasions(text: String): List<Occasion> {
         decoded += item
         if (decoded.size == OCCASION_LIMIT) break
     }
-    return decoded
+    // Only one occasion can be pinned; a hand-edited file keeps the first.
+    val firstPin = decoded.indexOfFirst { it.pinned }
+    return decoded.mapIndexed { index, item ->
+        if (item.pinned && index != firstPin) item.copy(pinned = false) else item
+    }
 }
 
 private fun encodeItem(item: Occasion): String {
@@ -51,11 +62,11 @@ private fun decodeItem(value: JsonValue): Occasion? {
     val day = obj.fields["day"].asInt() ?: return null
     // A hand-edited or old file must not smuggle in rows that can never resolve.
     if (month !in 1..12) return null
-    val dayMax = if (kind == OccasionKind.LunarYearly) 30 else 31
-    if (day !in 1..dayMax) return null
     val leap = obj.fields["leap"].asBoolean() ?: false
     val year = obj.fields["year"].asInt()
     if (kind == OccasionKind.SolarOnce && year == null) return null
+    // Feb 31 or Apr 31 would be a permanent "not found" row.
+    if (day !in 1..occasionDayMax(kind, year ?: 0, month)) return null
     val message = normalizeMessage(obj.fields["message"].asString() ?: "")
     val pinned = obj.fields["pinned"].asBoolean() ?: false
     return Occasion(

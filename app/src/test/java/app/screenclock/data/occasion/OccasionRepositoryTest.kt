@@ -49,4 +49,25 @@ class OccasionRepositoryTest {
         assertFalse(File(directory, "occasions.json.tmp").exists())
         assertEquals(listOf(item), OccasionRepository(directory).load())
     }
+
+    @Test
+    fun corruptFileIsKeptAsideBeforeAnythingCanOverwriteIt() {
+        val directory = temporaryFolder.newFolder("corrupt")
+        File(directory, "occasions.json").writeText("{not json", Charsets.UTF_8)
+
+        assertEquals(emptyList<Occasion>(), OccasionRepository(directory).load())
+
+        assertEquals("{not json", File(directory, "occasions.json.corrupt").readText())
+        assertFalse(File(directory, "occasions.json").exists())
+    }
+
+    @Test
+    fun emptyButValidFileIsNotTreatedAsCorrupt() {
+        val directory = temporaryFolder.newFolder("empty")
+        File(directory, "occasions.json").writeText("{\"items\":[]}", Charsets.UTF_8)
+
+        OccasionRepository(directory).load()
+
+        assertFalse(File(directory, "occasions.json.corrupt").exists())
+    }
 }

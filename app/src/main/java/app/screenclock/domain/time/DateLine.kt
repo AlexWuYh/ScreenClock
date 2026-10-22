@@ -42,3 +42,30 @@ fun formatDateLine(
     val base = pieces.joinToString(" ")
     return if (holiday == null) base else "$base · $holiday"
 }
+
+enum class DateSegmentKind { Date, Lunar, Weekday, Holiday }
+
+data class DateSegment(val kind: DateSegmentKind, val text: String)
+
+/**
+ * Splits a line made by [formatDateLine] back into typed pieces so the face can show each
+ * kind in its own shape. The pieces are told apart by what they contain, not by position:
+ * a solar date has digits, a weekday starts with「星期」, the holiday trails「 · 」, and
+ * whatever remains is the lunar label.
+ */
+fun dateSegments(line: String): List<DateSegment> {
+    val holidayAt = line.indexOf(" · ")
+    val base = if (holidayAt >= 0) line.substring(0, holidayAt) else line
+    val holiday = if (holidayAt >= 0) line.substring(holidayAt + 3).trim() else ""
+    val out = ArrayList<DateSegment>()
+    for (piece in base.split(' ').filter { it.isNotBlank() }) {
+        val kind = when {
+            piece.startsWith("星期") -> DateSegmentKind.Weekday
+            piece.any { it.isDigit() } -> DateSegmentKind.Date
+            else -> DateSegmentKind.Lunar
+        }
+        out += DateSegment(kind, piece)
+    }
+    if (holiday.isNotEmpty()) out += DateSegment(DateSegmentKind.Holiday, holiday)
+    return out
+}

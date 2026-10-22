@@ -14,7 +14,9 @@ class OccasionRepository(
         val file = File(directory, FILE_NAME)
         if (!file.isFile) return emptyList()
         return try {
-            decodeOccasions(file.readText(Charsets.UTF_8))
+            val text = file.readText(Charsets.UTF_8)
+            if (!isOccasionDocument(text)) quarantine(file)
+            decodeOccasions(text)
         } catch (_: IOException) {
             emptyList()
         }
@@ -42,6 +44,18 @@ class OccasionRepository(
             }
         } finally {
             if (temp.exists() && !temp.delete()) temp.deleteOnExit()
+        }
+    }
+
+    /**
+     * An unreadable file is kept as `.corrupt` so the next save cannot overwrite the
+     * only copy of the user's dates.
+     */
+    private fun quarantine(file: File) {
+        val aside = File(directory, "$FILE_NAME.corrupt")
+        try {
+            Files.move(file.toPath(), aside.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        } catch (_: IOException) {
         }
     }
 

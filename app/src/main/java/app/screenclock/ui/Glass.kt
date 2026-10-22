@@ -36,7 +36,7 @@ internal val GlassBorder = Color.White.copy(alpha = 0.90f)
 internal val GlassDarkFill = Color.White.copy(alpha = 0.10f)
 internal val GlassDarkBorder = Color.White.copy(alpha = 0.18f)
 
-/** A frosted panel: translucent fill, top sheen, hairline border. */
+/** A frosted panel: translucent fill, top sheen, a rim light that fades downward. */
 internal fun Modifier.glassSurface(
     corner: Dp = 20.dp,
     fill: Color = GlassFill,
@@ -44,23 +44,62 @@ internal fun Modifier.glassSurface(
 ): Modifier {
     val shape = RoundedCornerShape(corner)
     val dark = fill == GlassDarkFill
-    val ambient = if (dark) Color(0x14000000) else Color(0x1A315F78)
-    val spot = if (dark) Color(0x14000000) else Color(0x12315F78)
+    val ambient = if (dark) Color(0x14000000) else Color(0x1F3A5A8C)
+    val spot = if (dark) Color(0x14000000) else Color(0x163A5A8C)
+    // Light glass catches light along its top edge and lets go of it toward the bottom.
+    val rim = if (dark) {
+        Brush.verticalGradient(listOf(border, border))
+    } else {
+        Brush.verticalGradient(listOf(border, border.copy(alpha = border.alpha * 0.40f)))
+    }
+    val sheenTop = if (dark) 0.10f else 0.34f
     return this
-        .shadow(elevation = 6.dp, shape = shape, clip = false, ambientColor = ambient, spotColor = spot)
+        .shadow(elevation = 8.dp, shape = shape, clip = false, ambientColor = ambient, spotColor = spot)
         .clip(shape)
         .background(fill)
         .drawBehind {
             drawRect(
                 brush = Brush.verticalGradient(
-                    0f to Color.White.copy(alpha = 0.10f),
+                    0f to Color.White.copy(alpha = sheenTop),
                     0.55f to Color.Transparent,
                     startY = 0f,
                     endY = size.height * 0.55f,
                 ),
             )
         }
-        .border(1.dp, border, shape)
+        .border(1.dp, rim, shape)
+}
+
+/**
+ * The page behind light glass. Flat pale colour gives frosted panels nothing to frost, so
+ * a few soft colour pools sit behind the content; the warm one echoes the clock face's amber.
+ */
+internal fun Modifier.glassBackdrop(): Modifier = drawBehind {
+    drawRect(
+        brush = Brush.verticalGradient(
+            0f to Color(0xFFF5F8FD),
+            0.5f to Color(0xFFF8FAFE),
+            1f to Color(0xFFF2F7FD),
+        ),
+    )
+    fun pool(color: Color, cx: Float, cy: Float, radius: Float) {
+        val center = Offset(size.width * cx, size.height * cy)
+        val r = size.width * radius
+        drawCircle(
+            brush = Brush.radialGradient(
+                0f to color,
+                1f to Color.Transparent,
+                center = center,
+                radius = r,
+            ),
+            radius = r,
+            center = center,
+        )
+    }
+    pool(Color(0xFFA9C8F0).copy(alpha = 0.20f), 0.10f, 0.06f, 0.55f)
+    pool(Color(0xFFC4D8F5).copy(alpha = 0.24f), 0.95f, 0.38f, 0.50f)
+    pool(Color(0xFFD3E2F8).copy(alpha = 0.26f), 0.12f, 0.78f, 0.48f)
+    pool(Color(0xFFBBD3F3).copy(alpha = 0.18f), 0.92f, 1.00f, 0.52f)
 }
 
 /** Frosted press feedback scales and highlights the pressed surface, without a ripple. */
@@ -74,7 +113,7 @@ internal fun Modifier.glassPressable(
     val pressed by interaction.collectIsPressedAsState()
     val press by animateFloatAsState(
         targetValue = if (pressed) 1f else 0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow),
+        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = Spring.StiffnessMediumLow),
     )
     return this
         .graphicsLayer {

@@ -39,6 +39,9 @@ data class WeatherPreferences(
 )
 
 const val WEATHER_CACHE_TTL_MILLIS: Long = 30L * 60L * 1000L
+
+/** Past this age the face hides the weather rather than show an old reading as current. */
+const val WEATHER_DISPLAY_MAX_AGE_MILLIS: Long = 6L * 60L * 60L * 1000L
 const val CITY_QUERY_MAX: Int = 40
 
 /** Short Chinese for a WMO code. Unknown and null codes have no phenomenon word. */

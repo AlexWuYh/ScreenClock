@@ -12,7 +12,7 @@ on:
         type: string
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: android-release-${{ github.event.inputs.release_tag || github.ref_name }}
@@ -22,6 +22,8 @@ jobs:
   release:
     runs-on: ubuntu-latest
     timeout-minutes: 50
+    permissions:
+      contents: write
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v4
@@ -64,6 +66,32 @@ jobs:
           git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null
           test "$(git rev-parse HEAD)" = "$(git rev-list -n 1 "$RELEASE_TAG")"
 
+      - name: Require versionCode to increase over the previous tag
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
+        run: |
+          python3 - <<'PY'
+          import os, re, subprocess
+          def code(text):
+              m = re.search(r'^\s*versionCode\s*=\s*(\d+)', text, re.M)
+              return int(m.group(1)) if m else None
+          tag = os.environ['RELEASE_TAG']
+          now = code(open('app/build.gradle.kts', encoding='utf-8').read())
+          tags = subprocess.check_output(
+              ['git', 'tag', '--list', 'v*', '--sort=-v:refname'], text=True).split()
+          older = tags[tags.index(tag) + 1:] if tag in tags else tags
+          if now is None:
+              raise SystemExit('versionCode not found in app/build.gradle.kts')
+          if older:
+              prev = code(subprocess.check_output(
+                  ['git', 'show', f'{older[0]}:app/build.gradle.kts'], text=True))
+              if prev is not None and now <= prev:
+                  raise SystemExit(
+                      f'versionCode {now} must be greater than {prev} from {older[0]}; '
+                      'installed devices will not offer this APK as an update')
+          print('versionCode', now, 'ok')
+          PY
+
       - name: Export verified release tag
         env:
           RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
@@ -105,9 +133,13 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$RELEASE_TAG" \
-            "dist/ScreenClock-${RELEASE_TAG}.apk" \
-            "dist/ScreenClock-${RELEASE_TAG}.apk.sha256" \
-            --verify-tag --generate-notes \
-            --title "ScreenClock $RELEASE_TAG" \
-            --notes 'Android 8.0+ 安装包：七款钟面、专注倒计时、纪念日与可选天气。此 APK 由项目专用发布密钥签名，可覆盖升级同签名的后续版本；先前的 Debug APK 签名不同，切换前请先备份本地设置与纪念日，卸载旧包会清除数据。SHA-256 校验值见同名 .sha256 附件。'
+          assets=("dist/ScreenClock-${RELEASE_TAG}.apk" "dist/ScreenClock-${RELEASE_TAG}.apk.sha256")
+          # A retry after a partial publish uploads into the existing release instead of failing.
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" --clobber
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --verify-tag --generate-notes \
+              --title "ScreenClock $RELEASE_TAG" \
+              --notes 'Android 8.0+ 安装包：多款可切换的钟面主题、专注倒计时、纪念日与可选天气。此 APK 由项目专用发布密钥签名，可覆盖升级同签名的后续版本；先前的 Debug APK 签名不同，切换前请先备份本地设置与纪念日，卸载旧包会清除数据。SHA-256 校验值见同名 .sha256 附件。'
+          fi

@@ -64,3 +64,31 @@ class DateLineTest {
         )
     }
 }
+
+class DateSegmentsTest {
+    @org.junit.Test
+    fun everyPieceGetsItsOwnKind() {
+        val parts = dateSegments("2026年10月1日 八月二十 星期四 · 国庆节")
+        org.junit.Assert.assertEquals(
+            listOf(DateSegmentKind.Date, DateSegmentKind.Lunar, DateSegmentKind.Weekday, DateSegmentKind.Holiday),
+            parts.map { it.kind },
+        )
+        org.junit.Assert.assertEquals("国庆节", parts.last().text)
+    }
+
+    @org.junit.Test
+    fun aDegradedLineStillClassifies() {
+        org.junit.Assert.assertEquals(
+            listOf(DateSegmentKind.Date),
+            dateSegments("10月22日").map { it.kind },
+        )
+        org.junit.Assert.assertEquals(
+            listOf(DateSegmentKind.Date, DateSegmentKind.Weekday),
+            dateSegments("10月22日 星期四").map { it.kind },
+        )
+        org.junit.Assert.assertEquals(
+            DateSegmentKind.Lunar,
+            dateSegments("2026年10月22日 闰四月初三").last().kind,
+        )
+    }
+}

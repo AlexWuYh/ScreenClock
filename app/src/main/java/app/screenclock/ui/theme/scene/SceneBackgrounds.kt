@@ -2,6 +2,12 @@ package app.screenclock.ui.theme.scene
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
+import kotlin.math.roundToInt
+import app.screenclock.R
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.res.imageResource
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -30,8 +36,8 @@ internal fun DuskLakeScene(modifier: Modifier = Modifier) {
             brush = Brush.verticalGradient(
                 0f to Color(0xFF28406E),
                 0.26f to Color(0xFF6A587E),
-                0.54f to Color(0xFFB57A7E),
-                0.82f to Color(0xFFE7A679),
+                0.54f to Color(0xFF8F6279),
+                0.82f to Color(0xFFB97B74),
                 1f to Color(0xFFD99A6C),
                 startY = 0f,
                 endY = horizon,
@@ -202,78 +208,31 @@ internal fun MountainScene(modifier: Modifier = Modifier) {
     }
 }
 
-/** Night earth from orbit: stars, the dark limb, an atmosphere rim and a sunrise. */
+/**
+ * A NASA photograph of Earth rising out of black space, laid full-bleed (centre-cropped to
+ * the screen, keeping the globe in frame). Black space needs nothing drawn; a faint wash
+ * over the lit limb keeps the white digits legible where they cross it.
+ */
 @Composable
 internal fun EarthScene(modifier: Modifier = Modifier) {
+    val photo = ImageBitmap.imageResource(R.drawable.earth_photo)
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        drawRect(
-            brush = Brush.verticalGradient(
-                0f to Color(0xFF04060E),
-                0.55f to Color(0xFF0A1224),
-                1f to Color(0xFF12203C),
-            ),
+        drawRect(Color.Black)
+        val scale = maxOf(w / photo.width, h / photo.height)
+        val dstW = photo.width * scale
+        val dstH = photo.height * scale
+        // The globe sits right of centre in the photo; bias the crop toward it on narrow screens.
+        val focusX = 0.55f
+        val left = (-(dstW - w) * focusX).coerceIn(w - dstW, 0f)
+        val top = (-(dstH - h) * 0.5f).coerceIn(h - dstH, 0f)
+        drawImage(
+            image = photo,
+            dstOffset = IntOffset(left.roundToInt(), top.roundToInt()),
+            dstSize = IntSize(dstW.roundToInt(), dstH.roundToInt()),
         )
-        for (star in 0 until 70) {
-            val x = ((star * 137.5f) % 100f) / 100f * w
-            val y = ((star * 73.3f) % 100f) / 100f * h * 0.66f
-            val bright = 0.25f + ((star * 29.7f) % 60f) / 100f
-            drawCircle(
-                color = Color.White.copy(alpha = bright),
-                radius = (h * 0.0016f) * (1f + (star % 3) * 0.5f),
-                center = Offset(x, y),
-            )
-        }
-        val earthCenter = Offset(w * 0.5f, h * 1.52f)
-        val earthRadius = h * 1.06f
-        drawCircle(
-            brush = Brush.radialGradient(
-                0f to Color(0xFF16294A),
-                1f to Color(0xFF0A1730),
-                center = earthCenter,
-                radius = earthRadius,
-            ),
-            radius = earthRadius,
-            center = earthCenter,
-        )
-        drawCircle(
-            color = Color(0xFF3E7BD8).copy(alpha = 0.30f),
-            radius = earthRadius * 1.012f,
-            center = earthCenter,
-            style = Stroke(width = h * 0.014f),
-        )
-        drawCircle(
-            color = Color(0xFF7FB0FF).copy(alpha = 0.14f),
-            radius = earthRadius * 1.05f,
-            center = earthCenter,
-            style = Stroke(width = h * 0.030f),
-        )
-        val dawn = Offset(w * 0.80f, h * 0.72f)
-        drawCircle(
-            brush = Brush.radialGradient(
-                0f to Color(0xFFFFB56B).copy(alpha = 0.65f),
-                0.5f to Color(0xFFFF8C4A).copy(alpha = 0.22f),
-                1f to Color.Transparent,
-                center = dawn,
-                radius = h * 0.55f,
-            ),
-            radius = h * 0.55f,
-            center = dawn,
-        )
-        for (light in 0 until 26) {
-            val angle = Math.toRadians((18.0 + light * 2.9))
-            val radius = earthRadius * (0.985f + (light % 3) * 0.004f)
-            val x = earthCenter.x + (sin(angle) * radius).toFloat()
-            val y = earthCenter.y - (cos(angle) * radius).toFloat()
-            if (y > h * 0.62f) {
-                drawCircle(
-                    color = Color(0xFFFFC98A).copy(alpha = 0.35f + (light % 4) * 0.14f),
-                    radius = h * 0.0026f * (1f + (light % 3) * 0.4f),
-                    center = Offset(x, y),
-                )
-            }
-        }
+        drawRect(Color(0xFF01030A).copy(alpha = 0.18f))
     }
 }
 
@@ -334,7 +293,7 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val w = size.width
         val h = size.height
-        val horizon = h * 0.60f
+        val horizon = h * 0.80f
         drawRect(
             brush = Brush.verticalGradient(
                 0f to Color(0xFF140923),
@@ -358,7 +317,7 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
         )
         drawCircle(
             brush = Brush.radialGradient(
-                0f to Color(0xFFFF3E9E).copy(alpha = 0.30f),
+                0f to Color(0xFFFF3E9E).copy(alpha = 0.18f),
                 1f to Color.Transparent,
                 center = Offset(w * 0.5f, horizon),
                 radius = h * 0.55f,
@@ -368,7 +327,7 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
         )
         drawCircle(
             brush = Brush.radialGradient(
-                0f to Color(0xFF7A4BFF).copy(alpha = 0.28f),
+                0f to Color(0xFF7A4BFF).copy(alpha = 0.16f),
                 1f to Color.Transparent,
                 center = Offset(w * 0.5f, horizon),
                 radius = h * 0.75f,
@@ -377,12 +336,12 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
             center = Offset(w * 0.5f, horizon),
         )
         // A striped sunset and mountain silhouettes give the grid a horizon.
-        val sun = Offset(w * 0.52f, horizon - h * 0.11f)
-        val sunRadius = h * 0.17f
+        val sun = Offset(w * 0.5f, horizon - h * 0.055f)
+        val sunRadius = h * 0.10f
         drawCircle(
             brush = Brush.verticalGradient(
-                0f to Color(0xFFFFB65F),
-                1f to Color(0xFFE9438A),
+                0f to Color(0xFFFFB65F).copy(alpha = 0.75f),
+                1f to Color(0xFFE9438A).copy(alpha = 0.75f),
                 startY = sun.y - sunRadius,
                 endY = sun.y + sunRadius,
             ),
@@ -433,5 +392,17 @@ internal fun NeonScene(modifier: Modifier = Modifier) {
                 strokeWidth = (h * 0.0016f).coerceAtLeast(1f),
             )
         }
+        // A dark band behind the digit row keeps the neon strokes apart from the glow.
+        drawRect(
+            brush = Brush.verticalGradient(
+                0f to Color.Transparent,
+                0.5f to Color(0xFF0B0416).copy(alpha = 0.55f),
+                1f to Color.Transparent,
+                startY = h * 0.22f,
+                endY = h * 0.78f,
+            ),
+            topLeft = Offset(0f, h * 0.22f),
+            size = Size(w, h * 0.56f),
+        )
     }
 }

@@ -13,6 +13,9 @@ import androidx.compose.ui.graphics.toArgb
 import app.screenclock.domain.time.FaceTime
 import androidx.compose.ui.graphics.Color
 import app.screenclock.ui.theme.ClockScaffold
+import app.screenclock.ui.theme.ThemeFont
+import app.screenclock.ui.theme.splitLayout
+import app.screenclock.ui.theme.rememberThemeTypeface
 import app.screenclock.ui.theme.scene.EarthScene
 
 /**
@@ -31,6 +34,7 @@ internal fun EarthClock(
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
+    val themeFont = rememberThemeTypeface(ThemeFont.Earth)
     Box(modifier = modifier) {
         EarthScene(modifier = Modifier.fillMaxSize())
         ClockScaffold(
@@ -47,36 +51,35 @@ internal fun EarthClock(
         ) { stacked, cardWidth, cardHeight, gap ->
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
             val areaHeight = if (stacked) cardHeight * 2 + gap else cardHeight
-            val text = "${face.hourDigits}:${face.minuteDigits}"
             Canvas(modifier = Modifier.requiredSize(areaWidth, areaHeight)) {
                 val w = size.width
                 val h = size.height
                 val base = Paint().apply {
                     isAntiAlias = true
                     style = Paint.Style.STROKE
-                    typeface = android.graphics.Typeface.create("sans-serif-light", android.graphics.Typeface.NORMAL)
+                    typeface = themeFont
                     textSize = h * 0.60f
                 }
-                val measured = base.measureText(text)
-                if (measured > 0f) {
-                    base.textSize = minOf(h * 0.66f, w * 0.92f / measured * base.textSize)
-                }
-                val x = (w - base.measureText(text)) / 2f
-                val baseline = h / 2f + base.textSize * 0.34f
+                val layout = splitLayout(base, face.hourDigits, face.minuteDigits, w, h)
                 val canvas = drawContext.canvas.nativeCanvas
+                fun pass(paint: Paint) {
+                    canvas.drawText(face.hourDigits, layout.hourX, layout.baseline, paint)
+                    canvas.drawText(face.minuteDigits, layout.minuteX, layout.baseline, paint)
+                    val dots = Paint(paint).apply { style = Paint.Style.FILL_AND_STROKE }
+                    canvas.drawCircle(layout.colonX, layout.colonTop, layout.dotRadius, dots)
+                    canvas.drawCircle(layout.colonX, layout.colonBottom, layout.dotRadius, dots)
+                }
                 for ((widthScale, alpha) in listOf(0.10f to 28, 0.05f to 60, 0.022f to 110)) {
-                    val halo = Paint(base).apply {
+                    pass(Paint(base).apply {
                         strokeWidth = base.textSize * widthScale
                         color = android.graphics.Color.rgb(196, 220, 255)
                         this.alpha = alpha
-                    }
-                    canvas.drawText(text, x, baseline, halo)
+                    })
                 }
-                val main = Paint(base).apply {
+                pass(Paint(base).apply {
                     strokeWidth = base.textSize * 0.012f
                     color = android.graphics.Color.WHITE
-                }
-                canvas.drawText(text, x, baseline, main)
+                })
             }
         }
     }

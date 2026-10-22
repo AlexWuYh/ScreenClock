@@ -94,7 +94,7 @@ class WeatherController(
     fun setEnabled(enabled: Boolean) {
         searchJob?.cancel()
         panelState.value = WeatherPanel()
-        scope.launch {
+        scope.launchPersisting {
             store.setEnabled(enabled)
             if (enabled) refreshIfNeeded() else refreshJob?.cancel()
         }
@@ -103,44 +103,48 @@ class WeatherController(
     /** Turning this off keeps the saved city. Turning it on goes through [useCurrentLocation]. */
     fun setUseLocation(enabled: Boolean) {
         if (enabled) return
-        scope.launch { store.setUseLocation(false) }
+        scope.launchPersisting { store.setUseLocation(false) }
     }
 
     fun onLocationDenied() {
-        scope.launch { store.setUseLocation(false) }
+        scope.launchPersisting { store.setUseLocation(false) }
         panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.NoPermission)
     }
 
     fun useCurrentLocation(hereLabel: String) {
         if (panelState.value.busy) return
         searchJob?.cancel()
-        scope.launch {
+        // Set before the first suspension so a second tap in the same frame is rejected.
+        panelState.value = panelState.value.copy(
+            busy = true,
+            notice = WeatherNotice.None,
+            results = emptyList(),
+        )
+        scope.launchPersisting {
             val enabled = store.weather.first().enabled
-            if (!enabled) return@launch
+            if (!enabled) {
+                panelState.value = WeatherPanel()
+                return@launchPersisting
+            }
             store.setUseLocation(true)
-            panelState.value = panelState.value.copy(
-                busy = true,
-                notice = WeatherNotice.None,
-                results = emptyList(),
-            )
             val fix = locator.currentCoarse()
             val afterFix = store.weather.first()
             if (!afterFix.enabled) {
                 store.setUseLocation(false)
                 panelState.value = WeatherPanel()
-                return@launch
+                return@launchPersisting
             }
             // The switch may have been turned off while the fix was in flight.
             // That choice wins: no city is replaced behind the user's back.
             if (!afterFix.useLocation) {
                 panelState.value = WeatherPanel()
-                return@launch
+                return@launchPersisting
             }
             val label = hereLabel.trim()
             if (fix == null || label.isEmpty() || !coordinateOk(fix.latitude, fix.longitude)) {
                 store.setUseLocation(false)
                 panelState.value = panelState.value.copy(busy = false, notice = WeatherNotice.NoLocation)
-                return@launch
+                return@launchPersisting
             }
             store.replaceCity(
                 SavedCity(label, fix.latitude, fix.longitude),
@@ -186,8 +190,8 @@ class WeatherController(
     fun selectCity(city: CityCandidate) {
         if (!coordinateOk(city.latitude, city.longitude)) return
         searchJob?.cancel()
-        scope.launch {
-            if (!store.weather.first().enabled) return@launch
+        scope.launchPersisting {
+            if (!store.weather.first().enabled) return@launchPersisting
             store.replaceCity(
                 SavedCity(city.label, city.latitude, city.longitude),
                 useLocation = false,

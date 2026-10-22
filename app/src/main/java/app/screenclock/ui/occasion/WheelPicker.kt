@@ -198,7 +198,7 @@ internal fun DateWheelDialog(
             modifier = Modifier
                 .glassSurface(corner = 22.dp, fill = GlassFillHigh)
                 .padding(horizontal = 20.dp, vertical = 20.dp)
-                .widthIn(min = 280.dp),
+                .widthIn(min = 240.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = title, color = Cream, fontSize = 18.sp)

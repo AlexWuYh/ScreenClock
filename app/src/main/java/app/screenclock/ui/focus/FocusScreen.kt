@@ -43,6 +43,7 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -81,8 +82,11 @@ import app.screenclock.domain.focus.normalizeFocusMinutes
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.FaceBright
+import app.screenclock.ui.FaceText
 import app.screenclock.ui.Cream
 import app.screenclock.ui.FieldLabel
+import app.screenclock.ui.centeredPage
+import app.screenclock.ui.glassBackdrop
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.Info
 import app.screenclock.ui.Ink
@@ -141,8 +145,8 @@ private fun FocusPicker(
     onStart: (Int) -> Unit,
     onBack: () -> Unit,
 ) {
-    var choice by remember { mutableStateOf(FocusChoice.Short) }
-    var customMinutes by remember { mutableFloatStateOf(45f) }
+    var choice by rememberSaveable { mutableStateOf(FocusChoice.Short) }
+    var customMinutes by rememberSaveable { mutableFloatStateOf(45f) }
     val minutes = when (choice) {
         FocusChoice.Short -> FOCUS_PRESET_SHORT_MINUTES
         FocusChoice.Long -> FOCUS_PRESET_LONG_MINUTES
@@ -151,9 +155,10 @@ private fun FocusPicker(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Paper)
+            .glassBackdrop()
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .verticalScroll(rememberScrollState())
+            .centeredPage()
             .padding(horizontal = 28.dp, vertical = 12.dp),
     ) {
         IconBox(
@@ -259,6 +264,17 @@ private fun FocusCountdown(
 
     val pad = if (expanded) 32.dp else 16.dp
     val view = LocalView.current
+    // Reaching zero while the screen is on is the only cue in scope: a short buzz.
+    val isDone = face.phase == FocusPhase.Done
+    LaunchedEffect(isDone) {
+        if (isDone) view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+    }
+    // The only way out is a hold, so say so for a few seconds after the session shows.
+    var showHint by remember(endEpochMillis) { mutableStateOf(true) }
+    LaunchedEffect(endEpochMillis) {
+        delay(6_000L)
+        showHint = false
+    }
     var holding by remember { mutableStateOf(false) }
     val holdProgress = remember { Animatable(0f) }
     LaunchedEffect(holding) {
@@ -331,6 +347,17 @@ private fun FocusCountdown(
                 .clearAndSetSemantics { },
             keyOf = { index -> focusFlapKey(face.groups.size, index) },
         )
+        if (showHint && !holding && !isDone) {
+            Text(
+                text = stringResource(R.string.focus_running_hint),
+                color = FaceText,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 20.dp)
+                    .clearAndSetSemantics { },
+            )
+        }
         if (holding && phase.value != FocusPhase.Done) {
             Box(
                 modifier = Modifier

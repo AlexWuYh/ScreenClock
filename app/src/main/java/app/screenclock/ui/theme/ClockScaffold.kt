@@ -1,6 +1,13 @@
 package app.screenclock.ui.theme
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.text.font.FontWeight
+import app.screenclock.domain.time.DateSegment
+import app.screenclock.domain.time.DateSegmentKind
+import app.screenclock.domain.time.dateSegments
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -273,30 +280,77 @@ internal fun fitDateLine(
     return candidates.last() to sizesSp.last()
 }
 
+/**
+ * The date line as typed chips: the solar date stands alone and bold, the lunar day sits in
+ * an outlined pill tagged「农历」, the weekday in a soft filled pill, and a holiday in a
+ * stronger pill. Shape and weight, not just words, tell the kinds apart at a glance.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun DateLine(text: String, size: TextUnit, infoColor: Color, maxLineWidth: Dp) {
     val measurer = rememberTextMeasurer()
+    val density = androidx.compose.ui.platform.LocalDensity.current
     BoxWithConstraints(modifier = Modifier.width(maxLineWidth), contentAlignment = Alignment.Center) {
         val selected = fitDateLine(text, constraints.maxWidth, listOf(size.value, size.value * 0.875f)) { candidate, fontSp ->
+            val chips = dateSegments(candidate).size - 1
+            val extra = with(density) { (fontSp * 1.7f * chips.coerceAtLeast(0)).sp.toPx() }
             measurer.measure(
                 text = AnnotatedString(candidate),
                 style = TextStyle(fontFamily = FontFamily.SansSerif, fontSize = fontSp.sp),
                 maxLines = 1,
                 softWrap = false,
-            ).size.width
+            ).size.width + extra.toInt()
         }
-        Text(
-            text = selected.first,
-            color = infoColor,
-            fontFamily = FontFamily.SansSerif,
-            fontSize = selected.second.sp,
-            maxLines = 1,
-            softWrap = false,
-            overflow = TextOverflow.Ellipsis,
-            textAlign = TextAlign.Center,
+        val fontSp = selected.second.sp
+        androidx.compose.foundation.layout.FlowRow(
             modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(fontSp.value.dp * 0.55f, Alignment.CenterHorizontally),
+            verticalArrangement = Arrangement.spacedBy(fontSp.value.dp * 0.3f),
+            itemVerticalAlignment = Alignment.CenterVertically,
+        ) {
+            for (segment in dateSegments(selected.first)) {
+                DateChip(segment, fontSp, infoColor)
+            }
+        }
+    }
+}
+
+@Composable
+private fun DateChip(segment: DateSegment, fontSize: TextUnit, infoColor: Color) {
+    val pad = androidx.compose.ui.unit.Dp(fontSize.value * 0.45f)
+    val shape = androidx.compose.foundation.shape.RoundedCornerShape(50)
+    val (label, weight, modifier) = when (segment.kind) {
+        DateSegmentKind.Date -> Triple(segment.text, FontWeight.SemiBold, Modifier)
+        DateSegmentKind.Lunar -> Triple(
+            "农历 ${segment.text}", FontWeight.Normal,
+            Modifier
+                .border(1.dp, infoColor.copy(alpha = 0.55f), shape)
+                .padding(horizontal = pad, vertical = pad * 0.25f),
+        )
+        DateSegmentKind.Weekday -> Triple(
+            segment.text, FontWeight.Medium,
+            Modifier
+                .background(infoColor.copy(alpha = 0.16f), shape)
+                .padding(horizontal = pad, vertical = pad * 0.25f),
+        )
+        DateSegmentKind.Holiday -> Triple(
+            segment.text, FontWeight.Bold,
+            Modifier
+                .background(infoColor.copy(alpha = 0.34f), shape)
+                .border(1.dp, infoColor.copy(alpha = 0.7f), shape)
+                .padding(horizontal = pad, vertical = pad * 0.25f),
         )
     }
+    Text(
+        text = label,
+        color = infoColor,
+        fontFamily = FontFamily.SansSerif,
+        fontSize = if (segment.kind == DateSegmentKind.Date) fontSize else fontSize * 0.88f,
+        fontWeight = weight,
+        maxLines = 1,
+        softWrap = false,
+        modifier = modifier,
+    )
 }
 
 @Composable

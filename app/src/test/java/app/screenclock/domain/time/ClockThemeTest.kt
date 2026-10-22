@@ -14,6 +14,8 @@ class ClockThemeTest {
             assertEquals(colorway, ColorwayId.fromStored(colorway.name))
         }
         assertEquals(ClockThemeId.Neon, ClockThemeId.fromStored("Neon"))
+        assertEquals(ClockThemeId.Bikini, ClockThemeId.fromStored("Bikini"))
+        assertEquals(ClockThemeId.Family, ClockThemeId.fromStored("Family"))
         assertEquals(ColorwayId.SnowWhite, ColorwayId.fromStored("SnowWhite"))
     }
 
@@ -23,11 +25,14 @@ class ClockThemeTest {
             listOf(
                 ClockThemeId.Flip, ClockThemeId.Digital, ClockThemeId.Analog,
                 ClockThemeId.Earth, ClockThemeId.Fluid, ClockThemeId.Neon, ClockThemeId.Tube,
+                ClockThemeId.Couple,
+                ClockThemeId.Family, ClockThemeId.SpongePat, ClockThemeId.Krabs, ClockThemeId.Bikini, ClockThemeId.Minimal,
             ),
             showcasedThemes,
         )
         assertEquals(ClockThemeId.Digital, nextShowcaseTheme(ClockThemeId.Flip))
-        assertEquals(ClockThemeId.Flip, nextShowcaseTheme(ClockThemeId.Tube))
+        assertEquals(ClockThemeId.Couple, nextShowcaseTheme(ClockThemeId.Tube))
+        assertEquals(ClockThemeId.Flip, nextShowcaseTheme(ClockThemeId.Minimal))
     }
 
     @Test

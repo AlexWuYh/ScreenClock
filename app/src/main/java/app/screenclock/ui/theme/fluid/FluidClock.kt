@@ -14,6 +14,9 @@ import androidx.compose.ui.text.font.FontWeight
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.FluidInk
 import app.screenclock.ui.theme.ClockScaffold
+import app.screenclock.ui.theme.SplitDigits
+import app.screenclock.ui.theme.ThemeFont
+import app.screenclock.ui.theme.rememberThemeFamily
 import app.screenclock.ui.theme.digital.digitalStyle
 import app.screenclock.ui.theme.scene.FluidScene
 import app.screenclock.ui.theme.scene.sceneDigitSize
@@ -34,6 +37,7 @@ internal fun FluidClock(
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
+    val themeFont = rememberThemeFamily(ThemeFont.Fluid)
     Box(modifier = modifier) {
         FluidScene(modifier = Modifier.fillMaxSize())
         ClockScaffold(
@@ -55,12 +59,12 @@ internal fun FluidClock(
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Text(
-                    text = "${face.hourDigits}:${face.minuteDigits}",
-                    color = FluidInk,
+                SplitDigits(
+                    hour = face.hourDigits,
+                    minute = face.minuteDigits,
                     fontSize = sceneDigitSize(areaWidth, areaHeight),
-                    fontWeight = FontWeight.Medium,
-                    style = digitalStyle(),
+                    color = FluidInk,
+                    family = themeFont,
                 )
             }
         }

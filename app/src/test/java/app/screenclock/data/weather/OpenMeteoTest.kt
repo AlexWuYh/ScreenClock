@@ -24,6 +24,12 @@ class OpenMeteoTest {
     }
 
     @Test
+    fun forecastUrlNeverUsesScientificNotation() {
+        val url = forecastUrl(0.00001, -0.00002)
+        assertTrue(url, url.contains("latitude=0.0000&longitude=-0.0000"))
+    }
+
+    @Test
     fun forecastUrlAsksOnlyForTheCurrentAndDailyFields() {
         val url = forecastUrl(30.2741, 120.1551)
         assertTrue(url.startsWith("https://api.open-meteo.com/v1/forecast?"))

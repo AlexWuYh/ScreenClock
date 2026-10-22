@@ -15,10 +15,12 @@ import java.net.URI
 import java.net.URISyntaxException
 import java.net.URLEncoder
 import java.nio.charset.Charset
+import java.util.Locale
 
 private const val GEOCODING_HOST = "geocoding-api.open-meteo.com"
 private const val FORECAST_HOST = "api.open-meteo.com"
 private const val BODY_LIMIT_BYTES = 256 * 1024
+private const val TOTAL_TIMEOUT_NANOS = 15_000_000_000L
 
 fun interface WeatherTransport {
     fun get(url: String): String
@@ -51,10 +53,13 @@ internal fun searchUrl(query: String): String {
     return "https://$GEOCODING_HOST/v1/search?name=$name&count=5&language=zh&format=json"
 }
 
+/** Plain decimal text; `Double.toString` would emit `1.0E-5` near the equator or meridian. */
+private fun coordinateText(value: Double): String = String.format(Locale.ROOT, "%.4f", value)
+
 internal fun forecastUrl(latitude: Double, longitude: Double): String {
     require(coordinateOk(latitude, longitude))
     return "https://$FORECAST_HOST/v1/forecast" +
-        "?latitude=$latitude&longitude=$longitude" +
+        "?latitude=${coordinateText(latitude)}&longitude=${coordinateText(longitude)}" +
         "&current=temperature_2m,weather_code" +
         "&daily=temperature_2m_max,temperature_2m_min" +
         "&timezone=auto&forecast_days=1"
@@ -135,7 +140,8 @@ class HttpWeatherTransport : WeatherTransport {
         connection.setRequestProperty("User-Agent", "ScreenClock")
         try {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) throw IOException("weather http")
-            val bytes = connection.inputStream.readLimited(BODY_LIMIT_BYTES)
+            val deadline = System.nanoTime() + TOTAL_TIMEOUT_NANOS
+            val bytes = connection.inputStream.readLimited(BODY_LIMIT_BYTES, deadline)
             return bytes.toString(Charset.forName("UTF-8"))
         } finally {
             connection.disconnect()
@@ -143,11 +149,13 @@ class HttpWeatherTransport : WeatherTransport {
     }
 }
 
-private fun InputStream.readLimited(maxBytes: Int): ByteArray {
+private fun InputStream.readLimited(maxBytes: Int, deadlineNanos: Long): ByteArray {
     val out = ByteArrayOutputStream()
     val buffer = ByteArray(4096)
     var total = 0
     while (true) {
+        // readTimeout is per read; a server that drips bytes must not hold the thread forever.
+        if (System.nanoTime() - deadlineNanos > 0) throw IOException("weather timeout")
         val count = read(buffer)
         if (count < 0) break
         total += count

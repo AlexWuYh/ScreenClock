@@ -69,6 +69,18 @@ class OccasionJsonTest {
     }
 
     @Test
+    fun impossibleSolarDatesAreDroppedAndOnlyTheFirstPinSurvives() {
+        val text = """{"items":[
+            {"id":"a","title":"A","kind":"solar_yearly","month":4,"day":31,"pinned":false},
+            {"id":"b","title":"B","kind":"solar_yearly","month":2,"day":29,"pinned":true},
+            {"id":"c","title":"C","kind":"solar_yearly","month":3,"day":1,"pinned":true}
+        ]}"""
+        val decoded = decodeOccasions(text)
+        assertEquals(listOf("b", "c"), decoded.map { it.id })
+        assertEquals(listOf(true, false), decoded.map { it.pinned })
+    }
+
+    @Test
     fun theFileReplacesItself() {
         val dir = File(createTempDir(), "occasions")
         val repository = OccasionRepository(dir)

@@ -12,6 +12,14 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import app.screenclock.ui.settings.themeLabel
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.runtime.mutableLongStateOf
+import android.widget.Toast
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -97,6 +105,7 @@ import kotlinx.coroutines.delay
 @Composable
 fun ClockShell(viewModel: ClockViewModel) {
     val chrome by viewModel.chrome.collectAsStateWithLifecycle()
+    val introHint by viewModel.introHint.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInSession.collectAsStateWithLifecycle()
     val occasionLine by viewModel.occasionLine.collectAsStateWithLifecycle()
@@ -118,6 +127,34 @@ fun ClockShell(viewModel: ClockViewModel) {
         viewModel.onChromeTick(System.currentTimeMillis())
     }
 
+    // Cycling themes has no other feedback: name the one that just landed.
+    var announceTheme by remember { mutableStateOf(false) }
+    var themeNote by remember { mutableStateOf<ClockThemeId?>(null) }
+    val shownTheme = clock?.theme
+    LaunchedEffect(shownTheme) {
+        if (announceTheme && shownTheme != null) {
+            themeNote = shownTheme
+            delay(1_800L)
+            themeNote = null
+            announceTheme = false
+        }
+    }
+    // A stray Back at the bedside should not quit the clock: hide the buttons first,
+    // then ask for a second Back.
+    var lastBackAt by remember { mutableLongStateOf(0L) }
+    val backAgainText = stringResource(R.string.back_again_to_exit)
+    BackHandler {
+        val now = System.currentTimeMillis()
+        when {
+            chrome.visible -> viewModel.onBlankTap(now)
+            now - lastBackAt < 2_000L -> activity.finish()
+            else -> {
+                lastBackAt = now
+                Toast.makeText(context, backAgainText, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     val face = clock?.face
     val dateLine = clock?.dateLine
     val weatherLine = formatWeatherLine(clock?.weather, showRange = slot == ClockWidth.Expanded)
@@ -126,6 +163,7 @@ fun ClockShell(viewModel: ClockViewModel) {
         else -> clockContentDescription(dateLine, face.spoken, weatherLine, occasionLine)
     }
     val openOccasionLabel = stringResource(R.string.occasion_open)
+    val showControlsLabel = stringResource(R.string.show_controls)
     val openId = pinnedOccasionId?.takeIf { !occasionLine.isNullOrBlank() }
     val resolver = context.contentResolver
     fun animatorEnabled() = Settings.Global.getFloat(
@@ -180,7 +218,7 @@ fun ClockShell(viewModel: ClockViewModel) {
                 }
                 .semantics(mergeDescendants = true) {
                     contentDescription = description
-                    onClick {
+                    onClick(label = showControlsLabel) {
                         viewModel.onClockActivate(System.currentTimeMillis())
                         true
                     }
@@ -221,74 +259,108 @@ fun ClockShell(viewModel: ClockViewModel) {
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(start = 24.dp, end = 24.dp, bottom = 20.dp)
+                .widthIn(max = 480.dp)
                 .fillMaxWidth(),
             enter = fadeIn(tween(180)) + slideInVertically(tween(220)) { it / 3 },
             exit = fadeOut(tween(140)) + slideOutVertically(tween(180)) { it / 3 },
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .onGloballyPositioned { pillPosition = it.positionInRoot() }
-                    .shadow(6.dp, RoundedCornerShape(26.dp))
-                    .clip(RoundedCornerShape(26.dp)),
-            ) {
-                // A blurred copy of the theme scene, shifted so its pixels line up
-                // with the screen behind the glass.
-                Box(
-                    modifier = Modifier
-                        .matchParentSize()
-                        .clipToBounds(),
-                ) {
-                    val density = LocalDensity.current
-                    val sceneWidth = with(density) { rootSize.width.toDp() }
-                    val sceneHeight = with(density) { rootSize.height.toDp() }
-                    ThemeScene(
-                        theme = clock?.theme ?: ClockThemeId.Flip,
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                val note = themeNote
+                if (note != null) {
+                    Text(
+                        text = stringResource(themeLabel(note)),
+                        color = FaceBright,
+                        fontSize = 14.sp,
                         modifier = Modifier
-                            .requiredSize(sceneWidth, sceneHeight)
-                            .offset {
-                                IntOffset(-pillPosition.x.roundToInt(), -pillPosition.y.roundToInt())
-                            }
-                            .blur(18.dp),
+                            .padding(bottom = 10.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 7.dp)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                    )
+                } else if (introHint) {
+                    Text(
+                        text = stringResource(R.string.intro_hint),
+                        color = FaceBright,
+                        fontSize = 13.sp,
+                        modifier = Modifier
+                            .padding(bottom = 10.dp)
+                            .background(Color.Black.copy(alpha = 0.55f), RoundedCornerShape(14.dp))
+                            .padding(horizontal = 14.dp, vertical = 7.dp),
                     )
                 }
-                // This overlays even the sharp API 26 fallback scene; on API 31+ the
-                // underlying copy is RenderEffect-blurred before the glass is drawn.
                 Box(
                     modifier = Modifier
-                        .matchParentSize()
-                        .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
-                )
-                Row(
-                    modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 10.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically,
+                        .onGloballyPositioned { pillPosition = it.positionInRoot() }
+                        .shadow(6.dp, RoundedCornerShape(26.dp))
+                        .clip(RoundedCornerShape(26.dp)),
                 ) {
-                    ChromeAction(
-                        icon = AppIconKind.Palette,
-                        label = stringResource(R.string.theme),
-                        onClick = {
+                    // A blurred copy of the theme scene, shifted so its pixels line up
+                    // with the screen behind the glass.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .clipToBounds(),
+                    ) {
+                        val density = LocalDensity.current
+                        val sceneWidth = with(density) { rootSize.width.toDp() }
+                        val sceneHeight = with(density) { rootSize.height.toDp() }
+                        ThemeScene(
+                            theme = clock?.theme ?: ClockThemeId.Flip,
+                            modifier = Modifier
+                                .requiredSize(sceneWidth, sceneHeight)
+                                .offset {
+                                    IntOffset(-pillPosition.x.roundToInt(), -pillPosition.y.roundToInt())
+                                }
+                                .blur(18.dp),
+                        )
+                    }
+                    // Light scenes (fluid, snowy analog) would wash out the cream icons, and API 26-30
+                    // cannot blur. A dark scrim keeps the labels readable on every theme.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .background(Color.Black.copy(alpha = 0.46f)),
+                    )
+                    // This overlays even the sharp API 26 fallback scene; on API 31+ the
+                    // underlying copy is RenderEffect-blurred before the glass is drawn.
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 10.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        ChromeAction(
+                            icon = AppIconKind.Palette,
+                            label = stringResource(R.string.theme),
+                            onClick = {
+                                announceTheme = true
                             viewModel.cycleTheme()
-                            viewModel.onChromeInteraction(System.currentTimeMillis())
-                        },
-                    )
-                    ChromeAction(
-                        icon = AppIconKind.Sliders,
-                        label = stringResource(R.string.settings),
-                        onClick = viewModel::openSettings,
-                    )
-                    ChromeAction(
-                        icon = AppIconKind.Timer,
-                        label = stringResource(R.string.focus),
-                        onClick = viewModel::openFocus,
-                    )
-                    ChromeAction(
-                        icon = AppIconKind.Heart,
-                        label = stringResource(R.string.occasion),
-                        onClick = { viewModel.openOccasions(fromSettings = false) },
-                    )
+                                viewModel.onChromeInteraction(System.currentTimeMillis())
+                            },
+                        )
+                        ChromeAction(
+                            icon = AppIconKind.Sliders,
+                            label = stringResource(R.string.settings),
+                            onClick = viewModel::openSettings,
+                        )
+                        ChromeAction(
+                            icon = AppIconKind.Timer,
+                            label = stringResource(R.string.focus),
+                            onClick = viewModel::openFocus,
+                        )
+                        ChromeAction(
+                            icon = AppIconKind.Heart,
+                            label = stringResource(R.string.occasion),
+                            onClick = { viewModel.openOccasions(fromSettings = false) },
+                        )
+                    }
                 }
             }
         }

@@ -27,6 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.semantics.selected
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -78,6 +82,8 @@ internal fun PageTitle(text: String) {
         color = GlassText,
         fontFamily = FontFamily.Serif,
         fontSize = 34.sp,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
         modifier = Modifier.semantics { heading() },
     )
 }
@@ -94,7 +100,7 @@ internal fun IconBox(
 ) {
     Box(
         modifier = modifier
-            .size(44.dp)
+            .size(48.dp)
             .glassSurface(corner = 14.dp, fill = GlassFillHigh)
             .semantics { this.contentDescription = contentDescription }
             .glassPressable(enabled = enabled, onClick = onClick),
@@ -145,17 +151,19 @@ private fun Modifier.toggleableRow(value: Boolean, enabled: Boolean, role: Role,
 internal fun appSwitchColors() = SwitchDefaults.colors(
     checkedThumbColor = UiAccentDeep,
     checkedTrackColor = UiAccent.copy(alpha = 0.30f),
-    checkedBorderColor = UiAccent.copy(alpha = 0.55f),
-    uncheckedThumbColor = Color(0xFF899AA5),
+    checkedBorderColor = UiAccentDeep.copy(alpha = 0.70f),
+    uncheckedThumbColor = Color(0xFF6B7F8B),
     uncheckedTrackColor = GlassFillHigh,
-    uncheckedBorderColor = Hairline,
+    uncheckedBorderColor = Color(0xFF8FA3AE),
 )
 
 @Composable
 internal fun appSliderColors() = SliderDefaults.colors(
     thumbColor = UiAccentDeep,
-    activeTrackColor = UiAccent.copy(alpha = 0.78f),
-    inactiveTrackColor = Color(0x22000000),
+    activeTrackColor = UiAccent,
+    inactiveTrackColor = UiAccent.copy(alpha = 0.22f),
+    activeTickColor = Color.Transparent,
+    inactiveTickColor = Color.Transparent,
 )
 
 @Composable
@@ -169,7 +177,7 @@ internal fun PrimaryButton(
     val tint = if (enabled) UiAccentDeep else Muted
     Box(
         modifier = modifier
-            .height(52.dp)
+            .heightIn(min = 52.dp)
             .glassSurface(
                 corner = 16.dp,
                 fill = if (enabled) UiAccentGlassFill else GlassFill,
@@ -202,7 +210,7 @@ internal fun TonalButton(
 ) {
     Box(
         modifier = modifier
-            .height(52.dp)
+            .heightIn(min = 52.dp)
             .glassButtonSurface()
             .glassPressable(onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -277,7 +285,8 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glassSurface(corner = 14.dp, fill = GlassFillHigh),
+            .glassSurface(corner = 14.dp, fill = GlassFillHigh)
+            .selectableGroup(),
     ) {
         options.forEach { option ->
             val shape = RoundedCornerShape(10.dp)
@@ -285,7 +294,7 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
                 modifier = Modifier
                     .weight(1f)
                     .padding(4.dp)
-                    .height(40.dp)
+                    .heightIn(min = 44.dp)
                     .then(
                         if (option.selected) {
                             Modifier
@@ -296,7 +305,8 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
                             Modifier.clip(shape)
                         },
                     )
-                    .glassPressable(role = Role.Tab, onClick = option.onClick),
+                    .glassPressable(role = Role.RadioButton, onClick = option.onClick)
+                    .semantics { selected = option.selected },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -304,7 +314,8 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
                     color = if (option.selected) GlassText else Info,
                     fontSize = 14.sp,
                     fontWeight = if (option.selected) FontWeight.Medium else FontWeight.Normal,
-                    maxLines = 1,
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
@@ -338,4 +349,12 @@ internal fun NavRow(
         )
         AppIcon(kind = trailing, tint = Muted, size = 18.dp)
     }
+}
+
+/** Keeps a management page readable on tablets: content is centred and at most [maxWidth] wide. */
+@Composable
+internal fun Modifier.centeredPage(maxWidth: androidx.compose.ui.unit.Dp = 640.dp): Modifier {
+    val screen = androidx.compose.ui.platform.LocalConfiguration.current.screenWidthDp.dp
+    val side = ((screen - maxWidth) / 2).coerceAtLeast(0.dp)
+    return padding(horizontal = side)
 }

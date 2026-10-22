@@ -19,6 +19,8 @@ import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.handAngles
 import app.screenclock.ui.SceneLight
 import app.screenclock.ui.theme.ClockScaffold
+import app.screenclock.ui.theme.ThemeFont
+import app.screenclock.ui.theme.rememberThemeTypeface
 import app.screenclock.ui.theme.scene.MountainScene
 import kotlin.math.cos
 import kotlin.math.sin
@@ -42,6 +44,7 @@ internal fun AnalogClock(
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
+    val themeFont = rememberThemeTypeface(ThemeFont.Analog)
     Box(modifier = modifier) {
         MountainScene(modifier = Modifier.fillMaxSize())
         ClockScaffold(
@@ -88,8 +91,8 @@ internal fun AnalogClock(
                     isAntiAlias = true
                     color = DialInk.copy(alpha = 0.88f).toArgb()
                     textAlign = Paint.Align.CENTER
-                    typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.NORMAL)
-                    textSize = r * 0.31f
+                    typeface = themeFont
+                    textSize = r * 0.36f
                 }
                 for (number in 1..12) {
                     val angle = Math.toRadians((number * 30).toDouble())

@@ -13,6 +13,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.nativeCanvas
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.ui.theme.ClockScaffold
+import app.screenclock.ui.theme.ThemeFont
+import app.screenclock.ui.theme.splitLayout
+import app.screenclock.ui.theme.rememberThemeTypeface
 import app.screenclock.ui.theme.scene.NeonScene
 
 private val MeridiemTint = androidx.compose.ui.graphics.Color(0xFFD9A6E8)
@@ -33,6 +36,7 @@ internal fun NeonClock(
     preview: Boolean = false,
     onOccasionClick: (() -> Unit)? = null,
 ) {
+    val themeFont = rememberThemeTypeface(ThemeFont.Neon)
     Box(modifier = modifier) {
         NeonScene(modifier = Modifier.fillMaxSize())
         ClockScaffold(
@@ -49,7 +53,6 @@ internal fun NeonClock(
         ) { stacked, cardWidth, cardHeight, gap ->
             val areaWidth = if (stacked) cardWidth else cardWidth * 2 + gap
             val areaHeight = if (stacked) cardHeight * 2 + gap else cardHeight
-            val text = "${face.hourDigits}:${face.minuteDigits}"
             Canvas(modifier = Modifier.requiredSize(areaWidth, areaHeight)) {
                 val w = size.width
                 val h = size.height
@@ -58,41 +61,43 @@ internal fun NeonClock(
                     style = Paint.Style.STROKE
                     strokeCap = Paint.Cap.ROUND
                     strokeJoin = Paint.Join.ROUND
-                    typeface = android.graphics.Typeface.create("sans-serif", android.graphics.Typeface.BOLD)
+                    typeface = themeFont
                     textSize = h * 0.60f
                 }
-                val measured = base.measureText(text)
-                if (measured > 0f) {
-                    base.textSize = minOf(h * 0.66f, w * 0.92f / measured * base.textSize)
-                }
+                val layout = splitLayout(base, face.hourDigits, face.minuteDigits, w, h)
                 base.shader = LinearGradient(
                     0f,
                     0f,
                     w,
                     0f,
                     intArrayOf(
-                        android.graphics.Color.rgb(53, 230, 255),
-                        android.graphics.Color.rgb(150, 110, 255),
-                        android.graphics.Color.rgb(255, 62, 165),
+                        android.graphics.Color.rgb(90, 240, 255),
+                        android.graphics.Color.rgb(190, 150, 255),
+                        android.graphics.Color.rgb(255, 110, 190),
                     ),
                     null,
                     Shader.TileMode.CLAMP,
                 )
-                val x = (w - base.measureText(text)) / 2f
-                val baseline = h / 2f + base.textSize * 0.34f
                 val canvas = drawContext.canvas.nativeCanvas
-                for ((widthScale, alpha) in listOf(0.085f to 46, 0.038f to 96)) {
-                    val glow = Paint(base).apply {
+                fun pass(paint: Paint) {
+                    canvas.drawText(face.hourDigits, layout.hourX, layout.baseline, paint)
+                    canvas.drawText(face.minuteDigits, layout.minuteX, layout.baseline, paint)
+                    val dots = Paint(paint).apply { style = Paint.Style.FILL_AND_STROKE; strokeJoin = Paint.Join.MITER }
+                    val half = layout.dotRadius * 1.1f
+                    for (cy in listOf(layout.colonTop, layout.colonBottom)) {
+                        canvas.drawRect(layout.colonX - half, cy - half, layout.colonX + half, cy + half, dots)
+                    }
+                }
+                for ((widthScale, alpha) in listOf(0.07f to 40, 0.04f to 90)) {
+                    pass(Paint(base).apply {
                         strokeWidth = base.textSize * widthScale
                         this.alpha = alpha
-                    }
-                    canvas.drawText(text, x, baseline, glow)
+                    })
                 }
-                val main = Paint(base).apply {
-                    strokeWidth = base.textSize * 0.013f
+                pass(Paint(base).apply {
+                    strokeWidth = base.textSize * 0.024f
                     this.alpha = 255
-                }
-                canvas.drawText(text, x, baseline, main)
+                })
             }
         }
     }

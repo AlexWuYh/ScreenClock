@@ -163,6 +163,22 @@ class ClockFaceControllerTest {
     }
 
     @Test
+    fun aCacheOlderThanSixHoursIsHiddenInsteadOfShownAsCurrent() {
+        val weather = FaceWeatherStore()
+        val time = FakeClockTime(now = morning, nowMillis = 7L * 60L * 60L * 1000L)
+        val old = WeatherCache(temperatureC = 18, code = 0, highC = null, lowC = null, fetchedAtEpochMillis = 0L)
+        weather.state.value = WeatherPreferences(enabled = true, city = SavedCity("杭州", 30.0, 120.0), cache = old)
+        val controller = ClockFaceController(
+            scope = CoroutineScope(Dispatchers.Unconfined),
+            settings = FakeSettingsStore(),
+            weather = weather,
+            time = time,
+            systemIs24HourNow = { true },
+        )
+        assertNull(controller.clock.value?.weather)
+    }
+
+    @Test
     fun theMinuteLoopHandsControlBackEachMinute() {
         var ticks = 0
         controller(onMinute = { ticks++ })

@@ -12,6 +12,7 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.text.format.DateFormat
+import android.view.accessibility.AccessibilityManager
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,6 +34,7 @@ import app.screenclock.data.burnin.BurnInRepository
 import app.screenclock.data.focus.FocusRepository
 import app.screenclock.data.occasion.OccasionRepository
 import app.screenclock.data.occasion.SixTailCalendar
+import app.screenclock.data.settings.IntroHintRepository
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
 import app.screenclock.data.weather.OpenMeteoClient
@@ -55,8 +57,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import app.screenclock.controller.launchPersisting
 
 enum class AppDestination {
     Clock,
@@ -75,6 +79,7 @@ enum class AppDestination {
 class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val time: ClockTime = SystemClockTime
     private val settingsRepository = SettingsRepository(application)
+    private val introHintStore = IntroHintRepository(application)
 
     private val weatherController = WeatherController(
         scope = viewModelScope,
@@ -111,6 +116,11 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     private val chromeState = MutableStateFlow(ChromeState())
     val chrome: StateFlow<ChromeState> = chromeState.asStateFlow()
+
+    private val introHintState = MutableStateFlow(false)
+
+    /** True only on the first launch, while the control layer is still showing. */
+    val introHint: StateFlow<Boolean> = introHintState.asStateFlow()
 
     private val destinationState = MutableStateFlow(AppDestination.Clock)
     val destination: StateFlow<AppDestination> = destinationState.asStateFlow()
@@ -166,6 +176,27 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
         viewModelScope.launch {
+            // First launch: nothing on the face says the buttons exist, so show them once.
+            if (introHintStore.seen.first()) return@launch
+            faceController.clock.first { it != null }
+            if (destinationState.value != AppDestination.Clock) return@launch
+            introHintState.value = true
+            chromeState.value = ChromeState(
+                visible = true,
+                hideAtEpochMillis = System.currentTimeMillis() + INTRO_HINT_MILLIS,
+            )
+            launchPersisting { introHintStore.markSeen() }
+        }
+        viewModelScope.launch {
+            chromeState.collect { if (!it.visible) introHintState.value = false }
+        }
+        viewModelScope.launch {
+            occasionController.saveFailed.collect {
+                val app = getApplication<Application>()
+                Toast.makeText(app, app.getString(R.string.occasion_save_failed), Toast.LENGTH_SHORT).show()
+            }
+        }
+        viewModelScope.launch {
             focusController.events.collect { event ->
                 when (event) {
                     FocusEvent.PersistFailed -> leaveBlockingPage()
@@ -205,8 +236,24 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
      */
     fun onBurnInContact(): Boolean = burnInController.onContact()
 
+    /**
+     * The idle time before the buttons hide. Switch and TalkBack users get the system's
+     * recommended time when it is longer than ours, because they cannot reach buttons in 8 s.
+     */
+    private fun chromeHideAfterMillis(): Long {
+        val app = getApplication<Application>()
+        val base = ChromeState.HIDE_AFTER_MILLIS
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return base
+        val manager = app.getSystemService(AccessibilityManager::class.java) ?: return base
+        val recommended = manager.getRecommendedTimeoutMillis(
+            base.toInt(),
+            AccessibilityManager.FLAG_CONTENT_CONTROLS,
+        )
+        return maxOf(base, recommended.toLong())
+    }
+
     fun onBlankTap(nowEpochMillis: Long) {
-        chromeState.value = chromeState.value.onBlankTap(nowEpochMillis)
+        chromeState.value = chromeState.value.onBlankTap(nowEpochMillis, chromeHideAfterMillis())
     }
 
     /** TalkBack activates the clock without a pointer press. */
@@ -221,7 +268,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun onChromeInteraction(nowEpochMillis: Long) {
         burnInController.onContact()
-        chromeState.value = chromeState.value.onInteraction(nowEpochMillis)
+        chromeState.value = chromeState.value.onInteraction(nowEpochMillis, chromeHideAfterMillis())
     }
 
     fun openSettings() {
@@ -339,27 +386,27 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setHourMode(mode: HourMode) {
-        viewModelScope.launch { settingsRepository.setHourMode(mode) }
+        viewModelScope.launchPersisting { settingsRepository.setHourMode(mode) }
     }
 
     fun setShowDate(show: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowDate(show) }
+        viewModelScope.launchPersisting { settingsRepository.setShowDate(show) }
     }
 
     fun setShowYear(show: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowYear(show) }
+        viewModelScope.launchPersisting { settingsRepository.setShowYear(show) }
     }
 
     fun setShowWeekday(show: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowWeekday(show) }
+        viewModelScope.launchPersisting { settingsRepository.setShowWeekday(show) }
     }
 
     fun setShowLunarDate(show: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowLunarDate(show) }
+        viewModelScope.launchPersisting { settingsRepository.setShowLunarDate(show) }
     }
 
     fun setShowHoliday(show: Boolean) {
-        viewModelScope.launch { settingsRepository.setShowHoliday(show) }
+        viewModelScope.launchPersisting { settingsRepository.setShowHoliday(show) }
     }
 
     fun setTheme(theme: ClockThemeId) {
@@ -374,15 +421,15 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun setColorway(colorway: ColorwayId) {
-        viewModelScope.launch { settingsRepository.setColorway(colorway) }
+        viewModelScope.launchPersisting { settingsRepository.setColorway(colorway) }
     }
 
     fun setDatePosition(position: DatePosition) {
-        viewModelScope.launch { settingsRepository.setDatePosition(position) }
+        viewModelScope.launchPersisting { settingsRepository.setDatePosition(position) }
     }
 
     fun setDigitSize(size: DigitSize) {
-        viewModelScope.launch { settingsRepository.setDigitSize(size) }
+        viewModelScope.launchPersisting { settingsRepository.setDigitSize(size) }
     }
 
     /** Cycles through existing themes without leaving the full-screen clock. */
@@ -419,6 +466,9 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     private companion object {
+        /** The first-launch hint stays up longer than the normal idle hide. */
+        const val INTRO_HINT_MILLIS: Long = 7_000L
+
         /** Only these destinations give way to a restored focus session. */
         val FOCUS_TAKES_SCREEN: Set<AppDestination> = setOf(AppDestination.Clock, AppDestination.Focus)
     }

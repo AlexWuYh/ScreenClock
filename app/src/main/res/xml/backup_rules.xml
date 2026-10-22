@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Android 11 and older. The preference store holds the saved city's coordinates and a focus end time. -->
+<full-backup-content>
+    <exclude domain="file" path="datastore/clock_settings.preferences_pb" />
+</full-backup-content>

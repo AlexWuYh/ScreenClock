@@ -39,4 +39,15 @@ class HolidayNameTest {
         }
         assertTrue(found)
     }
+
+    /**
+     * lunar 1.7.7 bundles statutory holiday data only up to the 2026 schedule. Past that the
+     * festival segment must disappear quietly, not crash. When a newer lunar release adds
+     * 2027, bump the version in libs.versions.toml and replace this with a real assertion.
+     */
+    @Test
+    fun yearsBeyondTheBundledScheduleHaveNoHolidayName() {
+        assertNull(statutoryHolidayName(LocalDate.of(2027, 1, 1)))
+        assertNull(statutoryHolidayName(LocalDate.of(2027, 10, 1)))
+    }
 }

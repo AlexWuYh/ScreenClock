@@ -16,16 +16,17 @@ import app.screenclock.domain.time.displayMinute
 import app.screenclock.domain.time.formatDateLine
 import app.screenclock.domain.time.formatFaceTime
 import app.screenclock.domain.time.millisUntilNextMinute
+import app.screenclock.domain.weather.WEATHER_DISPLAY_MAX_AGE_MILLIS
 import app.screenclock.domain.weather.WeatherCache
 import app.screenclock.domain.weather.WeatherPreferences
+import app.screenclock.domain.weather.cacheFresh
 import java.time.LocalDateTime
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -70,7 +71,8 @@ class ClockFaceController(
     val minuteOfDay: StateFlow<Int> = minuteOfDayState.asStateFlow()
 
     private val systemIs24Hour = MutableStateFlow(systemIs24HourNow())
-    private val refresh = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    // Conflated, so a signal that lands between reading the time and waiting is not lost.
+    private val refresh = Channel<Unit>(Channel.CONFLATED)
     private val clockState = MutableStateFlow<ClockUiState?>(null)
     val clock: StateFlow<ClockUiState?> = clockState.asStateFlow()
 
@@ -92,7 +94,7 @@ class ClockFaceController(
                 minuteOfDayState.value = minuteOfDay(now)
                 onMinute()
                 withTimeoutOrNull(millisUntilNextMinute(now)) {
-                    refresh.first()
+                    refresh.receive()
                 }
             }
         }
@@ -101,7 +103,7 @@ class ClockFaceController(
     /** System hour format changed, or the wall clock moved. Restarts the minute wait. */
     fun notifyTimeChanged() {
         systemIs24Hour.value = systemIs24HourNow()
-        refresh.tryEmit(Unit)
+        refresh.trySend(Unit)
     }
 
     private fun minuteOfDay(time: LocalDateTime): Int = time.hour * 60 + time.minute
@@ -143,7 +145,10 @@ class ClockFaceController(
             weatherEnabled = weatherPrefs.enabled,
             useLocation = weatherPrefs.useLocation,
             cityLabel = weatherPrefs.city?.label,
-            weather = if (weatherPrefs.enabled) weatherPrefs.cache else null,
+            weather = weatherPrefs.cache?.takeIf {
+                weatherPrefs.enabled &&
+                    cacheFresh(it.fetchedAtEpochMillis, time.nowMillis(), WEATHER_DISPLAY_MAX_AGE_MILLIS)
+            },
         )
     }
 }

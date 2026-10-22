@@ -20,6 +20,12 @@ internal fun ThemeScene(theme: ClockThemeId, modifier: Modifier = Modifier) {
         ClockThemeId.Earth -> EarthScene(modifier)
         ClockThemeId.Fluid -> FluidScene(modifier)
         ClockThemeId.Neon -> NeonScene(modifier)
+        ClockThemeId.Minimal -> Box(modifier.background(Ink))
+        ClockThemeId.Couple -> CoupleScene(modifier)
+        ClockThemeId.Family -> FamilyScene(modifier)
+        ClockThemeId.SpongePat -> SpongePatScene(modifier)
+        ClockThemeId.Krabs -> KrabsScene(modifier)
+        ClockThemeId.Bikini -> BikiniScene(modifier)
         ClockThemeId.Flip -> Box(modifier.background(FlipBackdrop))
         ClockThemeId.Tube -> Box(modifier.background(Ink))
     }

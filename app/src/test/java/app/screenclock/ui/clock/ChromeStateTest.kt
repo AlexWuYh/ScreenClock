@@ -11,7 +11,7 @@ class ChromeStateTest {
     fun blankTapOnHiddenFaceShowsChromeAndArmsHide() {
         val next = ChromeState().onBlankTap(1_000L)
         assertTrue(next.visible)
-        assertEquals(5_000L, next.hideAtEpochMillis)
+        assertEquals(1_000L + ChromeState.HIDE_AFTER_MILLIS, next.hideAtEpochMillis)
     }
 
     @Test
@@ -23,20 +23,20 @@ class ChromeStateTest {
     }
 
     @Test
-    fun visibleChromeWaitsFourSecondsAfterItsLastAction() {
+    fun visibleChromeWaitsEightSecondsAfterItsLastAction() {
         val shown = ChromeState().onBlankTap(1_000L)
         val refreshed = shown.onInteraction(4_500L)
-        assertEquals(8_500L, refreshed.hideAtEpochMillis)
+        assertEquals(12_500L, refreshed.hideAtEpochMillis)
         assertTrue(refreshed.after(5_000L).visible)
-        assertFalse(refreshed.after(8_500L).visible)
+        assertFalse(refreshed.after(12_500L).visible)
         assertEquals(ChromeState(), ChromeState().onInteraction(9_000L))
     }
 
     @Test
     fun timeReachingHideAtHidesChrome() {
         val shown = ChromeState().onBlankTap(1_000L)
-        assertEquals(shown, shown.after(4_999L))
-        val hidden = shown.after(5_000L)
+        assertEquals(shown, shown.after(8_999L))
+        val hidden = shown.after(9_000L)
         assertFalse(hidden.visible)
         assertNull(hidden.hideAtEpochMillis)
     }

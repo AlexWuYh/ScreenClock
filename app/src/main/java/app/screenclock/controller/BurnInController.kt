@@ -95,35 +95,35 @@ class BurnInController(
     }
 
     fun setEnabled(enabled: Boolean) {
-        scope.launch { burnInStore.setEnabled(enabled) }
+        scope.launchPersisting { burnInStore.setEnabled(enabled) }
     }
 
     fun setIdleMillis(idleMillis: Long) {
-        scope.launch { burnInStore.setIdleMillis(idleMillis) }
+        scope.launchPersisting { burnInStore.setIdleMillis(idleMillis) }
     }
 
     fun setRunMillis(runMillis: Long) {
-        scope.launch { burnInStore.setRunMillis(runMillis) }
+        scope.launchPersisting { burnInStore.setRunMillis(runMillis) }
     }
 
     fun setNightDimEnabled(enabled: Boolean) {
-        scope.launch { bedsideStore.setDimEnabled(enabled) }
+        scope.launchPersisting { bedsideStore.setDimEnabled(enabled) }
     }
 
     fun setNightStartHour(hour: Int) {
-        scope.launch { bedsideStore.setStartHour(hour) }
+        scope.launchPersisting { bedsideStore.setStartHour(hour) }
     }
 
     fun setNightEndHour(hour: Int) {
-        scope.launch { bedsideStore.setEndHour(hour) }
+        scope.launchPersisting { bedsideStore.setEndHour(hour) }
     }
 
     fun setNightWarmEnabled(enabled: Boolean) {
-        scope.launch { bedsideStore.setWarmEnabled(enabled) }
+        scope.launchPersisting { bedsideStore.setWarmEnabled(enabled) }
     }
 
     fun setChargeKeepAwake(enabled: Boolean) {
-        scope.launch { bedsideStore.setChargeKeepAwake(enabled) }
+        scope.launchPersisting { bedsideStore.setChargeKeepAwake(enabled) }
     }
 
     private fun placeBurnIn(prefs: BurnInPreferences) {
