@@ -8,7 +8,9 @@
 
 ## 安装与上手
 
-目前仓库没有提供可直接下载的安装包或应用商店链接。最方便的方式是用 Android Studio 打开本项目，准备好 JDK 17 和 Android SDK 平台 `android-37.0`，连接 Android 设备后运行 `app`。也可以按下方的[自行构建](#自行构建)步骤生成 Debug APK，传到设备上安装；安装非应用商店 APK 时，Android 可能要求你允许当前来源安装应用。
+首个版本可从 [GitHub Releases](https://github.com/AlexWuYh/ScreenClock/releases/latest) 下载 `ScreenClock-v0.1.0.apk`。该 APK 使用项目专用发布密钥签名；下载后在 Android 8.0 或更新的设备上打开安装，若系统要求允许当前来源安装，请自行确认。随 Release 提供同名 `.sha256` 校验文件。
+
+**已有自行编译或先前提供的 Debug APK？** 调试版与正式版的签名不同，Android 无法直接覆盖安装；卸载旧版会清除应用内设置和纪念日。请先妥善备份这些数据，再决定是否切换到正式版。此后的正式版将使用同一把发布密钥，可覆盖升级。贡献者仍可按下方的[自行构建](#自行构建)步骤生成 Debug APK。
 
 打开应用后，**点一下钟面空白处**，底部会出现「主题」「设置」「专注」「纪念日」；闲置约 4 秒会自动收起。点「主题」可快速循环切换，想挑选配色或调整布局则进入「设置」。
 
@@ -69,7 +71,9 @@ sdk.dir=/path/to/Android/sdk
 ./gradlew :app:assembleDebug
 ```
 
-生成的安装包位于 `app/build/outputs/apk/debug/app-debug.apk`。需要检查改动时，还可以执行 `./gradlew :app:testDebugUnitTest`、`./gradlew :app:lintDebug`；仪器测试必须连接设备才能运行，单纯编译测试 APK 不代表真机测试通过。
+生成的调试安装包位于 `app/build/outputs/apk/debug/app-debug.apk`，它**不是** GitHub Release 使用的签名。需要检查改动时，还可以执行 `./gradlew :app:testDebugUnitTest`、`./gradlew :app:lintDebug`；仪器测试必须连接设备才能运行，单纯编译测试 APK 不代表真机测试通过。
+
+维护者更新 `app/build.gradle.kts` 中的 `versionName` 与 `versionCode` 后，在该提交上推送匹配的 `vX.Y.Z` tag，即会自动运行单测、lint、签名打包，发布 APK 与 SHA-256 文件。发布签名保存在 GitHub Actions Secrets，私钥和口令不进入仓库；密钥必须安全离线备份，否则以后无法以同一签名覆盖升级。
 
 ## 作者与许可
 

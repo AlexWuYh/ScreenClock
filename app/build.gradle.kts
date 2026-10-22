@@ -19,8 +19,20 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // The long-lived release key stays outside git; CI reconstructs it from Actions Secrets.
+    // Local debug builds and unit tests do not require signing credentials.
+    val releaseSigning = System.getenv("SC_RELEASE_KEYSTORE")?.takeIf { it.isNotBlank() }?.let { path ->
+        signingConfigs.create("release") {
+            storeFile = file(path)
+            storePassword = requireNotNull(System.getenv("SC_RELEASE_STORE_PASSWORD"))
+            keyAlias = "screenclock-release"
+            keyPassword = requireNotNull(System.getenv("SC_RELEASE_KEY_PASSWORD"))
+        }
+    }
+
     buildTypes {
         release {
+            releaseSigning?.let { signingConfig = it }
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),

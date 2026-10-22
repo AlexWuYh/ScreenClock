@@ -53,7 +53,7 @@ JDK 17。Android SDK 需要 `platforms;android-37.0` 和 `build-tools;36.0.0`。
 ./gradlew :app:assembleDebugAndroidTest  # 编译 UI 仪器测试 APK，运行仍需连接设备
 ```
 
-构建、单测、lint 和仪器测试 APK 编译已跑通；仪器测试本身需设备。不要把它们写进 CI，除非用户要求。若 `lintDebug` 在 `lintAnalyze` 阶段 JVM 崩溃（本机 JDK 17 的 C1 编译器 bug），用 `./gradlew :app:lintDebug -Dorg.gradle.jvmargs="-Xmx4g -XX:-TieredCompilation"` 重跑。
+构建、单测、lint 和仪器测试 APK 编译已跑通；仪器测试本身需设备。用户已要求首版发布 CI：`.github/workflows/release.yml` 只在 `v*` tag 推送时运行，要求 tag 与 `versionName` 一致，执行 JVM 测试、lint、正式签名 `assembleRelease` 和签名校验后上传 APK + SHA-256 到 GitHub Releases。密钥与口令仅放 Actions Secrets 和本机受限目录，不入库；Debug APK 不能直接覆盖正式签名 APK，切换会清除数据，先提醒备份。若 `lintDebug` 在 `lintAnalyze` 阶段 JVM 崩溃（本机 JDK 17 的 C1 编译器 bug），用 `./gradlew :app:lintDebug -Dorg.gradle.jvmargs="-Xmx4g -XX:-TieredCompilation"` 重跑。
 
 ## 工程
 
