@@ -4,12 +4,18 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing version tag to retry (for example v0.1.0)
+        required: true
+        type: string
 
 permissions:
   contents: write
 
 concurrency:
-  group: android-release-${{ github.ref }}
+  group: android-release-${{ github.event.inputs.release_tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
@@ -19,6 +25,9 @@ jobs:
     steps:
       - name: Check out tagged source
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.release_tag || github.ref }}
+          fetch-depth: 0
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -28,6 +37,8 @@ jobs:
 
       - name: Set up Android SDK tools
         uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
 
       - name: Install Android API 37 and Build-Tools
         run: sdkmanager --install 'platforms;android-37.0' 'build-tools;36.0.0'
@@ -37,7 +48,7 @@ jobs:
 
       - name: Require tag to match application version
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
         run: |
           python3 - <<'PY'
           import os, re
@@ -50,6 +61,13 @@ jobs:
               raise SystemExit(f'Tag {tag!r} must match versionName in app/build.gradle.kts')
           print('Releasing', tag)
           PY
+          git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG" >/dev/null
+          test "$(git rev-parse HEAD)" = "$(git rev-list -n 1 "$RELEASE_TAG")"
+
+      - name: Export verified release tag
+        env:
+          RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
+        run: echo "RELEASE_TAG=$RELEASE_TAG" >> "$GITHUB_ENV"
 
       - name: Restore private signing key
         env:
@@ -80,16 +98,16 @@ jobs:
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs "$apk" | tee "$RUNNER_TEMP/screenclock-signature.txt"
           grep -Fq 'Signer #1 certificate SHA-256 digest: 398989305887f915d803785b2b703568cc135ad62de67bc5c551c1092354d29b' "$RUNNER_TEMP/screenclock-signature.txt"
           mkdir -p dist
-          cp "$apk" "dist/ScreenClock-${GITHUB_REF_NAME}.apk"
-          (cd dist && sha256sum "ScreenClock-${GITHUB_REF_NAME}.apk" > "ScreenClock-${GITHUB_REF_NAME}.apk.sha256")
+          cp "$apk" "dist/ScreenClock-${RELEASE_TAG}.apk"
+          (cd dist && sha256sum "ScreenClock-${RELEASE_TAG}.apk" > "ScreenClock-${RELEASE_TAG}.apk.sha256")
 
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" \
-            "dist/ScreenClock-${GITHUB_REF_NAME}.apk" \
-            "dist/ScreenClock-${GITHUB_REF_NAME}.apk.sha256" \
+          gh release create "$RELEASE_TAG" \
+            "dist/ScreenClock-${RELEASE_TAG}.apk" \
+            "dist/ScreenClock-${RELEASE_TAG}.apk.sha256" \
             --verify-tag --generate-notes \
-            --title "ScreenClock $GITHUB_REF_NAME" \
+            --title "ScreenClock $RELEASE_TAG" \
             --notes 'Android 8.0+ 安装包：七款钟面、专注倒计时、纪念日与可选天气。此 APK 由项目专用发布密钥签名，可覆盖升级同签名的后续版本；先前的 Debug APK 签名不同，切换前请先备份本地设置与纪念日，卸载旧包会清除数据。SHA-256 校验值见同名 .sha256 附件。'
