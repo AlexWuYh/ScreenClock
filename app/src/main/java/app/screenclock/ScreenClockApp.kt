@@ -37,6 +37,7 @@ import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.UiAccentDeep
+import app.screenclock.domain.focus.focusKeepsScreen
 import app.screenclock.domain.occasion.ceremonyIsDark
 import app.screenclock.ui.Ink
 import app.screenclock.ui.Paper
@@ -55,14 +56,13 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
     val ceremonyLook by viewModel.ceremonyLook.collectAsStateWithLifecycle()
     val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
-    val focusKnown by viewModel.focusKnown.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val weatherPanel by viewModel.weatherPanel.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInPrefs.collectAsStateWithLifecycle()
     val bedside by viewModel.bedside.collectAsStateWithLifecycle()
     val minuteOfDay by viewModel.minuteOfDay.collectAsStateWithLifecycle()
     val plugged by viewModel.plugged.collectAsStateWithLifecycle()
-    val focusEnd by viewModel.focusEnd.collectAsStateWithLifecycle()
+    val focus by viewModel.focus.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     val activity = LocalActivity.current
     val context = LocalContext.current
@@ -117,7 +117,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     )
     val warmOn = warmActive(nightOn, bedside.warmEnabled)
     val screenOn = keepScreenOn(
-        focusHolding = destination == AppDestination.Focus && focusEnd != null,
+        focusHolding = destination == AppDestination.Focus && focusKeepsScreen(focus.session),
         chargeEnabled = bedside.chargeKeepAwake,
         plugged = plugged,
     )
@@ -150,7 +150,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     // Bars are hidden, but a swipe reveals them briefly: icons must read on the page behind.
     val lightPage = destination == AppDestination.Settings ||
         (destination == AppDestination.Occasions) ||
-        (destination == AppDestination.Focus && focusEnd == null) ||
+        (destination == AppDestination.Focus && !ceremonyIsDark(ceremonyLook.tone, systemDark)) ||
         (destination == AppDestination.Ceremony && !ceremonyIsDark(ceremonyLook.tone, systemDark))
     val barView = LocalView.current
     SideEffect {
@@ -174,7 +174,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                 .fillMaxSize()
                 .then(if (warmOn) Modifier.nightWarmTint() else Modifier),
         ) {
-            if (!focusKnown) {
+            if (!focus.known) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()

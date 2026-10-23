@@ -1,6 +1,16 @@
 package app.screenclock.ui.ceremony
 
 import androidx.activity.compose.BackHandler
+import app.screenclock.domain.occasion.CeremonyTone
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import android.view.accessibility.AccessibilityManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -105,10 +115,12 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
         return
     }
     val leave = rememberUpdatedState(viewModel::closeCeremony)
+    val controls = rememberAutoHideControls()
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
             .background(palette.bg)
+            .revealOnTouch(controls)
             .drawBehind { drawGlows(palette, look.style) }
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .clipToBounds(),
@@ -148,10 +160,13 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                 CeremonyStyle.Immersive -> ImmersiveLayout(face, now, palette, step, landscape, short, pageWidth)
             }
         }
-        BackButton(
+        PageControls(
+            controls = controls,
             palette = palette,
-            onClick = viewModel::closeCeremony,
-            modifier = Modifier.align(Alignment.TopStart).padding(12.dp),
+            onBack = viewModel::closeCeremony,
+            onToggleTone = {
+                viewModel.setCeremonyTone(if (palette.dark) CeremonyTone.Light else CeremonyTone.Dark)
+            },
         )
     }
 }
@@ -174,23 +189,6 @@ private fun androidx.compose.ui.graphics.drawscope.DrawScope.drawGlows(palette: 
             glow(palette.glowA, Offset(w * 0.15f, h * 0.1f), big * 0.75f)
             glow(palette.glowB, Offset(w * 0.85f, h * 0.9f), big * 0.75f)
         }
-    }
-}
-
-@Composable
-private fun BackButton(palette: CeremonyPalette, onClick: () -> Unit, modifier: Modifier = Modifier) {
-    val label = stringResource(R.string.back)
-    Box(
-        modifier = modifier
-            .size(48.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(palette.chip)
-            .border(1.dp, palette.chipBorder, RoundedCornerShape(16.dp))
-            .semantics { contentDescription = label }
-            .pointerInput(Unit) { detectTapGestures(onTap = { onClick() }) },
-        contentAlignment = Alignment.Center,
-    ) {
-        AppIcon(kind = AppIconKind.Back, tint = palette.text2, size = 22.dp)
     }
 }
 

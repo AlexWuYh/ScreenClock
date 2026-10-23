@@ -24,6 +24,7 @@ import app.screenclock.controller.ClockTime
 import app.screenclock.controller.ClockUiState
 import app.screenclock.controller.FocusController
 import app.screenclock.controller.FocusEvent
+import app.screenclock.controller.FocusUi
 import app.screenclock.controller.OccasionController
 import app.screenclock.controller.OccasionDraftStatus
 import app.screenclock.controller.SystemClockTime
@@ -43,6 +44,7 @@ import app.screenclock.data.weather.WeatherRepository
 import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPreferences
+import app.screenclock.domain.focus.FocusMode
 import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.CeremonyLook
 import app.screenclock.domain.occasion.CeremonyStyle
@@ -145,8 +147,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val bedside: StateFlow<BedsidePreferences> = burnInController.bedside
     val plugged: StateFlow<Boolean> = burnInController.plugged
     val burnInSession: StateFlow<BurnInClock> = burnInController.burnInSession
-    val focusEnd: StateFlow<Long?> = focusController.focusEnd
-    val focusKnown: StateFlow<Boolean> = focusController.focusKnown
+    val focus: StateFlow<FocusUi> = focusController.state
     val occasionRows: StateFlow<List<OccasionRow>> = occasionController.occasionRows
 
     /** The design and light/dark tone of the countdown page. */
@@ -181,12 +182,11 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         watchBattery(application)
         // Forecast refresh waits until the Activity is started and visible.
         viewModelScope.launch {
-            // A restored focus session takes the screen unless a page is already open.
-            focusController.focusEnd.collect { end ->
-                if (end != null && destinationState.value in FOCUS_TAKES_SCREEN) {
-                    destinationState.value = AppDestination.Focus
-                    burnInController.setPagePaused(true)
-                }
+            // A timer that was counting when the app closed takes the screen back, once.
+            val restored = focusController.state.first { it.known }
+            if (restored.session != null && destinationState.value == AppDestination.Clock) {
+                destinationState.value = AppDestination.Focus
+                burnInController.setPagePaused(true)
             }
         }
         viewModelScope.launch {
@@ -218,10 +218,9 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             focusController.events.collect { event ->
                 when (event) {
-                    FocusEvent.PersistFailed -> leaveBlockingPage()
-                    FocusEvent.ClearFailed -> {
+                    FocusEvent.PersistFailed -> {
                         val app = getApplication<Application>()
-                        Toast.makeText(app, app.getString(R.string.focus_end_failed), Toast.LENGTH_SHORT).show()
+                        Toast.makeText(app, app.getString(R.string.focus_persist_failed), Toast.LENGTH_SHORT).show()
                     }
                 }
             }
@@ -308,23 +307,20 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         destinationState.value = AppDestination.Focus
     }
 
-    /** Leaves the duration picker. A running session stays until it is abandoned. */
-    fun closeFocusPicker() {
-        if (focusEnd.value != null) return
+    /** Back to the clock. A running timer keeps counting; the page shows it again on return. */
+    fun closeFocus() {
         leaveBlockingPage()
     }
 
-    fun startFocus(minutes: Int) {
-        focusController.start(minutes)
-        destinationState.value = AppDestination.Focus
-        burnInController.setPagePaused(true)
-    }
+    fun selectFocusMode(mode: FocusMode) = focusController.selectMode(mode)
 
-    /** Long-press cancel and the tap after zero both clear the stored end. */
-    fun abandonFocus() {
-        focusController.abandon()
-        leaveBlockingPage()
-    }
+    fun setFocusCustomMinutes(minutes: Int) = focusController.setCustomMinutes(minutes)
+
+    fun toggleFocus() = focusController.toggle()
+
+    fun resetFocus() = focusController.reset()
+
+    fun skipFocus() = focusController.skip()
 
     fun openOccasions(fromSettings: Boolean) {
         burnInController.onContact()
@@ -396,6 +392,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     /** System clock changed, or the app returned to the front. Ceremony waits start over. */
     fun onTimeChanged() {
         faceController.notifyTimeChanged()
+        focusController.refresh()
         wallClockGenerationState.value = wallClockGenerationState.value + 1
     }
 
@@ -474,25 +471,14 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun selectCity(city: CityCandidate) = weatherController.selectCity(city)
 
-    /**
-     * Back to the clock, or straight into a focus session that was restored while a
-     * page was open. The burn-in hold follows the screen that is now showing.
-     */
+    /** Back to the clock. The burn-in hold follows the screen that is now showing. */
     private fun leaveBlockingPage() {
-        if (focusController.focusEnd.value != null) {
-            destinationState.value = AppDestination.Focus
-            burnInController.setPagePaused(true)
-        } else {
-            destinationState.value = AppDestination.Clock
-            burnInController.setPagePaused(false)
-        }
+        destinationState.value = AppDestination.Clock
+        burnInController.setPagePaused(false)
     }
 
     private companion object {
         /** The first-launch hint stays up longer than the normal idle hide. */
         const val INTRO_HINT_MILLIS: Long = 7_000L
-
-        /** Only these destinations give way to a restored focus session. */
-        val FOCUS_TAKES_SCREEN: Set<AppDestination> = setOf(AppDestination.Clock, AppDestination.Focus)
     }
 }

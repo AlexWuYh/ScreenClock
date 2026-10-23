@@ -66,9 +66,3 @@ internal fun FlipFlaps(
         }
     }
 }
-
-/** Keeps the minute and second flaps when a focus countdown drops from three groups to two. */
-internal fun focusFlapKey(count: Int, index: Int): String {
-    val names = if (count >= 3) listOf("h", "m", "s") else listOf("m", "s")
-    return names.getOrElse(index) { index.toString() }
-}

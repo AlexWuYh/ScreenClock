@@ -34,6 +34,11 @@ internal enum class AppIconKind {
     ChevronRight,
     Link,
     Edit,
+    Sun,
+    Play,
+    Pause,
+    Reset,
+    Skip,
 }
 
 @Composable
@@ -48,6 +53,32 @@ internal fun AppIcon(
         scale(scaleX = unit, scaleY = unit, pivot = Offset.Zero) {
             val line = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
             when (kind) {
+                AppIconKind.Play -> drawPath(
+                    Path().apply { moveTo(8f, 5f); lineTo(19f, 12f); lineTo(8f, 19f); close() },
+                    tint,
+                )
+                AppIconKind.Pause -> {
+                    drawRect(tint, Offset(6.5f, 5f), androidx.compose.ui.geometry.Size(3.8f, 14f))
+                    drawRect(tint, Offset(13.7f, 5f), androidx.compose.ui.geometry.Size(3.8f, 14f))
+                }
+                AppIconKind.Reset -> {
+                    drawArc(tint, startAngle = -50f, sweepAngle = 290f, useCenter = false,
+                        topLeft = Offset(4.5f, 4.5f), size = androidx.compose.ui.geometry.Size(15f, 15f), style = line)
+                    path(listOf(14.2f to 2.8f, 17.8f to 5.9f, 13.8f to 8.3f), tint, line)
+                }
+                AppIconKind.Skip -> {
+                    path(listOf(5f to 4.5f, 15f to 12f, 5f to 19.5f), tint, line, close = true)
+                    line(19f, 5f, 19f, 19f, tint, line)
+                }
+                AppIconKind.Sun -> {
+                    circle(12f, 12f, 4.2f, tint, line)
+                    for (k in 0 until 8) {
+                        val a = Math.toRadians(k * 45.0)
+                        val c = Math.cos(a).toFloat()
+                        val si = Math.sin(a).toFloat()
+                        line(12f + c * 7.4f, 12f + si * 7.4f, 12f + c * 9.6f, 12f + si * 9.6f, tint, line)
+                    }
+                }
                 AppIconKind.Edit -> {
                     path(listOf(5f to 19f, 5.8f to 15.2f, 16.2f to 4.8f, 19.2f to 7.8f, 8.8f to 18.2f), tint, line, close = true)
                     line(14f, 7f, 17f, 10f, tint, line)
