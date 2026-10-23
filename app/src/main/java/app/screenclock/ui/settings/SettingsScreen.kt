@@ -80,6 +80,9 @@ import app.screenclock.domain.time.DatePosition
 import app.screenclock.domain.time.DigitSize
 import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
+import app.screenclock.domain.occasion.CeremonyLook
+import app.screenclock.domain.occasion.CeremonyStyle
+import app.screenclock.domain.occasion.CeremonyTone
 import app.screenclock.domain.time.showcasedThemes
 import app.screenclock.domain.weather.CityCandidate
 import app.screenclock.domain.weather.WeatherCache
@@ -168,6 +171,9 @@ fun SettingsScreen(
     onNightWarmEnabled: (Boolean) -> Unit,
     onChargeKeepAwake: (Boolean) -> Unit,
     onOpenOccasions: () -> Unit,
+    ceremonyLook: CeremonyLook,
+    onCeremonyStyle: (CeremonyStyle) -> Unit,
+    onCeremonyTone: (CeremonyTone) -> Unit,
 ) {
     BackHandler(onBack = onBack)
     Column(
@@ -345,6 +351,45 @@ fun SettingsScreen(
                         icon = AppIconKind.Heart,
                         label = stringResource(R.string.occasion),
                         onClick = onOpenOccasions,
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    FieldLabel(stringResource(R.string.ceremony_style))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SegmentedRow(
+                        listOf(
+                            SegmentOption(
+                                label = stringResource(R.string.ceremony_style_card),
+                                selected = ceremonyLook.style == CeremonyStyle.Card,
+                                onClick = { onCeremonyStyle(CeremonyStyle.Card) },
+                            ),
+                            SegmentOption(
+                                label = stringResource(R.string.ceremony_style_immersive),
+                                selected = ceremonyLook.style == CeremonyStyle.Immersive,
+                                onClick = { onCeremonyStyle(CeremonyStyle.Immersive) },
+                            ),
+                        ),
+                    )
+                    Spacer(modifier = Modifier.height(14.dp))
+                    FieldLabel(stringResource(R.string.ceremony_tone))
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SegmentedRow(
+                        listOf(
+                            SegmentOption(
+                                label = stringResource(R.string.ceremony_tone_system),
+                                selected = ceremonyLook.tone == CeremonyTone.FollowSystem,
+                                onClick = { onCeremonyTone(CeremonyTone.FollowSystem) },
+                            ),
+                            SegmentOption(
+                                label = stringResource(R.string.ceremony_tone_light),
+                                selected = ceremonyLook.tone == CeremonyTone.Light,
+                                onClick = { onCeremonyTone(CeremonyTone.Light) },
+                            ),
+                            SegmentOption(
+                                label = stringResource(R.string.ceremony_tone_dark),
+                                selected = ceremonyLook.tone == CeremonyTone.Dark,
+                                onClick = { onCeremonyTone(CeremonyTone.Dark) },
+                            ),
+                        ),
                     )
                 }
                 Spacer(modifier = Modifier.height(16.dp))

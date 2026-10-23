@@ -25,7 +25,7 @@ internal fun splitLayout(paint: Paint, hour: String, minute: String, width: Floa
     val measured = total()
     if (measured > 0f) paint.textSize = minOf(height * 0.66f, width * 0.92f / measured * paint.textSize)
     val size = paint.textSize
-    val gap = size * 0.2f
+    val gap = size * 0.12f
     val dot = size * 0.07f
     val hourW = paint.measureText(hour)
     val minuteW = paint.measureText(minute)

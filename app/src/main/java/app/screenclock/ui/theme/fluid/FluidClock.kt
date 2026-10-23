@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -60,6 +61,7 @@ internal fun FluidClock(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SplitDigits(
+                    modifier = Modifier.requiredWidth(areaWidth),
                     hour = face.hourDigits,
                     minute = face.minuteDigits,
                     fontSize = sceneDigitSize(areaWidth, areaHeight),

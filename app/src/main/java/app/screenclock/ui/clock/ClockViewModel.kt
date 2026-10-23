@@ -34,6 +34,7 @@ import app.screenclock.data.burnin.BurnInRepository
 import app.screenclock.data.focus.FocusRepository
 import app.screenclock.data.occasion.OccasionRepository
 import app.screenclock.data.occasion.SixTailCalendar
+import app.screenclock.data.settings.CeremonyLookRepository
 import app.screenclock.data.settings.IntroHintRepository
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
@@ -43,6 +44,9 @@ import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPreferences
 import app.screenclock.domain.occasion.CeremonyFace
+import app.screenclock.domain.occasion.CeremonyLook
+import app.screenclock.domain.occasion.CeremonyStyle
+import app.screenclock.domain.occasion.CeremonyTone
 import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionRow
 import app.screenclock.domain.time.ClockThemeId
@@ -57,6 +61,8 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -80,6 +86,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val time: ClockTime = SystemClockTime
     private val settingsRepository = SettingsRepository(application)
     private val introHintStore = IntroHintRepository(application)
+    private val ceremonyLookStore = CeremonyLookRepository(application)
 
     private val weatherController = WeatherController(
         scope = viewModelScope,
@@ -141,6 +148,18 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val focusEnd: StateFlow<Long?> = focusController.focusEnd
     val focusKnown: StateFlow<Boolean> = focusController.focusKnown
     val occasionRows: StateFlow<List<OccasionRow>> = occasionController.occasionRows
+
+    /** The design and light/dark tone of the countdown page. */
+    val ceremonyLook: StateFlow<CeremonyLook> = ceremonyLookStore.look
+        .stateIn(viewModelScope, SharingStarted.Eagerly, CeremonyLook())
+
+    fun setCeremonyStyle(style: CeremonyStyle) {
+        viewModelScope.launchPersisting { ceremonyLookStore.setStyle(style) }
+    }
+
+    fun setCeremonyTone(tone: CeremonyTone) {
+        viewModelScope.launchPersisting { ceremonyLookStore.setTone(tone) }
+    }
     val occasionLine: StateFlow<String?> = occasionController.occasionLine
     val leapMonths: StateFlow<Set<Int>> = occasionController.leapMonths
     val pinnedOccasionId: StateFlow<String?> = occasionController.pinnedOccasionId
@@ -341,8 +360,12 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
 
     fun ceremonyDate(): LocalDate? = occasionController.ceremonyDate()
 
-    fun occasionDraftStatus(draft: OccasionDraft): OccasionDraftStatus =
-        occasionController.occasionDraftStatus(draft)
+    fun occasionDraftStatus(draft: OccasionDraft, editing: Boolean = false): OccasionDraftStatus =
+        occasionController.occasionDraftStatus(draft, editing)
+
+    fun occasionDraftOf(id: String): OccasionDraft? = occasionController.occasionDraftOf(id)
+
+    fun updateOccasion(id: String, draft: OccasionDraft): Boolean = occasionController.updateOccasion(id, draft)
 
     fun addOccasion(draft: OccasionDraft): Boolean = occasionController.addOccasion(draft)
 

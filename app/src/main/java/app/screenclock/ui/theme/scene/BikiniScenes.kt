@@ -151,17 +151,6 @@ private fun DrawScope.patrick(cx: Float, base: Float, u: Float) {
     val pink = Color(0xFFF7A1A4)
     drawPath(star, pink)
     drawPath(star, pink, style = Stroke(0.55f * u, join = StrokeJoin.Round))
-    // Shorts with flowers.
-    val shorts = Path().apply {
-        moveTo(cx - 0.95f * u, cy + 0.2f * u); lineTo(cx + 0.95f * u, cy + 0.2f * u)
-        lineTo(cx + 1.1f * u, cy + 1.4f * u); lineTo(cx + 0.1f * u, cy + 1.25f * u)
-        lineTo(cx - 0.1f * u, cy + 1.25f * u); lineTo(cx - 1.1f * u, cy + 1.4f * u); close()
-    }
-    drawPath(shorts, Color(0xFF3FA74A))
-    for ((fx, fy) in listOf(-0.55f to 0.5f, 0.5f to 0.55f, 0.0f to 0.95f, -0.8f to 1.1f, 0.8f to 1.12f)) {
-        drawCircle(Color(0xFFB45FD6), 0.17f * u, Offset(cx + fx * u, cy + fy * u))
-        drawCircle(Color(0xFFFFE680), 0.06f * u, Offset(cx + fx * u, cy + fy * u))
-    }
     // Face, high on the star.
     for (side in listOf(-1f, 1f)) {
         val e = Offset(cx + side * 0.3f * u, cy - 0.7f * u)

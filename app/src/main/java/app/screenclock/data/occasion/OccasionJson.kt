@@ -4,6 +4,7 @@ import app.screenclock.data.weather.JsonValue
 import app.screenclock.data.weather.parseJson
 import app.screenclock.domain.occasion.OCCASION_LIMIT
 import app.screenclock.domain.occasion.Occasion
+import app.screenclock.domain.occasion.OccasionIcon
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.normalizeMessage
 import app.screenclock.domain.occasion.normalizeTitle
@@ -50,6 +51,7 @@ private fun encodeItem(item: Occasion): String {
     fields += "\"leap\":${item.leap && item.kind == OccasionKind.LunarYearly}"
     fields += "\"message\":${jsonString(item.message)}"
     fields += "\"pinned\":${item.pinned}"
+    fields += "\"icon\":${jsonString(item.icon.name)}"
     return "{${fields.joinToString(",")}}"
 }
 
@@ -79,6 +81,7 @@ private fun decodeItem(value: JsonValue): Occasion? {
         leap = kind == OccasionKind.LunarYearly && leap,
         message = message,
         pinned = pinned,
+        icon = OccasionIcon.fromStored(obj.fields["icon"].asString()),
     )
 }
 

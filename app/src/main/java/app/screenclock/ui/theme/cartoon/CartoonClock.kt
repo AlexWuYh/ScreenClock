@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -116,6 +117,7 @@ private fun CartoonClock(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 SplitDigits(
+                    modifier = Modifier.requiredWidth(areaWidth),
                     hour = face.hourDigits,
                     minute = face.minuteDigits,
                     fontSize = size,
@@ -129,7 +131,7 @@ private fun CartoonClock(
                             null
                         },
                     ),
-                    gapFactor = if (look.outline != null) 0.27f else 0.2f,
+                    gapFactor = if (look.outline != null) 0.19f else 0.12f,
                 )
             }
         }

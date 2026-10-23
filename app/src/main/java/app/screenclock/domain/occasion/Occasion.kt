@@ -31,6 +31,7 @@ data class Occasion(
     val leap: Boolean,
     val message: String,
     val pinned: Boolean,
+    val icon: OccasionIcon = OccasionIcon.Default,
 )
 
 data class OccasionDraft(
@@ -41,6 +42,7 @@ data class OccasionDraft(
     val day: Int,
     val leap: Boolean,
     val message: String,
+    val icon: OccasionIcon = OccasionIcon.Default,
 )
 
 data class NextOccurrence(

@@ -33,6 +33,7 @@ internal enum class AppIconKind {
     ChevronLeft,
     ChevronRight,
     Link,
+    Edit,
 }
 
 @Composable
@@ -47,6 +48,10 @@ internal fun AppIcon(
         scale(scaleX = unit, scaleY = unit, pivot = Offset.Zero) {
             val line = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
             when (kind) {
+                AppIconKind.Edit -> {
+                    path(listOf(5f to 19f, 5.8f to 15.2f, 16.2f to 4.8f, 19.2f to 7.8f, 8.8f to 18.2f), tint, line, close = true)
+                    line(14f, 7f, 17f, 10f, tint, line)
+                }
                 AppIconKind.Back -> {
                     line(5f, 12f, 19f, 12f, tint, line)
                     path(listOf(11f to 6f, 5f to 12f, 11f to 18f), tint, line)
@@ -197,7 +202,7 @@ internal fun AppIcon(
     }
 }
 
-private fun DrawScope.line(x1: Float, y1: Float, x2: Float, y2: Float, color: Color, stroke: Stroke) {
+internal fun DrawScope.line(x1: Float, y1: Float, x2: Float, y2: Float, color: Color, stroke: Stroke) {
     drawPath(
         path = Path().apply {
             moveTo(x1, y1)
@@ -208,15 +213,15 @@ private fun DrawScope.line(x1: Float, y1: Float, x2: Float, y2: Float, color: Co
     )
 }
 
-private fun DrawScope.circle(x: Float, y: Float, radius: Float, color: Color, stroke: Stroke) {
+internal fun DrawScope.circle(x: Float, y: Float, radius: Float, color: Color, stroke: Stroke) {
     drawCircle(color = color, radius = radius, center = Offset(x, y), style = stroke)
 }
 
-private fun DrawScope.dot(x: Float, y: Float, radius: Float, color: Color) {
+internal fun DrawScope.dot(x: Float, y: Float, radius: Float, color: Color) {
     drawCircle(color = color, radius = radius, center = Offset(x, y))
 }
 
-private fun DrawScope.path(
+internal fun DrawScope.path(
     points: List<Pair<Float, Float>>,
     color: Color,
     stroke: Stroke,

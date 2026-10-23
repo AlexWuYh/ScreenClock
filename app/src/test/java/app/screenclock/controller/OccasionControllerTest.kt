@@ -5,6 +5,7 @@ import app.screenclock.domain.occasion.LunarCalendar
 import app.screenclock.domain.occasion.OCCASION_LIMIT
 import app.screenclock.domain.occasion.Occasion
 import app.screenclock.domain.occasion.OccasionDraft
+import app.screenclock.domain.occasion.OccasionIcon
 import app.screenclock.domain.occasion.OccasionKind
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -95,6 +96,50 @@ class OccasionControllerTest {
         controller.pinOccasion("a")
         awaitTrue { controller.pinnedOccasionId.value == "a" }
         assertEquals(listOf(false, true), store.items.map { it.pinned }.sorted())
+    }
+
+    @Test
+    fun editingChangesTheFieldsButKeepsTheIdAndThePin() {
+        val store = FakeOccasionStore().apply { items = listOf(item("a", pinned = true), item("b")) }
+        val controller = controller(store)
+        awaitTrue { controller.occasionRows.value.size == 2 }
+        val draft = controller.occasionDraftOf("a")!!
+        assertEquals(OccasionIcon.Default, draft.icon)
+        assertTrue(
+            controller.updateOccasion("a", draft.copy(title = "结婚纪念", icon = OccasionIcon.Ring, month = 11, day = 2)),
+        )
+        awaitTrue { store.saved.isNotEmpty() && store.saved.last().first().title == "结婚纪念" }
+        val saved = store.saved.last().first { it.id == "a" }
+        assertEquals(OccasionIcon.Ring, saved.icon)
+        assertEquals(11, saved.month)
+        assertTrue(saved.pinned)
+        assertEquals(2, store.saved.last().size)
+    }
+
+    @Test
+    fun editingStillWorksWhenTheListIsFull() {
+        val store = FakeOccasionStore().apply {
+            items = (1..30).map { item("id$it", month = 12, day = 1 + it % 20) }
+        }
+        val controller = controller(store)
+        awaitTrue { controller.occasionRows.value.size == 30 }
+        val draft = controller.occasionDraftOf("id1")!!
+        // A new one is refused at the cap, an edit of an existing one is not.
+        assertEquals(false, controller.occasionDraftStatus(draft).canSave)
+        assertEquals(true, controller.occasionDraftStatus(draft, editing = true).canSave)
+        assertTrue(controller.updateOccasion("id1", draft.copy(title = "改名")))
+    }
+
+    @Test
+    fun movingAPinnedOccasionIntoThePastKeepsItButDropsThePin() {
+        val store = FakeOccasionStore().apply { items = listOf(item("a", pinned = true)) }
+        val controller = controller(store)
+        awaitTrue { controller.pinnedOccasionId.value == "a" }
+        val draft = controller.occasionDraftOf("a")!!
+        assertTrue(controller.updateOccasion("a", draft.copy(kind = OccasionKind.SolarOnce, year = 2020, month = 1, day = 1)))
+        awaitTrue { controller.pinnedOccasionId.value == null }
+        assertEquals(1, controller.occasionRows.value.size)
+        assertEquals(false, store.saved.last().single().pinned)
     }
 
     @Test

@@ -123,11 +123,12 @@ class OccasionController(
     }
 
     /** One scan per draft change: the preview line and whether the draft can be saved. */
-    fun occasionDraftStatus(draft: OccasionDraft): OccasionDraftStatus {
+    fun occasionDraftStatus(draft: OccasionDraft, editing: Boolean = false): OccasionDraftStatus {
         val next = nextOccurrence(minutes.value.toLocalDate(), draft, calendar)
+        // Changing an existing occasion does not add one, so the 30-item cap only blocks adding.
         val canSave = occasionsReady &&
             normalizeTitle(draft.title) != null &&
-            occasionsState.value.size < OCCASION_LIMIT &&
+            (editing || occasionsState.value.size < OCCASION_LIMIT) &&
             canKeep(next.status)
         return OccasionDraftStatus(preview = previewText(next), canSave = canSave)
     }
@@ -146,6 +147,7 @@ class OccasionController(
             leap = draft.kind == OccasionKind.LunarYearly && draft.leap,
             message = normalizeMessage(draft.message),
             pinned = false,
+            icon = draft.icon,
         )
         scope.launch {
             occasionLock.withLock {
@@ -157,6 +159,50 @@ class OccasionController(
                 occasionsState.value = added
                 publishOccasions(minutes.value)
                 persistOccasions(added)
+            }
+        }
+        return true
+    }
+
+    /** The stored values of one occasion, shaped like an editor draft. Null when it is gone. */
+    fun occasionDraftOf(id: String): OccasionDraft? {
+        val item = occasionsState.value.find { it.id == id } ?: return null
+        return OccasionDraft(
+            title = item.title,
+            kind = item.kind,
+            year = item.year ?: minutes.value.year,
+            month = item.month,
+            day = item.day,
+            leap = item.leap,
+            message = item.message,
+            icon = item.icon,
+        )
+    }
+
+    /** Replaces an occasion's fields in place. Its id and pin stay, unless the new date can no longer be pinned. */
+    fun updateOccasion(id: String, draft: OccasionDraft): Boolean {
+        if (!occasionDraftStatus(draft, editing = true).canSave) return false
+        val title = normalizeTitle(draft.title) ?: return false
+        scope.launch {
+            occasionLock.withLock {
+                if (!occasionsReady) return@withLock
+                val old = occasionsState.value.find { it.id == id } ?: return@withLock
+                val edited = old.copy(
+                    title = title,
+                    kind = draft.kind,
+                    year = if (draft.kind == OccasionKind.SolarOnce) draft.year else null,
+                    month = draft.month,
+                    day = draft.day,
+                    leap = draft.kind == OccasionKind.LunarYearly && draft.leap,
+                    message = normalizeMessage(draft.message),
+                    icon = draft.icon,
+                )
+                val today = minutes.value.toLocalDate()
+                if (!canKeep(nextOccurrence(today, edited, calendar).status)) return@withLock
+                val next = refreshPins(occasionsState.value.map { if (it.id == id) edited else it }, today, calendar)
+                occasionsState.value = next
+                publishOccasions(minutes.value)
+                persistOccasions(next)
             }
         }
         return true
@@ -227,6 +273,7 @@ class OccasionController(
         val item = occasionsState.value.find { it.id == session.id } ?: return null
         return ceremonyFace(
             title = item.title,
+            icon = item.icon,
             message = item.message,
             solarLabel = formatSolarDate(session.occurrence),
             now = now,

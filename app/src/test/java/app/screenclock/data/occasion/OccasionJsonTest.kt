@@ -1,6 +1,7 @@
 package app.screenclock.data.occasion
 
 import app.screenclock.domain.occasion.Occasion
+import app.screenclock.domain.occasion.OccasionIcon
 import app.screenclock.domain.occasion.OccasionKind
 import java.io.File
 import org.junit.Assert.assertEquals
@@ -78,6 +79,17 @@ class OccasionJsonTest {
         val decoded = decodeOccasions(text)
         assertEquals(listOf("b", "c"), decoded.map { it.id })
         assertEquals(listOf(true, false), decoded.map { it.pinned })
+    }
+
+    @Test
+    fun theIconSurvivesARoundTripAndOldFilesGetTheDefault() {
+        val item = Occasion(
+            id = "i", title = "毕业", kind = OccasionKind.SolarYearly, year = null, month = 6, day = 30,
+            leap = false, message = "到了", pinned = false, icon = OccasionIcon.Cap,
+        )
+        assertEquals(OccasionIcon.Cap, decodeOccasions(encodeOccasions(listOf(item))).single().icon)
+        val old = """{"items":[{"id":"o","title":"老数据","kind":"solar_yearly","month":1,"day":1,"pinned":false}]}"""
+        assertEquals(OccasionIcon.Default, decodeOccasions(old).single().icon)
     }
 
     @Test

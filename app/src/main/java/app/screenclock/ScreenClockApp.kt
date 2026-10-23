@@ -37,6 +37,7 @@ import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
 import app.screenclock.ui.UiAccentDeep
+import app.screenclock.domain.occasion.ceremonyIsDark
 import app.screenclock.ui.Ink
 import app.screenclock.ui.Paper
 import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
@@ -52,6 +53,8 @@ import app.screenclock.ui.settings.SettingsScreen
 @Composable
 fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
+    val ceremonyLook by viewModel.ceremonyLook.collectAsStateWithLifecycle()
+    val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
     val focusKnown by viewModel.focusKnown.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val weatherPanel by viewModel.weatherPanel.collectAsStateWithLifecycle()
@@ -147,7 +150,8 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     // Bars are hidden, but a swipe reveals them briefly: icons must read on the page behind.
     val lightPage = destination == AppDestination.Settings ||
         (destination == AppDestination.Occasions) ||
-        (destination == AppDestination.Focus && focusEnd == null)
+        (destination == AppDestination.Focus && focusEnd == null) ||
+        (destination == AppDestination.Ceremony && !ceremonyIsDark(ceremonyLook.tone, systemDark))
     val barView = LocalView.current
     SideEffect {
         val window = (barView.context as? android.app.Activity)?.window ?: return@SideEffect
@@ -232,6 +236,9 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                     onNightEndHour = viewModel::setNightEndHour,
                     onNightWarmEnabled = viewModel::setNightWarmEnabled,
                     onChargeKeepAwake = viewModel::setChargeKeepAwake,
+                    ceremonyLook = ceremonyLook,
+                    onCeremonyStyle = viewModel::setCeremonyStyle,
+                    onCeremonyTone = viewModel::setCeremonyTone,
                     onOpenOccasions = { viewModel.openOccasions(fromSettings = true) },
                 )
             }

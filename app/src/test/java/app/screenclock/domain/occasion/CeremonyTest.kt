@@ -1,86 +1,103 @@
 package app.screenclock.domain.occasion
 
-import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CeremonyTest {
+    private val target = LocalDate.of(2026, 12, 25)
+
     @Test
-    fun aFullDayOrMoreStaysOnTheDayCount() {
-        val tomorrow = LocalDate.of(2026, 1, 2)
-        assertEquals(CeremonyMode.Days, ceremonyMode(LocalDateTime.of(2026, 1, 1, 0, 0), tomorrow))
-        assertEquals(1L, ceremonyDayCount(LocalDate.of(2026, 1, 1), tomorrow))
-        val twoDays = LocalDate.of(2026, 1, 3)
-        assertEquals(CeremonyMode.Days, ceremonyMode(LocalDateTime.of(2026, 1, 1, 23, 59), twoDays))
-        assertEquals(2L, ceremonyDayCount(LocalDate.of(2026, 1, 1), twoDays))
+    fun theCountdownAlwaysSplitsIntoDaysHoursMinutesSeconds() {
+        val now = LocalDateTime.of(2026, 10, 23, 12, 45, 0)
+        val parts = ceremonyParts(now, target)
+        // 63 days to 25 Dec 00:00, minus the 12h45m already gone on the 23rd's clock.
+        assertEquals(CeremonyParts(days = 62, hours = 11, minutes = 15, seconds = 0), parts)
     }
 
     @Test
-    fun underTwentyFourHoursUsesTheClockUntilTheMorning() {
-        val tomorrow = LocalDate.of(2026, 1, 2)
-        assertEquals(CeremonyMode.Clock, ceremonyMode(LocalDateTime.of(2026, 1, 1, 0, 0, 1), tomorrow))
-        val start = tomorrow.atStartOfDay()
-        assertEquals(listOf("23", "00", "00"), ceremonyClockGroups(start.minusHours(23), tomorrow))
-        assertEquals(listOf("00", "00", "01"), ceremonyClockGroups(start.minusNanos(1_000_000), tomorrow))
-        val justInside = start.minusHours(24).plusNanos(1_000_000)
-        assertEquals(CeremonyMode.Clock, ceremonyMode(justInside, tomorrow))
-        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(justInside, tomorrow))
-        val oneMillisUnder = start.minus(Duration.ofMillis(24L * 3_600_000L - 1L))
-        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(oneMillisUnder, tomorrow))
-        assertEquals(
-            "考试，剩余23小时59分59秒",
-            ceremonySpoken("考试", CeremonyMode.Clock, 0, ceremonyClockGroups(justInside, tomorrow), "到了"),
-        )
-        assertEquals(CeremonyMode.Done, ceremonyMode(start, tomorrow))
-        assertEquals(CeremonyMode.Done, ceremonyMode(start.plusHours(8), tomorrow))
+    fun theLastDayStillShowsFourBlocks() {
+        val start = target.atStartOfDay()
+        assertEquals(CeremonyParts(0, 23, 59, 59), ceremonyParts(start.minusHours(24).plusSeconds(1), target))
+        assertEquals(CeremonyParts(0, 0, 0, 1), ceremonyParts(start.minusNanos(1_000_000), target))
+        assertEquals(CeremonyParts(1, 0, 0, 0), ceremonyParts(start.minusHours(24), target))
     }
 
     @Test
-    fun dayGroupsSplitFromTheRightWithoutALeadingZero() {
-        assertEquals(listOf("5"), dayGroups(5))
-        assertEquals(listOf("42"), dayGroups(42))
-        assertEquals(listOf("1", "00"), dayGroups(100))
-        assertEquals(listOf("3", "65"), dayGroups(365))
-        assertEquals(listOf("10", "00"), dayGroups(1000))
+    fun secondsRoundUpSoZeroOnlyShowsAtTheMoment() {
+        val start = target.atStartOfDay()
+        assertEquals(1, ceremonyParts(start.minusNanos(500_000_000), target).seconds)
+        assertEquals(CeremonyParts(0, 0, 0, 0), ceremonyParts(start, target))
+        assertEquals(CeremonyParts(0, 0, 0, 0), ceremonyParts(start.plusHours(5), target))
     }
 
     @Test
-    fun daysModeDoesNotTickEverySecond() {
-        val later = LocalDate.of(2026, 4, 1)
-        val wait = millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 12, 0), later)
-        assertEquals(43_200_000L, wait)
-        val exact = LocalDate.of(2026, 1, 2)
-        assertEquals(1L, millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 0, 0), exact))
-        assertEquals(1000L, millisUntilCeremonyTick(LocalDateTime.of(2026, 1, 1, 10, 0), exact))
-        assertNull(millisUntilCeremonyTick(exact.atStartOfDay(), exact))
+    fun theMorningOfTheDateIsDone() {
+        val start = target.atStartOfDay()
+        assertEquals(CeremonyMode.Counting, ceremonyMode(start.minusNanos(1), target))
+        assertEquals(CeremonyMode.Done, ceremonyMode(start, target))
+        assertEquals(CeremonyMode.Done, ceremonyMode(start.plusHours(8), target))
     }
 
     @Test
-    fun dayGroupsOfSmallAndHugeCounts() {
-        assertEquals(listOf("0"), dayGroups(0))
-        assertEquals(listOf("10"), dayGroups(10))
-        assertEquals(listOf("10", "00"), dayGroups(1000))
-        assertEquals(listOf("1", "00", "00"), dayGroups(10000))
+    fun theDisplayedSecondDecidesTheNextWake() {
+        val start = target.atStartOfDay()
+        // Half a second into a displayed second: wake when it changes.
+        assertEquals(500L, millisUntilCeremonyTick(start.minusSeconds(10).plusNanos(500_000_000), target))
+        // Exactly on a second: a full second away.
+        assertEquals(1000L, millisUntilCeremonyTick(start.minusSeconds(10), target))
+        assertNull(millisUntilCeremonyTick(start, target))
     }
 
     @Test
-    fun theClockFaceNeverShowsTwentyFourOClock() {
-        val occurrence = LocalDate.of(2026, 1, 2)
-        val exactlyOneDayEarly = LocalDateTime.of(2026, 1, 1, 0, 0)
-        assertEquals(listOf("23", "59", "59"), ceremonyClockGroups(exactlyOneDayEarly, occurrence))
+    fun hugeDayCountsKeepAllTheirDigits() {
+        assertEquals("05", twoDigits(5))
+        assertEquals("365", twoDigits(365))
+        assertEquals("00", twoDigits(0))
+        assertEquals("00", twoDigits(-3))
     }
 
     @Test
-    fun spokenCopyFollowsTheMode() {
-        assertEquals("考试，还有86天", ceremonySpoken("考试", CeremonyMode.Days, 86, emptyList(), "到了"))
-        assertEquals(
-            "考试，剩余5小时03分01秒",
-            ceremonySpoken("考试", CeremonyMode.Clock, 0, listOf("05", "03", "01"), "到了"),
-        )
-        assertEquals("到了", ceremonySpoken("考试", CeremonyMode.Done, 0, emptyList(), "到了"))
+    fun theFaceCarriesTheIconAndSpeaksTheWholeCountdown() {
+        val now = LocalDateTime.of(2026, 12, 20, 8, 30, 15)
+        val face = ceremonyFace("生日", OccasionIcon.Cake, "快乐", "2026年12月25日", now, target)
+        assertEquals(OccasionIcon.Cake, face.icon)
+        assertEquals(CeremonyMode.Counting, face.mode)
+        assertEquals("生日，还有4天15小时29分45秒", face.spoken)
+        val done = ceremonyFace("生日", OccasionIcon.Cake, "快乐", "2026年12月25日", target.atStartOfDay(), target)
+        assertEquals("快乐", done.spoken)
+        assertEquals(CeremonyParts(0, 0, 0, 0), done.parts)
+    }
+
+    @Test
+    fun quickDatesCountFromToday() {
+        val today = LocalDate.of(2026, 10, 23)
+        assertEquals(LocalDate.of(2026, 10, 30), quickDate(today, QuickDate.InWeek))
+        assertEquals(LocalDate.of(2026, 11, 22), quickDate(today, QuickDate.InMonth))
+        assertEquals(LocalDate.of(2027, 1, 31), quickDate(today, QuickDate.InHundredDays))
+        assertEquals(LocalDate.of(2027, 10, 23), quickDate(today, QuickDate.NextYear))
+        // A leap day lands on the 28th the year after.
+        assertEquals(LocalDate.of(2025, 2, 28), quickDate(LocalDate.of(2024, 2, 29), QuickDate.NextYear))
+    }
+
+    @Test
+    fun theLookFollowsTheSystemOnlyWhenAsked() {
+        assertTrue(ceremonyIsDark(CeremonyTone.FollowSystem, systemDark = true))
+        assertFalse(ceremonyIsDark(CeremonyTone.FollowSystem, systemDark = false))
+        assertFalse(ceremonyIsDark(CeremonyTone.Light, systemDark = true))
+        assertTrue(ceremonyIsDark(CeremonyTone.Dark, systemDark = false))
+    }
+
+    @Test
+    fun storedLookAndIconFallBackToDefaults() {
+        assertEquals(CeremonyStyle.Card, CeremonyStyle.fromStored(null))
+        assertEquals(CeremonyStyle.Immersive, CeremonyStyle.fromStored("Immersive"))
+        assertEquals(CeremonyTone.FollowSystem, CeremonyTone.fromStored("sepia"))
+        assertEquals(OccasionIcon.Default, OccasionIcon.fromStored("Dragon"))
+        assertEquals(OccasionIcon.Plane, OccasionIcon.fromStored("Plane"))
     }
 }

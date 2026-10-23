@@ -26,6 +26,17 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.size
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.foundation.layout.Box
+import app.screenclock.domain.occasion.OccasionIcon
+import app.screenclock.domain.occasion.QuickDate
+import app.screenclock.domain.occasion.quickDate
+import app.screenclock.ui.FieldLabel
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -92,12 +103,15 @@ private const val YEAR_MAX: Int = 2100
 fun OccasionScreen(viewModel: ClockViewModel) {
     val rows by viewModel.occasionRows.collectAsStateWithLifecycle()
     var editing by rememberSaveable { mutableStateOf(false) }
+    // Null while adding; the id of the occasion while changing one.
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
     BackHandler {
         if (editing) editing = false else viewModel.closeOccasions()
     }
     if (editing) {
         OccasionEditor(
             viewModel = viewModel,
+            editId = editingId,
             onBack = { editing = false },
             onSaved = { editing = false },
         )
@@ -105,7 +119,14 @@ fun OccasionScreen(viewModel: ClockViewModel) {
         OccasionList(
             rows = rows,
             onBack = viewModel::closeOccasions,
-            onAdd = { editing = true },
+            onAdd = {
+                editingId = null
+                editing = true
+            },
+            onEdit = { id ->
+                editingId = id
+                editing = true
+            },
             onOpen = { id -> viewModel.openCeremony(id, fromList = true) },
             onPin = viewModel::pinOccasion,
             onUnpin = viewModel::unpinOccasion,
@@ -119,6 +140,7 @@ private fun OccasionList(
     rows: List<app.screenclock.domain.occasion.OccasionRow>,
     onBack: () -> Unit,
     onAdd: () -> Unit,
+    onEdit: (String) -> Unit,
     onOpen: (String) -> Unit,
     onPin: (String) -> Unit,
     onUnpin: (String) -> Unit,
@@ -159,6 +181,7 @@ private fun OccasionList(
             OccasionRowCard(
                 row = row,
                 onOpen = onOpen,
+                onEdit = onEdit,
                 onPin = onPin,
                 onUnpin = onUnpin,
                 onDelete = { pendingDelete = row.id },
@@ -222,6 +245,7 @@ private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
 private fun OccasionRowCard(
     row: app.screenclock.domain.occasion.OccasionRow,
     onOpen: (String) -> Unit,
+    onEdit: (String) -> Unit,
     onPin: (String) -> Unit,
     onUnpin: (String) -> Unit,
     onDelete: () -> Unit,
@@ -239,6 +263,8 @@ private fun OccasionRowCard(
             .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        OccasionGlyph(icon = row.icon, tint = if (row.canOpen) UiAccentDeep else Muted, size = 26.dp)
+        Spacer(modifier = Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = row.title,
@@ -249,6 +275,12 @@ private fun OccasionRowCard(
             Spacer(modifier = Modifier.height(3.dp))
             Text(text = row.detail, color = Info, fontSize = 14.sp)
         }
+        Spacer(modifier = Modifier.width(8.dp))
+        IconBox(
+            icon = AppIconKind.Edit,
+            contentDescription = stringResource(R.string.occasion_edit),
+            onClick = { onEdit(row.id) },
+        )
         Spacer(modifier = Modifier.width(8.dp))
         IconBox(
             icon = AppIconKind.Pin,
@@ -271,19 +303,23 @@ private fun OccasionRowCard(
 @Composable
 private fun OccasionEditor(
     viewModel: ClockViewModel,
+    editId: String?,
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {
     val thisYear = LocalDate.now().year.coerceIn(YEAR_MIN, YEAR_MAX)
-    var title by rememberSaveable { mutableStateOf("") }
-    var message by rememberSaveable { mutableStateOf("") }
-    var kindName by rememberSaveable { mutableStateOf(OccasionKind.SolarYearly.name) }
-    var year by rememberSaveable { mutableIntStateOf(thisYear) }
-    var month by rememberSaveable { mutableIntStateOf(1) }
-    var day by rememberSaveable { mutableIntStateOf(1) }
-    var leap by rememberSaveable { mutableStateOf(false) }
+    val initial = remember(editId) { editId?.let(viewModel::occasionDraftOf) }
+    var title by rememberSaveable { mutableStateOf(initial?.title ?: "") }
+    var message by rememberSaveable { mutableStateOf(initial?.message ?: "") }
+    var iconName by rememberSaveable { mutableStateOf((initial?.icon ?: OccasionIcon.Default).name) }
+    var kindName by rememberSaveable { mutableStateOf((initial?.kind ?: OccasionKind.SolarYearly).name) }
+    var year by rememberSaveable { mutableIntStateOf(initial?.year ?: thisYear) }
+    var month by rememberSaveable { mutableIntStateOf(initial?.month ?: 1) }
+    var day by rememberSaveable { mutableIntStateOf(initial?.day ?: 1) }
+    var leap by rememberSaveable { mutableStateOf(initial?.leap ?: false) }
     var pickingDate by rememberSaveable { mutableStateOf(false) }
     val kind = OccasionKind.entries.find { it.name == kindName } ?: OccasionKind.SolarYearly
+    val icon = OccasionIcon.fromStored(iconName)
     val leapMonths by viewModel.leapMonths.collectAsStateWithLifecycle()
     val leapAllowed = kind == OccasionKind.LunarYearly && month in leapMonths
     val leapValue = leap && leapAllowed
@@ -297,6 +333,7 @@ private fun OccasionEditor(
         day = dayValue,
         leap = leapValue,
         message = message,
+        icon = icon,
     )
     // The date scan is the expensive part. It runs once per draft change on a
     // background dispatcher, not twice inside every recomposition of the form.
@@ -304,13 +341,13 @@ private fun OccasionEditor(
         mutableStateOf(OccasionDraftStatus(preview = "", canSave = false))
     }
     LaunchedEffect(draft) {
-        draftStatus = withContext(Dispatchers.Default) { viewModel.occasionDraftStatus(draft) }
+        draftStatus = withContext(Dispatchers.Default) { viewModel.occasionDraftStatus(draft, editing = editId != null) }
     }
     val preview = draftStatus.preview
     val canSave = draftStatus.canSave
     // Leaving with typed text asks first; a bedside swipe-back must not eat a draft.
     var confirmDiscard by rememberSaveable { mutableStateOf(false) }
-    val dirty = title.isNotBlank() || message.isNotBlank()
+    val dirty = if (initial == null) title.isNotBlank() || message.isNotBlank() else draft != initial
     val leave = { if (dirty) confirmDiscard = true else onBack() }
     BackHandler(onBack = leave)
     Column(
@@ -328,13 +365,17 @@ private fun OccasionEditor(
             onClick = leave,
         )
         Spacer(modifier = Modifier.height(14.dp))
-        PageTitle(stringResource(R.string.occasion_add))
+        PageTitle(stringResource(if (editId == null) R.string.occasion_add else R.string.occasion_edit_title))
         Spacer(modifier = Modifier.height(20.dp))
         OccasionField(
             value = title,
             onValueChange = { title = it.take(OCCASION_TITLE_MAX) },
             label = stringResource(R.string.occasion_title),
         )
+        Spacer(modifier = Modifier.height(16.dp))
+        FieldLabel(stringResource(R.string.occasion_icon))
+        Spacer(modifier = Modifier.height(8.dp))
+        IconPicker(selected = icon, onSelect = { iconName = it.name })
         Spacer(modifier = Modifier.height(16.dp))
         SegmentedRow(
             listOf(
@@ -356,6 +397,16 @@ private fun OccasionEditor(
             ),
         )
         Spacer(modifier = Modifier.height(16.dp))
+        FieldLabel(stringResource(R.string.occasion_quick))
+        Spacer(modifier = Modifier.height(8.dp))
+        QuickDates { picked ->
+            val date = quickDate(LocalDate.now(), picked)
+            kindName = OccasionKind.SolarOnce.name
+            year = date.year.coerceIn(YEAR_MIN, YEAR_MAX)
+            month = date.monthValue
+            day = date.dayOfMonth
+        }
+        Spacer(modifier = Modifier.height(12.dp))
         val yearName = stringResource(R.string.occasion_wheel_year)
         val monthName = stringResource(R.string.occasion_wheel_month)
         val dayName = stringResource(R.string.occasion_wheel_day)
@@ -425,7 +476,10 @@ private fun OccasionEditor(
         PrimaryButton(
             text = stringResource(R.string.occasion_save),
             icon = AppIconKind.Check,
-            onClick = { if (viewModel.addOccasion(draft)) onSaved() },
+            onClick = {
+                val saved = if (editId == null) viewModel.addOccasion(draft) else viewModel.updateOccasion(editId, draft)
+                if (saved) onSaved()
+            },
             enabled = canSave,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -494,4 +548,76 @@ private fun OccasionField(value: String, onValueChange: (String) -> Unit, label:
             unfocusedLabelColor = Muted,
         ),
     )
+}
+
+@Composable
+private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (option in OccasionIcon.entries) {
+            val on = option == selected
+            val label = stringResource(iconLabel(option))
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(shape)
+                    .background(if (on) UiAccentGlassFill else GlassFillHigh)
+                    .border(1.dp, if (on) UiAccentGlassBorder else Hairline, shape)
+                    .semantics {
+                        contentDescription = label
+                        this.selected = on
+                        role = Role.RadioButton
+                    }
+                    .glassPressable(role = Role.RadioButton) { onSelect(option) },
+                contentAlignment = Alignment.Center,
+            ) {
+                OccasionGlyph(icon = option, tint = if (on) UiAccentDeep else Info, size = 24.dp)
+            }
+        }
+    }
+}
+
+@Composable
+private fun QuickDates(onPick: (QuickDate) -> Unit) {
+    androidx.compose.foundation.layout.FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        for (pick in QuickDate.entries) {
+            val shape = RoundedCornerShape(50)
+            Text(
+                text = stringResource(quickLabel(pick)),
+                color = Info,
+                fontSize = 14.sp,
+                modifier = Modifier
+                    .heightIn(min = 40.dp)
+                    .clip(shape)
+                    .background(GlassFillHigh)
+                    .border(1.dp, Hairline, shape)
+                    .glassPressable { onPick(pick) }
+                    .padding(horizontal = 16.dp, vertical = 9.dp),
+            )
+        }
+    }
+}
+
+private fun iconLabel(icon: OccasionIcon): Int = when (icon) {
+    OccasionIcon.Cake -> R.string.icon_cake
+    OccasionIcon.Heart -> R.string.icon_heart
+    OccasionIcon.Gift -> R.string.icon_gift
+    OccasionIcon.Plane -> R.string.icon_plane
+    OccasionIcon.Cap -> R.string.icon_cap
+    OccasionIcon.Ring -> R.string.icon_ring
+    OccasionIcon.Star -> R.string.icon_star
+    OccasionIcon.Flag -> R.string.icon_flag
+}
+
+private fun quickLabel(pick: QuickDate): Int = when (pick) {
+    QuickDate.InWeek -> R.string.quick_week
+    QuickDate.InMonth -> R.string.quick_month
+    QuickDate.InHundredDays -> R.string.quick_hundred
+    QuickDate.NextYear -> R.string.quick_year
 }

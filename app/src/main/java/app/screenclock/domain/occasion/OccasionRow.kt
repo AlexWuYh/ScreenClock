@@ -5,6 +5,7 @@ import java.time.LocalDate
 data class OccasionRow(
     val id: String,
     val title: String,
+    val icon: OccasionIcon,
     val detail: String,
     val pinned: Boolean,
     val canPin: Boolean,
@@ -17,6 +18,7 @@ fun occasionRows(items: List<Occasion>, today: LocalDate, calendar: LunarCalenda
         OccasionRow(
             id = item.id,
             title = item.title,
+            icon = item.icon,
             detail = previewText(next),
             pinned = item.pinned,
             canPin = canPin(next.status),
