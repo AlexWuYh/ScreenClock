@@ -8,7 +8,9 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -87,6 +89,8 @@ internal fun BoxScope.PageControls(
     palette: CeremonyPalette,
     onBack: () -> Unit,
     onToggleTone: () -> Unit,
+    onToggleStyle: (() -> Unit)? = null,
+    styleLabel: String = "",
 ) {
     AnimatedVisibility(
         visible = controls.visible,
@@ -102,14 +106,18 @@ internal fun BoxScope.PageControls(
         exit = fadeOut(tween(400)),
         modifier = Modifier.align(Alignment.TopEnd),
     ) {
-        // It shows the tone it will switch to.
-        CornerButton(
-            palette = palette,
-            icon = if (palette.dark) AppIconKind.Sun else AppIconKind.Moon,
-            label = stringResource(if (palette.dark) R.string.ceremony_to_light else R.string.ceremony_to_dark),
-            onClick = onToggleTone,
-            modifier = Modifier.padding(12.dp),
-        )
+        Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onToggleStyle != null) {
+                CornerButton(palette, AppIconKind.Palette, styleLabel, onToggleStyle)
+            }
+            // It shows the tone it will switch to.
+            CornerButton(
+                palette = palette,
+                icon = if (palette.dark) AppIconKind.Sun else AppIconKind.Moon,
+                label = stringResource(if (palette.dark) R.string.ceremony_to_light else R.string.ceremony_to_dark),
+                onClick = onToggleTone,
+            )
+        }
     }
 }
 

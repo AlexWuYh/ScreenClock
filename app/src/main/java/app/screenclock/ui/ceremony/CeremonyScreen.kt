@@ -167,6 +167,14 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
             onToggleTone = {
                 viewModel.setCeremonyTone(if (palette.dark) CeremonyTone.Light else CeremonyTone.Dark)
             },
+            onToggleStyle = {
+                viewModel.setCeremonyStyle(
+                    if (look.style == CeremonyStyle.Card) CeremonyStyle.Immersive else CeremonyStyle.Card,
+                )
+            },
+            styleLabel = stringResource(
+                if (look.style == CeremonyStyle.Card) R.string.ceremony_to_immersive else R.string.ceremony_to_card,
+            ),
         )
     }
 }
@@ -321,6 +329,7 @@ private fun CardLayout(face: CeremonyFace, now: LocalDateTime, palette: Ceremony
                 Column(
                     modifier = Modifier.padding(end = 26.dp),
                     verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
                     Text(text = clockText(now), color = palette.text1, fontSize = clockSize, fontWeight = FontWeight.SemiBold, style = Tabular, maxLines = 1, softWrap = false)
                     Text(text = dateText(now), color = palette.text2, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(top = 8.dp))
@@ -419,7 +428,7 @@ private fun ImmersiveLayout(
                 text = clockText(now),
                 color = palette.text1,
                 fontSize = clockSize,
-                fontWeight = FontWeight.Light,
+                fontWeight = FontWeight.Medium,
                 style = Tabular,
                 maxLines = 1,
                 softWrap = false,
@@ -446,7 +455,7 @@ private fun ImmersiveLayout(
                 DoneMessage(face, palette, if (short) 32.sp else 48.sp, Modifier.widthIn(max = 560.dp))
             }
             Spacer(Modifier.height(if (short) 8.dp else 24.dp))
-            TargetChip(face, palette, if (short) 12.sp else 15.sp)
+            TargetChip(face, palette, if (short) 12.sp else 15.sp, Modifier.fillMaxWidth().widthIn(max = 560.dp))
         }
     }
 
@@ -457,8 +466,8 @@ private fun ImmersiveLayout(
         ) {
             Box(
                 modifier = Modifier.weight(0.4f).fillMaxHeight().padding(end = 24.dp),
-                contentAlignment = Alignment.CenterStart,
-            ) { TimeBlock(Alignment.Start) }
+                contentAlignment = Alignment.Center,
+            ) { TimeBlock(Alignment.CenterHorizontally) }
             Box(Modifier.width(1.dp).fillMaxHeight(0.6f).background(palette.divider))
             Box(
                 modifier = Modifier.weight(0.6f).fillMaxHeight().padding(start = 32.dp),

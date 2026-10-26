@@ -346,11 +346,6 @@ fun ClockShell(viewModel: ClockViewModel) {
                             },
                         )
                         ChromeAction(
-                            icon = AppIconKind.Sliders,
-                            label = stringResource(R.string.settings),
-                            onClick = viewModel::openSettings,
-                        )
-                        ChromeAction(
                             icon = AppIconKind.Timer,
                             label = stringResource(R.string.focus),
                             onClick = viewModel::openFocus,
@@ -359,6 +354,11 @@ fun ClockShell(viewModel: ClockViewModel) {
                             icon = AppIconKind.Heart,
                             label = stringResource(R.string.occasion),
                             onClick = { viewModel.openOccasions(fromSettings = false) },
+                        )
+                        ChromeAction(
+                            icon = AppIconKind.Sliders,
+                            label = stringResource(R.string.settings),
+                            onClick = viewModel::openSettings,
                         )
                     }
                 }

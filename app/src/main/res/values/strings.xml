@@ -86,6 +86,8 @@
     <string name="ceremony_tone_dark">暗色</string>
     <string name="ceremony_to_light">切换到亮色</string>
     <string name="ceremony_to_dark">切换到暗色</string>
+    <string name="ceremony_to_immersive">切换到沉浸风格</string>
+    <string name="ceremony_to_card">切换到卡片风格</string>
     <string name="occasion_open">打开纪念日倒计时</string>
     <string name="section_occasion">纪念日</string>
     <string name="occasion_save_failed">纪念日未能保存到存储，重启后可能丢失</string>
@@ -178,6 +180,9 @@
     <string name="about_intro">一块放在床头或桌上的全屏时钟。提供多款可切换的主题，可在钟面上显示日期、农历、天气和重要日子，并附带专注倒计时与防烧屏。</string>
     <string name="about_version">版本 %1$s</string>
     <string name="about_github">GitHub 仓库</string>
+    <string name="about_author_title">作者</string>
+    <string name="about_author_name">AlexWuYh</string>
+    <string name="about_author_link">github.com/AlexWuYh</string>
     <string name="about_license_title">许可</string>
     <string name="about_license_mit">本应用以 MIT License 发布。</string>
     <string name="about_third_party">第三方内容</string>

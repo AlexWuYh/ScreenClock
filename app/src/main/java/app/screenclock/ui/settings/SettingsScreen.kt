@@ -20,6 +20,11 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +51,9 @@ import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
@@ -176,6 +184,16 @@ fun SettingsScreen(
     onCeremonyTone: (CeremonyTone) -> Unit,
 ) {
     BackHandler(onBack = onBack)
+    // The page frame shows at once and the cards follow one per frame, so tapping Settings
+    // never waits on composing all of the form.
+    var stage by remember { mutableIntStateOf(0) }
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        while (stage < 8) {
+            stage++
+            withFrameNanos { }
+        }
+    }
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -213,195 +231,219 @@ fun SettingsScreen(
                     .verticalScroll(rememberScrollState())
                     .padding(horizontal = 20.dp, vertical = 16.dp),
             ) {
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_display))
-                    FieldLabel(stringResource(R.string.hour_mode))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SegmentedRow(
-                        listOf(
-                            SegmentOption(
-                                label = stringResource(R.string.hour_mode_system),
-                                selected = hourMode == HourMode.FollowSystem,
-                                onClick = { onHourMode(HourMode.FollowSystem) },
+                if (stage == 0) {
+                    // Holds the place of the first card while it composes.
+                    SectionCard { Spacer(Modifier.height(400.dp)) }
+                }
+                if (stage > 0) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_display))
+                        FieldLabel(stringResource(R.string.hour_mode))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(
+                            listOf(
+                                SegmentOption(
+                                    label = stringResource(R.string.hour_mode_system),
+                                    selected = hourMode == HourMode.FollowSystem,
+                                    onClick = { onHourMode(HourMode.FollowSystem) },
+                                ),
+                                SegmentOption(
+                                    label = stringResource(R.string.hour_mode_12),
+                                    selected = hourMode == HourMode.H12,
+                                    onClick = { onHourMode(HourMode.H12) },
+                                ),
+                                SegmentOption(
+                                    label = stringResource(R.string.hour_mode_24),
+                                    selected = hourMode == HourMode.H24,
+                                    onClick = { onHourMode(HourMode.H24) },
+                                ),
                             ),
-                            SegmentOption(
-                                label = stringResource(R.string.hour_mode_12),
-                                selected = hourMode == HourMode.H12,
-                                onClick = { onHourMode(HourMode.H12) },
-                            ),
-                            SegmentOption(
-                                label = stringResource(R.string.hour_mode_24),
-                                selected = hourMode == HourMode.H24,
-                                onClick = { onHourMode(HourMode.H24) },
-                            ),
-                        ),
-                    )
-                    Spacer(modifier = Modifier.height(18.dp))
-                    FieldLabel(stringResource(R.string.theme))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    ThemePicker(
-                        face = face,
-                        dateLine = dateLine,
-                        theme = theme,
-                        colorway = colorway,
-                        datePosition = datePosition,
-                        digitSize = digitSize,
-                        weather = weather,
-                        onTheme = onTheme,
-                        onColorway = onColorway,
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                    ToggleRow(
-                        label = stringResource(R.string.show_date),
-                        checked = showDate,
-                        onCheckedChange = onShowDate,
-                    )
-                    ToggleRow(
-                        label = stringResource(R.string.show_year),
-                        checked = showYear,
-                        enabled = showDate,
-                        onCheckedChange = onShowYear,
-                    )
-                    ToggleRow(
-                        label = stringResource(R.string.show_weekday),
-                        checked = showWeekday,
-                        enabled = showDate,
-                        onCheckedChange = onShowWeekday,
-                    )
-                    ToggleRow(
-                        label = stringResource(R.string.show_lunar),
-                        checked = showLunarDate,
-                        enabled = showDate,
-                        onCheckedChange = onShowLunarDate,
-                    )
-                    ToggleRow(
-                        label = stringResource(R.string.show_holiday),
-                        checked = showHoliday,
-                        enabled = showDate,
-                        onCheckedChange = onShowHoliday,
-                    )
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        ToggleRow(
+                            label = stringResource(R.string.show_date),
+                            checked = showDate,
+                            onCheckedChange = onShowDate,
+                        )
+                        ToggleRow(
+                            label = stringResource(R.string.show_year),
+                            checked = showYear,
+                            enabled = showDate,
+                            onCheckedChange = onShowYear,
+                        )
+                        ToggleRow(
+                            label = stringResource(R.string.show_weekday),
+                            checked = showWeekday,
+                            enabled = showDate,
+                            onCheckedChange = onShowWeekday,
+                        )
+                        ToggleRow(
+                            label = stringResource(R.string.show_lunar),
+                            checked = showLunarDate,
+                            enabled = showDate,
+                            onCheckedChange = onShowLunarDate,
+                        )
+                        ToggleRow(
+                            label = stringResource(R.string.show_holiday),
+                            checked = showHoliday,
+                            enabled = showDate,
+                            onCheckedChange = onShowHoliday,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_layout))
-                    FieldLabel(stringResource(R.string.date_position))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SegmentedRow(listOf(
-                        SegmentOption(stringResource(R.string.position_above), datePosition == DatePosition.Above) { onDatePosition(DatePosition.Above) },
-                        SegmentOption(stringResource(R.string.position_below), datePosition == DatePosition.Below) { onDatePosition(DatePosition.Below) },
-                    ))
-                    Spacer(modifier = Modifier.height(16.dp))
-                    FieldLabel(stringResource(R.string.digit_size))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SegmentedRow(listOf(
-                        SegmentOption(stringResource(R.string.digit_compact), digitSize == DigitSize.Compact) { onDigitSize(DigitSize.Compact) },
-                        SegmentOption(stringResource(R.string.digit_regular), digitSize == DigitSize.Regular) { onDigitSize(DigitSize.Regular) },
-                        SegmentOption(stringResource(R.string.digit_large), digitSize == DigitSize.Large) { onDigitSize(DigitSize.Large) },
-                    ))
+                if (stage > 1) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Sliders, text = stringResource(R.string.section_layout))
+                        FieldLabel(stringResource(R.string.date_position))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(listOf(
+                            SegmentOption(stringResource(R.string.position_above), datePosition == DatePosition.Above) { onDatePosition(DatePosition.Above) },
+                            SegmentOption(stringResource(R.string.position_below), datePosition == DatePosition.Below) { onDatePosition(DatePosition.Below) },
+                        ))
+                        Spacer(modifier = Modifier.height(16.dp))
+                        FieldLabel(stringResource(R.string.digit_size))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(listOf(
+                            SegmentOption(stringResource(R.string.digit_compact), digitSize == DigitSize.Compact) { onDigitSize(DigitSize.Compact) },
+                            SegmentOption(stringResource(R.string.digit_regular), digitSize == DigitSize.Regular) { onDigitSize(DigitSize.Regular) },
+                            SegmentOption(stringResource(R.string.digit_large), digitSize == DigitSize.Large) { onDigitSize(DigitSize.Large) },
+                        ))
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Location, text = stringResource(R.string.section_weather))
-                    WeatherSection(
-                        enabled = weatherEnabled,
-                        useLocation = useLocation,
-                        cityLabel = cityLabel,
-                        weather = weather,
-                        panel = panel,
-                        onEnabled = onWeatherEnabled,
-                        onUseLocation = onUseLocation,
-                        onLocate = onLocate,
-                        onLocationDenied = onLocationDenied,
-                        onSearch = onSearch,
-                        onSelectCity = onSelectCity,
-                    )
+                if (stage > 2) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Location, text = stringResource(R.string.section_weather))
+                        WeatherSection(
+                            enabled = weatherEnabled,
+                            useLocation = useLocation,
+                            cityLabel = cityLabel,
+                            weather = weather,
+                            panel = panel,
+                            onEnabled = onWeatherEnabled,
+                            onUseLocation = onUseLocation,
+                            onLocate = onLocate,
+                            onLocationDenied = onLocationDenied,
+                            onSearch = onSearch,
+                            onSelectCity = onSelectCity,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
-                    BurnInSection(
-                        enabled = burnInEnabled,
-                        idleMillis = burnInIdleMillis,
-                        runMillis = burnInRunMillis,
-                        onEnabled = onBurnInEnabled,
-                        onIdleMillis = onBurnInIdleMillis,
-                        onRunMillis = onBurnInRunMillis,
-                    )
+                if (stage > 3) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Palette, text = stringResource(R.string.theme))
+                        ThemePicker(
+                            face = face,
+                            dateLine = dateLine,
+                            theme = theme,
+                            colorway = colorway,
+                            datePosition = datePosition,
+                            digitSize = digitSize,
+                            weather = weather,
+                            onTheme = onTheme,
+                            onColorway = onColorway,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Moon, text = stringResource(R.string.section_night))
-                    NightSection(
-                        dimEnabled = nightDimEnabled,
-                        startHour = nightStartHour,
-                        endHour = nightEndHour,
-                        warmEnabled = nightWarmEnabled,
-                        chargeKeepAwake = chargeKeepAwake,
-                        onDimEnabled = onNightDimEnabled,
-                        onStartHour = onNightStartHour,
-                        onEndHour = onNightEndHour,
-                        onWarmEnabled = onNightWarmEnabled,
-                        onChargeKeepAwake = onChargeKeepAwake,
-                    )
+                if (stage > 4) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
+                        BurnInSection(
+                            enabled = burnInEnabled,
+                            idleMillis = burnInIdleMillis,
+                            runMillis = burnInRunMillis,
+                            onEnabled = onBurnInEnabled,
+                            onIdleMillis = onBurnInIdleMillis,
+                            onRunMillis = onBurnInRunMillis,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Heart, text = stringResource(R.string.section_occasion))
-                    NavRow(
-                        icon = AppIconKind.Heart,
-                        label = stringResource(R.string.occasion),
-                        onClick = onOpenOccasions,
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    FieldLabel(stringResource(R.string.ceremony_style))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SegmentedRow(
-                        listOf(
-                            SegmentOption(
-                                label = stringResource(R.string.ceremony_style_card),
-                                selected = ceremonyLook.style == CeremonyStyle.Card,
-                                onClick = { onCeremonyStyle(CeremonyStyle.Card) },
-                            ),
-                            SegmentOption(
-                                label = stringResource(R.string.ceremony_style_immersive),
-                                selected = ceremonyLook.style == CeremonyStyle.Immersive,
-                                onClick = { onCeremonyStyle(CeremonyStyle.Immersive) },
-                            ),
-                        ),
-                    )
-                    Spacer(modifier = Modifier.height(14.dp))
-                    FieldLabel(stringResource(R.string.ceremony_tone))
-                    Spacer(modifier = Modifier.height(8.dp))
-                    SegmentedRow(
-                        listOf(
-                            SegmentOption(
-                                label = stringResource(R.string.ceremony_tone_system),
-                                selected = ceremonyLook.tone == CeremonyTone.FollowSystem,
-                                onClick = { onCeremonyTone(CeremonyTone.FollowSystem) },
-                            ),
-                            SegmentOption(
-                                label = stringResource(R.string.ceremony_tone_light),
-                                selected = ceremonyLook.tone == CeremonyTone.Light,
-                                onClick = { onCeremonyTone(CeremonyTone.Light) },
-                            ),
-                            SegmentOption(
-                                label = stringResource(R.string.ceremony_tone_dark),
-                                selected = ceremonyLook.tone == CeremonyTone.Dark,
-                                onClick = { onCeremonyTone(CeremonyTone.Dark) },
-                            ),
-                        ),
-                    )
+                if (stage > 5) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Moon, text = stringResource(R.string.section_night))
+                        NightSection(
+                            dimEnabled = nightDimEnabled,
+                            startHour = nightStartHour,
+                            endHour = nightEndHour,
+                            warmEnabled = nightWarmEnabled,
+                            chargeKeepAwake = chargeKeepAwake,
+                            onDimEnabled = onNightDimEnabled,
+                            onStartHour = onNightStartHour,
+                            onEndHour = onNightEndHour,
+                            onWarmEnabled = onNightWarmEnabled,
+                            onChargeKeepAwake = onChargeKeepAwake,
+                        )
+                    }
                 }
                 Spacer(modifier = Modifier.height(16.dp))
-                SectionCard {
-                    SectionHeader(icon = AppIconKind.Link, text = stringResource(R.string.section_about))
-                    AboutCredit()
+                if (stage > 6) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Heart, text = stringResource(R.string.section_occasion))
+                        NavRow(
+                            icon = AppIconKind.Heart,
+                            label = stringResource(R.string.occasion),
+                            onClick = onOpenOccasions,
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        FieldLabel(stringResource(R.string.ceremony_style))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(
+                            listOf(
+                                SegmentOption(
+                                    label = stringResource(R.string.ceremony_style_card),
+                                    selected = ceremonyLook.style == CeremonyStyle.Card,
+                                    onClick = { onCeremonyStyle(CeremonyStyle.Card) },
+                                ),
+                                SegmentOption(
+                                    label = stringResource(R.string.ceremony_style_immersive),
+                                    selected = ceremonyLook.style == CeremonyStyle.Immersive,
+                                    onClick = { onCeremonyStyle(CeremonyStyle.Immersive) },
+                                ),
+                            ),
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        FieldLabel(stringResource(R.string.ceremony_tone))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(
+                            listOf(
+                                SegmentOption(
+                                    label = stringResource(R.string.ceremony_tone_system),
+                                    selected = ceremonyLook.tone == CeremonyTone.FollowSystem,
+                                    onClick = { onCeremonyTone(CeremonyTone.FollowSystem) },
+                                ),
+                                SegmentOption(
+                                    label = stringResource(R.string.ceremony_tone_light),
+                                    selected = ceremonyLook.tone == CeremonyTone.Light,
+                                    onClick = { onCeremonyTone(CeremonyTone.Light) },
+                                ),
+                                SegmentOption(
+                                    label = stringResource(R.string.ceremony_tone_dark),
+                                    selected = ceremonyLook.tone == CeremonyTone.Dark,
+                                    onClick = { onCeremonyTone(CeremonyTone.Dark) },
+                                ),
+                            ),
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(16.dp))
+                if (stage > 7) {
+                    SectionCard {
+                        SectionHeader(icon = AppIconKind.Link, text = stringResource(R.string.section_about))
+                        AboutCredit()
+                    }
                 }
                 Spacer(modifier = Modifier.height(24.dp))
             }
         }
     }
 }
+
+private const val INITIAL_PREVIEWS = 0
+private const val PREVIEWS_PER_FRAME = 1
 
 /** Keep real clock previews proportionate instead of stretching them into wide strips. */
 @Composable
@@ -416,6 +458,15 @@ private fun ThemePicker(
     onTheme: (ClockThemeId) -> Unit,
     onColorway: (ColorwayId) -> Unit,
 ) {
+    // Composing every live preview in the frame the page opens stalled it for seconds, so the
+    // first screenful appears at once and the rest follow a couple per frame.
+    var readyCount by remember { mutableIntStateOf(INITIAL_PREVIEWS) }
+    LaunchedEffect(Unit) {
+        while (readyCount < showcasedThemes.size) {
+            withFrameNanos { }
+            readyCount += PREVIEWS_PER_FRAME
+        }
+    }
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val gridWidth = minOf(maxWidth, 680.dp)
         val columns = themePreviewColumns(gridWidth.value)
@@ -439,7 +490,9 @@ private fun ThemePicker(
                             onClick = { onTheme(id) },
                             modifier = Modifier.weight(1f),
                         ) {
-                            ThemeFace(id, colorway, datePosition, digitSize, face, dateLine, weather)
+                            if (showcasedThemes.indexOf(id) < readyCount) {
+                                ThemeFace(id, colorway, datePosition, digitSize, face, dateLine, weather)
+                            }
                         }
                     }
                     if (columns == 2 && rowItems.size == 1) Spacer(Modifier.weight(0.5f))
@@ -949,6 +1002,38 @@ private fun AboutCredit() {
         trailing = AppIconKind.Link,
         onClick = { openLink(context, "https://github.com/AlexWuYh/ScreenClock") },
     )
+
+    AboutDivider()
+    Text(
+        text = stringResource(R.string.about_author_title),
+        color = Cream,
+        fontSize = 15.sp,
+        fontWeight = FontWeight.SemiBold,
+        modifier = Modifier.semantics { heading() },
+    )
+    Spacer(modifier = Modifier.height(6.dp))
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .glassPressable(onClick = { openLink(context, "https://github.com/AlexWuYh") })
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Image(
+            painter = painterResource(R.drawable.author_avatar),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(48.dp).clip(CircleShape),
+        )
+        Spacer(modifier = Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = stringResource(R.string.about_author_name), color = Cream, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+            Text(text = stringResource(R.string.about_author_link), color = Muted, fontSize = 13.sp)
+        }
+        AppIcon(kind = AppIconKind.Link, tint = Muted, size = 18.dp)
+    }
 
     AboutDivider()
     Text(
