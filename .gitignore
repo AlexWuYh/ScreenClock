@@ -18,3 +18,6 @@ output-metadata.json
 *.keystore
 *.jks
 !debug.keystore
+
+# 本机项目说明，不入库
+AGENTS.md
