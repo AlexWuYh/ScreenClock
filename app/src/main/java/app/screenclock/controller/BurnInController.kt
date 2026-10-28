@@ -6,6 +6,7 @@ import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPhase
 import app.screenclock.domain.burnin.BurnInPreferences
+import app.screenclock.domain.burnin.ScreensaverTheme
 import app.screenclock.domain.burnin.burnInSetEnabled
 import app.screenclock.domain.burnin.burnInSetHostHidden
 import app.screenclock.domain.burnin.burnInSetPagePaused
@@ -96,6 +97,10 @@ class BurnInController(
 
     fun setEnabled(enabled: Boolean) {
         scope.launchPersisting { burnInStore.setEnabled(enabled) }
+    }
+
+    fun setTheme(theme: ScreensaverTheme) {
+        scope.launchPersisting { burnInStore.setTheme(theme) }
     }
 
     fun setIdleMillis(idleMillis: Long) {

@@ -1,5 +1,15 @@
 package app.screenclock.ui.settings
 
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.offset
+import app.screenclock.ui.clock.ScreensaverVideo
 import android.Manifest
 import androidx.compose.material3.TextButton
 import androidx.compose.ui.semantics.liveRegion
@@ -80,6 +90,7 @@ import androidx.core.net.toUri
 import app.screenclock.R
 import app.screenclock.controller.WeatherNotice
 import app.screenclock.controller.WeatherPanel
+import app.screenclock.domain.burnin.ScreensaverTheme
 import app.screenclock.domain.burnin.normalizeIdleMillis
 import app.screenclock.domain.burnin.normalizeRunMillis
 import app.screenclock.domain.time.ClockThemeId
@@ -163,9 +174,11 @@ fun SettingsScreen(
     onSearch: (String) -> Unit,
     onSelectCity: (CityCandidate) -> Unit,
     burnInEnabled: Boolean,
+    burnInTheme: ScreensaverTheme,
     burnInIdleMillis: Long,
     burnInRunMillis: Long,
     onBurnInEnabled: (Boolean) -> Unit,
+    onBurnInTheme: (ScreensaverTheme) -> Unit,
     onBurnInIdleMillis: (Long) -> Unit,
     onBurnInRunMillis: (Long) -> Unit,
     nightDimEnabled: Boolean,
@@ -353,9 +366,11 @@ fun SettingsScreen(
                         SectionHeader(icon = AppIconKind.Timer, text = stringResource(R.string.section_burnin))
                         BurnInSection(
                             enabled = burnInEnabled,
+                            theme = burnInTheme,
                             idleMillis = burnInIdleMillis,
                             runMillis = burnInRunMillis,
                             onEnabled = onBurnInEnabled,
+                            onTheme = onBurnInTheme,
                             onIdleMillis = onBurnInIdleMillis,
                             onRunMillis = onBurnInRunMillis,
                         )
@@ -807,9 +822,11 @@ private fun WeatherSection(
 @Composable
 private fun BurnInSection(
     enabled: Boolean,
+    theme: ScreensaverTheme,
     idleMillis: Long,
     runMillis: Long,
     onEnabled: (Boolean) -> Unit,
+    onTheme: (ScreensaverTheme) -> Unit,
     onIdleMillis: (Long) -> Unit,
     onRunMillis: (Long) -> Unit,
 ) {
@@ -825,6 +842,27 @@ private fun BurnInSection(
     )
     Spacer(modifier = Modifier.height(6.dp))
     if (!enabled) return
+    FieldLabel(stringResource(R.string.burnin_theme))
+    Spacer(modifier = Modifier.height(8.dp))
+    SegmentedRow(
+        ScreensaverTheme.entries.map { option ->
+            SegmentOption(
+                label = stringResource(screensaverThemeLabel(option)),
+                selected = theme == option,
+                onClick = { onTheme(option) },
+            )
+        },
+    )
+    Spacer(modifier = Modifier.height(10.dp))
+    ScreensaverPreview(theme)
+    if (theme.isVideo) {
+        Text(
+            text = stringResource(R.string.burnin_theme_video_hint),
+            color = Muted,
+            fontSize = 13.sp,
+            modifier = Modifier.padding(top = 6.dp),
+        )
+    }
     val idleMinutes = (normalizeIdleMillis(idleMillis) / 60_000L).toFloat()
     var idleValue by remember(idleMinutes) { mutableFloatStateOf(idleMinutes) }
     DurationRow(
@@ -853,6 +891,47 @@ private fun BurnInSection(
         steps = 178,
         colors = appSliderColors(),
     )
+}
+
+private fun screensaverThemeLabel(theme: ScreensaverTheme): Int = when (theme) {
+    ScreensaverTheme.Drift -> R.string.burnin_theme_drift
+    ScreensaverTheme.Glitch -> R.string.burnin_theme_glitch
+    ScreensaverTheme.Tunnel -> R.string.burnin_theme_tunnel
+    ScreensaverTheme.Portrait -> R.string.burnin_theme_portrait
+}
+
+/** A 16:9 live preview of the chosen screensaver; the drift theme shows a small drifting clock. */
+@Composable
+private fun ScreensaverPreview(theme: ScreensaverTheme) {
+    val shape = RoundedCornerShape(14.dp)
+    Box(
+        modifier = Modifier
+            .widthIn(max = 360.dp)
+            .fillMaxWidth()
+            .aspectRatio(16f / 9f)
+            .clip(shape)
+            .background(Color.Black),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (theme.isVideo) {
+            key(theme) { ScreensaverVideo(theme, Modifier.fillMaxSize()) }
+        } else {
+            val drift = rememberInfiniteTransition(label = "driftPreview")
+            val dx by drift.animateFloat(
+                initialValue = -14f,
+                targetValue = 14f,
+                animationSpec = infiniteRepeatable(tween(4_000, easing = LinearEasing), RepeatMode.Reverse),
+                label = "dx",
+            )
+            Text(
+                text = "12:34",
+                color = Color.White,
+                fontSize = 44.sp,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.offset(x = dx.dp, y = (dx / 2).dp),
+            )
+        }
+    }
 }
 
 @Composable

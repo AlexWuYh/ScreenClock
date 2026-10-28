@@ -308,4 +308,16 @@ class BurnInTest {
         assertEquals(x, offset.xPx, 0.001f)
         assertEquals(y, offset.yPx, 0.001f)
     }
+
+    @Test
+    fun themeKeysRoundTripAndUnknownFallsBackToDrift() {
+        ScreensaverTheme.entries.forEach {
+            assertEquals(it, ScreensaverTheme.fromStorageKey(it.storageKey))
+        }
+        assertEquals(ScreensaverTheme.Drift, ScreensaverTheme.fromStorageKey(null))
+        assertEquals(ScreensaverTheme.Drift, ScreensaverTheme.fromStorageKey("gone"))
+        assertFalse(ScreensaverTheme.Drift.isVideo)
+        assertTrue(ScreensaverTheme.Glitch.isVideo)
+        assertEquals(ScreensaverTheme.Drift, BurnInPreferences().theme)
+    }
 }

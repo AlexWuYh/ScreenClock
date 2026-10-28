@@ -108,6 +108,8 @@ fun ClockShell(viewModel: ClockViewModel) {
     val introHint by viewModel.introHint.collectAsStateWithLifecycle()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val burnIn by viewModel.burnInSession.collectAsStateWithLifecycle()
+    val burnInPrefs by viewModel.burnInPrefs.collectAsStateWithLifecycle()
+    val burnInTheme = burnInPrefs.theme
     val occasionLine by viewModel.occasionLine.collectAsStateWithLifecycle()
     val pinnedOccasionId by viewModel.pinnedOccasionId.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -201,6 +203,7 @@ fun ClockShell(viewModel: ClockViewModel) {
         BurnInShift(
             phase = burnIn.phase,
             paused = burnIn.paused,
+            videoTheme = burnInTheme,
             anchorMillis = burnIn.anchorMillis,
             expanded = slot == ClockWidth.Expanded,
             modifier = Modifier

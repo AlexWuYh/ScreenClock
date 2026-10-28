@@ -35,8 +35,29 @@ enum class BurnInPhase {
     Spent,
 }
 
+/**
+ * What a running round shows. [Drift] keeps the clock and wanders its digits; the others
+ * play a looping video over the whole screen until a touch ends the round.
+ */
+enum class ScreensaverTheme(val storageKey: String) {
+    Drift("drift"),
+    Glitch("glitch"),
+    Tunnel("tunnel"),
+    Portrait("portrait"),
+    ;
+
+    val isVideo: Boolean get() = this != Drift
+
+    companion object {
+        /** Unknown or missing keys fall back to [Drift], so a downgrade never leaves a blank screen. */
+        fun fromStorageKey(key: String?): ScreensaverTheme =
+            entries.firstOrNull { it.storageKey == key } ?: Drift
+    }
+}
+
 data class BurnInPreferences(
     val enabled: Boolean = false,
+    val theme: ScreensaverTheme = ScreensaverTheme.Drift,
     val idleMillis: Long = IDLE_DEFAULT_MILLIS,
     val runMillis: Long = RUN_DEFAULT_MILLIS,
 )
@@ -67,9 +88,15 @@ data class BurnInOffset(
 )
 
 /** Idle snaps to a whole minute. Run snaps to 10 seconds. Both stay inside the closed range. */
-fun burnInPreferences(enabled: Boolean, idleMillis: Long, runMillis: Long): BurnInPreferences {
+fun burnInPreferences(
+    enabled: Boolean,
+    idleMillis: Long,
+    runMillis: Long,
+    theme: ScreensaverTheme = ScreensaverTheme.Drift,
+): BurnInPreferences {
     return BurnInPreferences(
         enabled = enabled,
+        theme = theme,
         idleMillis = normalizeIdleMillis(idleMillis),
         runMillis = normalizeRunMillis(runMillis),
     )

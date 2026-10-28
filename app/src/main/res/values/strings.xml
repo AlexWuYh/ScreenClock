@@ -161,6 +161,12 @@
     <string name="section_burnin">防烧屏</string>
     <string name="burnin_enable">开启防烧屏</string>
     <string name="burnin_hint">只在屏幕一直亮着时才有用：请同时开启下方「夜间 → 充电时常亮」，或把系统休眠时间调长。屏保只移动数字和日期，背景保持不动。</string>
+    <string name="burnin_theme">屏保主题</string>
+    <string name="burnin_theme_drift">数字漂移</string>
+    <string name="burnin_theme_glitch">故障</string>
+    <string name="burnin_theme_tunnel">隧道</string>
+    <string name="burnin_theme_portrait">暗影</string>
+    <string name="burnin_theme_video_hint">视频主题启动后全屏播放并隐藏钟面，点一下屏幕即回到时钟。</string>
     <string name="burnin_idle">无操作多久后启动屏保</string>
     <string name="burnin_run">屏保每次持续多久</string>
     <string name="burnin_minutes">%1$d 分钟</string>

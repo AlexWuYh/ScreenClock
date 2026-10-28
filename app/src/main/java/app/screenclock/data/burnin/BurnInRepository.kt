@@ -5,8 +5,10 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.longPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import app.screenclock.data.settings.clockSettingsStore
 import app.screenclock.domain.burnin.BurnInPreferences
+import app.screenclock.domain.burnin.ScreensaverTheme
 import app.screenclock.domain.burnin.burnInPreferences
 import app.screenclock.domain.burnin.normalizeIdleMillis
 import app.screenclock.domain.burnin.normalizeRunMillis
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.map
 
 private val EnabledKey = booleanPreferencesKey("burnin_enabled")
 private val IdleKey = longPreferencesKey("burnin_idle_millis")
+private val ThemeKey = stringPreferencesKey("burnin_theme")
 private val RunKey = longPreferencesKey("burnin_run_millis")
 
 class BurnInRepository(private val context: Context) : BurnInStore {
@@ -30,6 +33,10 @@ class BurnInRepository(private val context: Context) : BurnInStore {
 
     override suspend fun setEnabled(enabled: Boolean) {
         context.clockSettingsStore.edit { prefs -> prefs[EnabledKey] = enabled }
+    }
+
+    override suspend fun setTheme(theme: ScreensaverTheme) {
+        context.clockSettingsStore.edit { prefs -> prefs[ThemeKey] = theme.storageKey }
     }
 
     override suspend fun setIdleMillis(idleMillis: Long) {
@@ -46,6 +53,7 @@ class BurnInRepository(private val context: Context) : BurnInStore {
 private fun Preferences.toBurnInPreferences(): BurnInPreferences {
     return burnInPreferences(
         enabled = this[EnabledKey] ?: false,
+        theme = ScreensaverTheme.fromStorageKey(this[ThemeKey]),
         idleMillis = this[IdleKey] ?: BurnInPreferences().idleMillis,
         runMillis = this[RunKey] ?: BurnInPreferences().runMillis,
     )

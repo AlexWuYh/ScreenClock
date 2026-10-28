@@ -44,6 +44,7 @@ import app.screenclock.data.weather.WeatherRepository
 import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPreferences
+import app.screenclock.domain.burnin.ScreensaverTheme
 import app.screenclock.domain.focus.FocusMode
 import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.CeremonyLook
@@ -374,6 +375,8 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     fun setBurnInHostHidden(hidden: Boolean) = burnInController.setHostHidden(hidden)
 
     fun setBurnInEnabled(enabled: Boolean) = burnInController.setEnabled(enabled)
+
+    fun setBurnInTheme(theme: ScreensaverTheme) = burnInController.setTheme(theme)
 
     fun setBurnInIdleMillis(idleMillis: Long) = burnInController.setIdleMillis(idleMillis)
 

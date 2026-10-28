@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import app.screenclock.domain.burnin.BurnInMotion
 import app.screenclock.domain.burnin.BurnInOffset
 import app.screenclock.domain.burnin.BurnInPhase
+import app.screenclock.domain.burnin.ScreensaverTheme
 import app.screenclock.domain.burnin.burnInMotion
 import app.screenclock.domain.burnin.driftOffset
 import app.screenclock.domain.burnin.wanderOffset
@@ -34,6 +35,7 @@ import kotlinx.coroutines.isActive
 internal fun BurnInShift(
     phase: BurnInPhase,
     paused: Boolean,
+    videoTheme: ScreensaverTheme,
     anchorMillis: Long,
     expanded: Boolean,
     modifier: Modifier = Modifier,
@@ -42,7 +44,9 @@ internal fun BurnInShift(
 ) {
     val travel = if (expanded) 24.dp else 12.dp
     val travelPx = with(LocalDensity.current) { travel.toPx() }
-    val motion = burnInMotion(phase, paused)
+    val videoPlaying = videoTheme.isVideo && phase == BurnInPhase.Running && !paused
+    // A video round replaces the wander; the clock stays put underneath and is simply covered.
+    val motion = if (videoPlaying) BurnInMotion.Still else burnInMotion(phase, paused)
     val anchor = rememberUpdatedState(anchorMillis)
     var offset by remember { mutableStateOf(BurnInOffset(0f, 0f)) }
     LaunchedEffect(motion, travelPx) {
@@ -66,8 +70,10 @@ internal fun BurnInShift(
         Box(
             modifier = modifier,
             contentAlignment = contentAlignment,
-            content = content,
-        )
+        ) {
+            content()
+            if (videoPlaying) ScreensaverVideo(videoTheme, Modifier.matchParentSize())
+        }
     }
 }
 
