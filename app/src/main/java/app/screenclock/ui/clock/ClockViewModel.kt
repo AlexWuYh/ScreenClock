@@ -159,6 +159,10 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launchPersisting { ceremonyLookStore.setStyle(style) }
     }
 
+    fun setAutoPlaySeconds(seconds: Int) {
+        viewModelScope.launchPersisting { ceremonyLookStore.setAutoPlaySeconds(seconds) }
+    }
+
     fun setCeremonyTone(tone: CeremonyTone) {
         viewModelScope.launchPersisting { ceremonyLookStore.setTone(tone) }
     }
@@ -182,14 +186,6 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         }
         watchBattery(application)
         // Forecast refresh waits until the Activity is started and visible.
-        viewModelScope.launch {
-            // A timer that was counting when the app closed takes the screen back, once.
-            val restored = focusController.state.first { it.known }
-            if (restored.session != null && destinationState.value == AppDestination.Clock) {
-                destinationState.value = AppDestination.Focus
-                burnInController.setPagePaused(true)
-            }
-        }
         viewModelScope.launch {
             faceController.clock.collect { shown ->
                 if (shown != null && shown.theme == pendingThemeSelection) pendingThemeSelection = null
@@ -339,12 +335,34 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    private val ceremonyStepState = MutableStateFlow(0)
+
+    /** Changes every time a run moves on, so the countdown page redraws. */
+    val ceremonyStep: StateFlow<Int> = ceremonyStepState
+
     fun openCeremony(id: String, fromList: Boolean) {
         if (!occasionController.openCeremony(id, fromList)) return
         burnInController.setPagePaused(true)
         chromeState.value = ChromeState()
         destinationState.value = AppDestination.Ceremony
     }
+
+    /** Plays every countdown in turn, nearest date first. */
+    fun openCeremonySequence(fromList: Boolean) {
+        if (!occasionController.openCeremonySequence(fromList)) return
+        ceremonyStepState.value++
+        burnInController.setPagePaused(true)
+        chromeState.value = ChromeState()
+        destinationState.value = AppDestination.Ceremony
+    }
+
+    fun advanceCeremony() {
+        if (occasionController.advanceCeremony()) ceremonyStepState.value++
+    }
+
+    fun ceremonyPosition(): Pair<Int, Int>? = occasionController.ceremonyPosition()
+
+    fun ceremonyHasNext(): Boolean = occasionController.ceremonyHasNext()
 
     fun closeCeremony() {
         when (occasionController.closeCeremony()) {

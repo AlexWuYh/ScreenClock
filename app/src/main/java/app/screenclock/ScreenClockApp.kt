@@ -241,6 +241,7 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
                     ceremonyLook = ceremonyLook,
                     onCeremonyStyle = viewModel::setCeremonyStyle,
                     onCeremonyTone = viewModel::setCeremonyTone,
+                    onAutoPlaySeconds = viewModel::setAutoPlaySeconds,
                     onOpenOccasions = { viewModel.openOccasions(fromSettings = true) },
                 )
             }

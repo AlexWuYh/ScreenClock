@@ -147,7 +147,7 @@ class WeatherController(
                 return@launchPersisting
             }
             store.replaceCity(
-                SavedCity(label, fix.latitude, fix.longitude),
+                SavedCity(fix.name?.takeIf { it.isNotBlank() } ?: label, fix.latitude, fix.longitude),
                 useLocation = true,
             )
             panelState.value = WeatherPanel()

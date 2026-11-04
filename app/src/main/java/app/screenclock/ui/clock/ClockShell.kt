@@ -1,5 +1,6 @@
 package app.screenclock.ui.clock
 
+import android.content.res.Configuration
 import android.database.ContentObserver
 import android.os.Handler
 import android.os.Looper
@@ -12,6 +13,9 @@ import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.tween
 import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.platform.LocalConfiguration
 import app.screenclock.ui.settings.themeLabel
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -55,7 +59,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
@@ -86,6 +89,7 @@ import app.screenclock.ui.glassPressable
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ChromeBar
+import app.screenclock.ui.toggleScreenOrientation
 import app.screenclock.ui.Cream
 import app.screenclock.ui.Hairline
 import app.screenclock.ui.Ink
@@ -159,13 +163,15 @@ fun ClockShell(viewModel: ClockViewModel) {
 
     val face = clock?.face
     val dateLine = clock?.dateLine
-    val weatherLine = formatWeatherLine(clock?.weather, showRange = slot == ClockWidth.Expanded)
+    val weatherLine = formatWeatherLine(clock?.weather, showRange = true, city = clock?.cityLabel)
     val description = when {
         face == null -> ""
         else -> clockContentDescription(dateLine, face.spoken, weatherLine, occasionLine)
     }
     val openOccasionLabel = stringResource(R.string.occasion_open)
     val showControlsLabel = stringResource(R.string.show_controls)
+    val rotateLabel = stringResource(R.string.rotate_screen)
+    val landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     val openId = pinnedOccasionId?.takeIf { !occasionLine.isNullOrBlank() }
     val resolver = context.contentResolver
     fun animatorEnabled() = Settings.Global.getFloat(
@@ -257,6 +263,32 @@ fun ClockShell(viewModel: ClockViewModel) {
                 )
             }
         }
+        // The rotate button hides together with the menu but sits at the top right corner.
+        AnimatedVisibility(
+            visible = chrome.visible,
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(top = 16.dp, end = 16.dp),
+            enter = fadeIn(tween(180)),
+            exit = fadeOut(tween(140)),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(52.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .background(GlassDarkFill)
+                    .border(1.dp, GlassDarkBorder, CircleShape)
+                    .glassPressable(onClick = {
+                        activity.toggleScreenOrientation(landscape)
+                        viewModel.onChromeInteraction(System.currentTimeMillis())
+                    })
+                    .semantics { contentDescription = rotateLabel },
+                contentAlignment = Alignment.Center,
+            ) {
+                AppIcon(kind = AppIconKind.Rotate, tint = FaceBright, size = 28.dp)
+            }
+        }
         AnimatedVisibility(
             visible = chrome.visible,
             modifier = Modifier
@@ -295,7 +327,6 @@ fun ClockShell(viewModel: ClockViewModel) {
                     modifier = Modifier
                         .fillMaxWidth()
                         .onGloballyPositioned { pillPosition = it.positionInRoot() }
-                        .shadow(6.dp, RoundedCornerShape(26.dp))
                         .clip(RoundedCornerShape(26.dp)),
                 ) {
                     // A blurred copy of the theme scene, shifted so its pixels line up
@@ -330,7 +361,7 @@ fun ClockShell(viewModel: ClockViewModel) {
                     Box(
                         modifier = Modifier
                             .matchParentSize()
-                            .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder),
+                            .glassSurface(corner = 26.dp, fill = GlassDarkFill, border = GlassDarkBorder, elevated = false),
                     )
                     Row(
                         modifier = Modifier

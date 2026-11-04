@@ -66,6 +66,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import app.screenclock.R
+import app.screenclock.ui.toggleScreenOrientation
+import app.screenclock.domain.weather.formatWeatherLine
+import androidx.activity.compose.LocalActivity
 import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.CeremonyMode
 import app.screenclock.domain.occasion.CeremonyParts
@@ -94,6 +97,8 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
     val dark = ceremonyIsDark(look.tone, isSystemInDarkTheme())
     val palette = remember(look.style, dark) { ceremonyPalette(look.style, dark) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
+    // Read so a run moving to its next countdown redraws the page.
+    val step by viewModel.ceremonyStep.collectAsStateWithLifecycle()
     val face = viewModel.ceremonyNow(now)
     val occurrence = viewModel.ceremonyDate()
     val generation by viewModel.wallClockGeneration.collectAsStateWithLifecycle()
@@ -109,6 +114,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
         now = LocalDateTime.now()
     }
     BackHandler { viewModel.closeCeremony() }
+    val position = viewModel.ceremonyPosition()
     if (face == null || occurrence == null) {
         LaunchedEffect(Unit) { viewModel.closeCeremony() }
         Box(modifier = Modifier.fillMaxSize().background(palette.bg))
@@ -116,6 +122,17 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
     }
     val leave = rememberUpdatedState(viewModel::closeCeremony)
     val controls = rememberAutoHideControls()
+    // In a run, a finished countdown shows its message for a while, then the next date takes over.
+    // A touch gives the message more time.
+    val finished = face?.mode == CeremonyMode.Done
+    LaunchedEffect(step, controls.tick, finished, look.autoPlaySeconds) {
+        if (position == null || !finished) return@LaunchedEffect
+        delay(look.autoPlaySeconds * 1000L)
+        viewModel.advanceCeremony()
+    }
+    val clock by viewModel.clock.collectAsStateWithLifecycle()
+    val weatherLine = formatWeatherLine(clock?.weather, showRange = true, city = clock?.cityLabel)
+    val activity = LocalActivity.current
     BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
@@ -139,7 +156,13 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                 .then(
                     if (face.mode == CeremonyMode.Done) {
                         Modifier.pointerInput(Unit) {
-                            detectTapGestures(onPress = { if (tryAwaitRelease()) leave.value.invoke() })
+                            detectTapGestures(
+                                onPress = {
+                                    if (tryAwaitRelease()) {
+                                        if (viewModel.ceremonyHasNext()) viewModel.advanceCeremony() else leave.value.invoke()
+                                    }
+                                },
+                            )
                         }
                     } else {
                         Modifier
@@ -149,16 +172,26 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
                     contentDescription = face.spoken
                     if (face.mode == CeremonyMode.Done) {
                         onClick {
-                            leave.value.invoke()
+                            if (viewModel.ceremonyHasNext()) viewModel.advanceCeremony() else leave.value.invoke()
                             true
                         }
                     }
                 },
         ) {
             when (look.style) {
-                CeremonyStyle.Card -> CardLayout(face, now, palette, step, landscape)
-                CeremonyStyle.Immersive -> ImmersiveLayout(face, now, palette, step, landscape, short, pageWidth)
+                CeremonyStyle.Card -> CardLayout(face, now, palette, step, landscape, weatherLine)
+                CeremonyStyle.Immersive -> ImmersiveLayout(face, now, palette, step, landscape, short, pageWidth, weatherLine)
             }
+        }
+        if (position != null) {
+            Text(
+                text = stringResource(R.string.ceremony_position, position.first, position.second),
+                color = palette.text2,
+                fontSize = 13.sp,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = 18.dp),
+            )
         }
         PageControls(
             controls = controls,
@@ -175,6 +208,7 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
             styleLabel = stringResource(
                 if (look.style == CeremonyStyle.Card) R.string.ceremony_to_immersive else R.string.ceremony_to_card,
             ),
+            onRotate = activity?.let { host -> { host.toggleScreenOrientation(landscape) } },
         )
     }
 }
@@ -305,10 +339,31 @@ private fun TargetChip(face: CeremonyFace, palette: CeremonyPalette, size: TextU
     }
 }
 
+/** The weather line under the date. Absent when there is no fresh reading. */
+@Composable
+private fun WeatherText(line: String?, palette: CeremonyPalette, size: TextUnit, modifier: Modifier = Modifier) {
+    if (line == null) return
+    Text(
+        text = line,
+        color = palette.text2,
+        fontSize = size,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier,
+    )
+}
+
 // ───────────────────────── Card design ─────────────────────────
 
 @Composable
-private fun CardLayout(face: CeremonyFace, now: LocalDateTime, palette: CeremonyPalette, step: Step, landscape: Boolean) {
+private fun CardLayout(
+    face: CeremonyFace,
+    now: LocalDateTime,
+    palette: CeremonyPalette,
+    step: Step,
+    landscape: Boolean,
+    weatherLine: String?,
+) {
     val clockSize = when (step) { Step.S -> if (landscape) 48.sp else 51.sp; Step.M -> if (landscape) 58.sp else 61.sp; Step.L -> if (landscape) 74.sp else 70.sp }
     val countSize = when (step) { Step.S -> if (landscape) 32.sp else 34.sp; Step.M -> if (landscape) 38.sp else 40.sp; Step.L -> if (landscape) 51.sp else 46.sp }
     val labelSize = when (step) { Step.S -> 11.sp; Step.M -> 11.5.sp; Step.L -> 12.5.sp }
@@ -333,6 +388,7 @@ private fun CardLayout(face: CeremonyFace, now: LocalDateTime, palette: Ceremony
                 ) {
                     Text(text = clockText(now), color = palette.text1, fontSize = clockSize, fontWeight = FontWeight.SemiBold, style = Tabular, maxLines = 1, softWrap = false)
                     Text(text = dateText(now), color = palette.text2, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(top = 8.dp))
+                    WeatherText(weatherLine, palette, 13.sp, Modifier.padding(top = 4.dp))
                 }
                 Box(Modifier.width(1.dp).height(160.dp).background(palette.divider))
                 Spacer(Modifier.width(26.dp))
@@ -341,7 +397,10 @@ private fun CardLayout(face: CeremonyFace, now: LocalDateTime, palette: Ceremony
         } else {
             Column(surface, horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(text = clockText(now), color = palette.text1, fontSize = clockSize, fontWeight = FontWeight.SemiBold, style = Tabular, maxLines = 1, softWrap = false)
-                Text(text = dateText(now), color = palette.text2, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(top = 8.dp, bottom = 26.dp))
+                Text(text = dateText(now), color = palette.text2, fontSize = 14.sp, maxLines = 1, modifier = Modifier.padding(top = 8.dp, bottom = if (weatherLine == null) 26.dp else 0.dp))
+                if (weatherLine != null) {
+                    WeatherText(weatherLine, palette, 13.sp, Modifier.padding(top = 4.dp, bottom = 26.dp))
+                }
                 AnniversaryCard(face, palette, countSize, labelSize, titleSize, Modifier.fillMaxWidth())
             }
         }
@@ -399,6 +458,7 @@ private fun ImmersiveLayout(
     landscape: Boolean,
     short: Boolean,
     width: Dp,
+    weatherLine: String?,
 ) {
     val clockSize = when {
         landscape && short -> minOf(width.value * 0.055f, 48f).coerceAtLeast(32f)
@@ -440,6 +500,12 @@ private fun ImmersiveLayout(
                 letterSpacing = 2.sp,
                 maxLines = 1,
                 modifier = Modifier.padding(top = if (short) 4.dp else 10.dp),
+            )
+            WeatherText(
+                weatherLine,
+                palette,
+                if (short) 11.sp else if (step == Step.S) 13.sp else 15.sp,
+                Modifier.padding(top = if (short) 2.dp else 6.dp),
             )
         }
     }

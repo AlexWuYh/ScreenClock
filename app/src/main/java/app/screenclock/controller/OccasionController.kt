@@ -2,6 +2,9 @@ package app.screenclock.controller
 
 import app.screenclock.data.occasion.OccasionStore
 import app.screenclock.domain.occasion.CeremonyFace
+import app.screenclock.domain.occasion.CeremonyStop
+import app.screenclock.domain.occasion.ceremonyPlaylist
+import app.screenclock.domain.occasion.nextStopIndex
 import app.screenclock.domain.occasion.LunarCalendar
 import app.screenclock.domain.occasion.OCCASION_LIMIT
 import app.screenclock.domain.occasion.Occasion
@@ -262,6 +265,55 @@ class OccasionController(
         return true
     }
 
+    /**
+     * Starts a run through every countdown that can open, nearest target date first.
+     * Returns false when none can. One countdown simply opens as usual.
+     */
+    fun openCeremonySequence(fromList: Boolean): Boolean {
+        val stops = ceremonyPlaylist(occasionsState.value, minutes.value.toLocalDate(), calendar)
+        val first = stops.firstOrNull() ?: return false
+        ceremony = CeremonySession(
+            id = first.id,
+            occurrence = first.occurrence,
+            returnToList = fromList,
+            stops = stops,
+            index = 0,
+        )
+        return true
+    }
+
+    /** Moves a run to the countdown with the next later date. False when there is none. */
+    fun advanceCeremony(): Boolean {
+        val session = ceremony ?: return false
+        val alive = session.stops.filter { stop -> occasionsState.value.any { it.id == stop.id } }
+        val current = alive.indexOfFirst { it.id == session.id }
+        if (current < 0) return false
+        val nextIndex = nextStopIndex(current, alive.size) ?: return false
+        val target = alive[nextIndex]
+        ceremony = session.copy(
+            id = target.id,
+            occurrence = target.occurrence,
+            stops = alive,
+            index = nextIndex,
+        )
+        return true
+    }
+
+    /** True while a run still has a later countdown to move to. */
+    fun ceremonyHasNext(): Boolean {
+        val session = ceremony ?: return false
+        val alive = session.stops.filter { stop -> occasionsState.value.any { it.id == stop.id } }
+        val current = alive.indexOfFirst { it.id == session.id }
+        return current >= 0 && nextStopIndex(current, alive.size) != null
+    }
+
+    /** Position in a run as (shown, total), or null when a single countdown is open. */
+    fun ceremonyPosition(): Pair<Int, Int>? {
+        val session = ceremony ?: return null
+        if (session.stops.size < 2) return null
+        return (session.index + 1) to session.stops.size
+    }
+
     fun closeCeremony(): CeremonyExit {
         val session = ceremony
         ceremony = null
@@ -309,5 +361,7 @@ class OccasionController(
         val id: String,
         val occurrence: LocalDate,
         val returnToList: Boolean,
+        val stops: List<CeremonyStop> = emptyList(),
+        val index: Int = 0,
     )
 }

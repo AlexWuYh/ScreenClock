@@ -55,6 +55,24 @@ class WeatherTest {
     }
 
     @Test
+    fun cityLeadsTheLineAndBlankCityIsIgnored() {
+        val reading = cache(temperatureC = 18, code = 0, highC = 26, lowC = 14)
+        assertEquals("成都市 · 晴 18° · 26° / 14°", formatWeatherLine(reading, showRange = true, city = "成都市"))
+        assertEquals("成都市 · 晴 18°", formatWeatherLine(reading, showRange = false, city = " 成都市 "))
+        assertEquals("晴 18° · 26° / 14°", formatWeatherLine(reading, showRange = true, city = "  "))
+        assertNull(formatWeatherLine(null, showRange = true, city = "成都市"))
+    }
+
+    @Test
+    fun lineShowsTheCityWithoutItsRegion() {
+        val reading = cache(temperatureC = 18, code = 0, highC = 26, lowC = 14)
+        assertEquals("成都 · 晴 18° · 26° / 14°", formatWeatherLine(reading, showRange = true, city = "成都 · 四川"))
+        assertEquals("成都", shortPlaceName("成都 · 四川"))
+        assertEquals("成都市", shortPlaceName("成都市"))
+        assertNull(shortPlaceName(" · 四川"))
+    }
+
+    @Test
     fun roundsHalfAwayFromZeroTowardPositive() {
         assertEquals(18, celsiusInt(18.4))
         assertEquals(19, celsiusInt(18.5))

@@ -41,6 +41,7 @@ internal fun Modifier.glassSurface(
     corner: Dp = 20.dp,
     fill: Color = GlassFill,
     border: Color = GlassBorder,
+    elevated: Boolean = true,
 ): Modifier {
     val shape = RoundedCornerShape(corner)
     val dark = fill == GlassDarkFill
@@ -53,8 +54,15 @@ internal fun Modifier.glassSurface(
         Brush.verticalGradient(listOf(border, border.copy(alpha = border.alpha * 0.40f)))
     }
     val sheenTop = if (dark) 0.10f else 0.34f
+    // Shadows show through translucent fills as a darker slab; flat overlays opt out.
     return this
-        .shadow(elevation = 8.dp, shape = shape, clip = false, ambientColor = ambient, spotColor = spot)
+        .then(
+            if (elevated) {
+                Modifier.shadow(elevation = 8.dp, shape = shape, clip = false, ambientColor = ambient, spotColor = spot)
+            } else {
+                Modifier
+            },
+        )
         .clip(shape)
         .background(fill)
         .drawBehind {

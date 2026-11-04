@@ -210,4 +210,42 @@ class OccasionControllerTest {
         assertFalse(controller.occasionRows.value.single().canOpen)
         assertFalse(controller.openCeremony("a", fromList = true))
     }
+
+    @Test
+    fun aRunMovesThroughTheDatesInOrderAndStopsAtTheLast() {
+        val store = FakeOccasionStore().apply {
+            items = listOf(item("late", month = 12, day = 25), item("soon", month = 11, day = 1), item("mid", month = 12, day = 1))
+        }
+        val controller = controller(store)
+        awaitTrue { controller.occasionRows.value.size == 3 }
+        assertTrue(controller.openCeremonySequence(fromList = true))
+        assertEquals(LocalDate.of(2026, 11, 1), controller.ceremonyDate())
+        assertEquals(1 to 3, controller.ceremonyPosition())
+        assertTrue(controller.ceremonyHasNext())
+        assertTrue(controller.advanceCeremony())
+        assertEquals(LocalDate.of(2026, 12, 1), controller.ceremonyDate())
+        assertTrue(controller.advanceCeremony())
+        assertEquals(LocalDate.of(2026, 12, 25), controller.ceremonyDate())
+        assertEquals(3 to 3, controller.ceremonyPosition())
+        assertFalse(controller.ceremonyHasNext())
+        assertFalse(controller.advanceCeremony())
+        assertEquals(3 to 3, controller.ceremonyPosition())
+        assertEquals(CeremonyExit.Occasions, controller.closeCeremony())
+    }
+
+    @Test
+    fun aSingleCountdownDoesNotAdvanceAndShowsNoPosition() {
+        val store = FakeOccasionStore().apply { items = listOf(item("a"), item("b", month = 11, day = 1)) }
+        val controller = controller(store)
+        awaitTrue { controller.occasionRows.value.size == 2 }
+        assertTrue(controller.openCeremony("a", fromList = false))
+        assertFalse(controller.advanceCeremony())
+        assertNull(controller.ceremonyPosition())
+    }
+
+    @Test
+    fun aRunWithNothingOpenableDoesNotStart() {
+        val controller = controller(FakeOccasionStore())
+        assertFalse(controller.openCeremonySequence(fromList = true))
+    }
 }

@@ -91,6 +91,7 @@ internal fun BoxScope.PageControls(
     onToggleTone: () -> Unit,
     onToggleStyle: (() -> Unit)? = null,
     styleLabel: String = "",
+    onRotate: (() -> Unit)? = null,
 ) {
     AnimatedVisibility(
         visible = controls.visible,
@@ -107,6 +108,9 @@ internal fun BoxScope.PageControls(
         modifier = Modifier.align(Alignment.TopEnd),
     ) {
         Row(modifier = Modifier.padding(12.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            if (onRotate != null) {
+                CornerButton(palette, AppIconKind.Rotate, stringResource(R.string.rotate_screen), onRotate)
+            }
             if (onToggleStyle != null) {
                 CornerButton(palette, AppIconKind.Palette, styleLabel, onToggleStyle)
             }

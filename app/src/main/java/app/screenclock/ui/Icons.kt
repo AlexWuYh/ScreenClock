@@ -39,6 +39,7 @@ internal enum class AppIconKind {
     Pause,
     Reset,
     Skip,
+    Rotate,
 }
 
 @Composable
@@ -65,6 +66,18 @@ internal fun AppIcon(
                     drawArc(tint, startAngle = -50f, sweepAngle = 290f, useCenter = false,
                         topLeft = Offset(4.5f, 4.5f), size = androidx.compose.ui.geometry.Size(15f, 15f), style = line)
                     path(listOf(14.2f to 2.8f, 17.8f to 5.9f, 13.8f to 8.3f), tint, line)
+                }
+                AppIconKind.Rotate -> {
+                    drawRoundRect(
+                        tint, Offset(8.6f, 7.6f), androidx.compose.ui.geometry.Size(6.8f, 8.8f),
+                        androidx.compose.ui.geometry.CornerRadius(1.4f, 1.4f), style = line,
+                    )
+                    drawArc(tint, startAngle = 215f, sweepAngle = 110f, useCenter = false,
+                        topLeft = Offset(3f, 3f), size = androidx.compose.ui.geometry.Size(18f, 18f), style = line)
+                    path(listOf(19.5f to 2.8f, 19.4f to 6.8f, 15.6f to 5.6f), tint, line)
+                    drawArc(tint, startAngle = 35f, sweepAngle = 110f, useCenter = false,
+                        topLeft = Offset(3f, 3f), size = androidx.compose.ui.geometry.Size(18f, 18f), style = line)
+                    path(listOf(8.4f to 18.4f, 4.6f to 17.2f, 4.5f to 21.2f), tint, line)
                 }
                 AppIconKind.Skip -> {
                     path(listOf(5f to 4.5f, 15f to 12f, 5f to 19.5f), tint, line, close = true)

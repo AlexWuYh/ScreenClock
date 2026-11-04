@@ -23,6 +23,14 @@
     <string name="focus_persist_failed">专注状态未能保存，重启后可能丢失</string>
     <string name="occasion">纪念日</string>
     <string name="occasion_add">添加</string>
+    <string name="occasion_play">播放</string>
+    <string name="occasion_play_all">自动播放</string>
+    <string name="auto_play_title">自动播放</string>
+    <string name="auto_play_help">有多个纪念日时，在纪念日列表点「自动播放」，会从目标日期最近的一条开始。倒计时到点后停留下面设定的时间，再自动切到日期更晚的下一条；最后一条结束后停住。点屏幕可立即跳到下一条，按返回键退出。</string>
+    <string name="auto_play_dwell">到点后停留</string>
+    <string name="auto_play_seconds">%1$d 秒</string>
+    <string name="auto_play_hint">点每条记录下面的「播放」，全屏查看它的倒计时；点右上角「自动播放」，从日期最近的一条开始，到点后自动切到下一条。停留时间可在设置里调整。</string>
+    <string name="ceremony_position">%1$d / %2$d</string>
     <string name="occasion_save">保存</string>
     <string name="occasion_delete">删除</string>
     <string name="occasion_delete_title">删除纪念日？</string>
@@ -93,6 +101,7 @@
     <string name="occasion_save_failed">纪念日未能保存到存储，重启后可能丢失</string>
     <string name="intro_hint">轻触屏幕空白处，可随时呼出或收起这些按钮</string>
     <string name="back_again_to_exit">再按一次返回键退出</string>
+    <string name="rotate_screen">旋转屏幕</string>
     <string name="show_controls">显示菜单</string>
     <string name="back">返回</string>
     <string name="section_display">显示</string>
@@ -185,6 +194,11 @@
     <string name="section_about">关于</string>
     <string name="about_intro">一块放在床头或桌上的全屏时钟。提供多款可切换的主题，可在钟面上显示日期、农历、天气和重要日子，并附带专注倒计时与防烧屏。</string>
     <string name="about_version">版本 %1$s</string>
+    <string name="update_check">检查更新</string>
+    <string name="update_checking">正在检查…</string>
+    <string name="update_latest">已是最新版本</string>
+    <string name="update_available">发现新版本 %1$s，点击前往下载</string>
+    <string name="update_failed">检查失败，请确认网络后重试</string>
     <string name="about_github">GitHub 仓库</string>
     <string name="about_author_title">作者</string>
     <string name="about_author_name">AlexWuYh</string>

@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
@@ -50,6 +51,9 @@ internal data class ClockLayoutPrefs(
     val datePosition: DatePosition = DatePosition.Above,
     val digitSize: DigitSize = DigitSize.Regular,
 )
+
+/** Same cut as Material 3 compact: the shortest screen side below this is a phone. */
+private const val PHONE_MAX_SMALLEST_WIDTH_DP = 600
 
 internal val LocalClockLayout = staticCompositionLocalOf { ClockLayoutPrefs() }
 
@@ -76,17 +80,26 @@ internal fun ClockScaffold(
 ) {
     val layoutPrefs = LocalClockLayout.current
     val dateBelow = layoutPrefs.datePosition == DatePosition.Below
+    // Phones (shortest side under 600dp, in either orientation) give more room to the digits
+    // and less to the date and footer. Tablets keep their sizes.
+    val phone = !preview && LocalConfiguration.current.smallestScreenWidthDp < PHONE_MAX_SMALLEST_WIDTH_DP
     val pad = when {
         preview -> 10.dp
+        phone -> 6.dp
         expanded -> 32.dp
         else -> 16.dp
     }
     val infoSize = when {
         preview -> 11.sp
+        phone -> 13.sp
         expanded -> 22.sp
         else -> 16.sp
     }
-    val lineGap = if (preview) 6.dp else 16.dp
+    val lineGap = when {
+        preview -> 6.dp
+        phone -> 10.dp
+        else -> 16.dp
+    }
     val footer = footerLine(weatherLine, occasionLine)
     BoxWithConstraints(
         modifier = modifier.padding(pad),
@@ -95,6 +108,7 @@ internal fun ClockScaffold(
         val boardWidth = maxWidth
         val lineBlock = when {
             preview -> 20.dp
+            phone -> 30.dp
             expanded -> 56.dp
             else -> 44.dp
         }
@@ -104,6 +118,7 @@ internal fun ClockScaffold(
         val side = if (face.meridiem != null && !meridiemBelow) {
             when {
                 preview -> 32.dp
+                phone -> 44.dp
                 expanded -> 80.dp
                 else -> 64.dp
             }

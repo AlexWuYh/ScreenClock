@@ -53,6 +53,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -128,6 +129,7 @@ fun OccasionScreen(viewModel: ClockViewModel) {
                 editing = true
             },
             onOpen = { id -> viewModel.openCeremony(id, fromList = true) },
+            onPlayAll = { viewModel.openCeremonySequence(fromList = true) },
             onPin = viewModel::pinOccasion,
             onUnpin = viewModel::unpinOccasion,
             onDelete = viewModel::deleteOccasion,
@@ -142,6 +144,7 @@ private fun OccasionList(
     onAdd: () -> Unit,
     onEdit: (String) -> Unit,
     onOpen: (String) -> Unit,
+    onPlayAll: () -> Unit,
     onPin: (String) -> Unit,
     onUnpin: (String) -> Unit,
     onDelete: (String) -> Unit,
@@ -164,6 +167,8 @@ private fun OccasionList(
                 onClick = onBack,
             )
             Spacer(modifier = Modifier.weight(1f))
+            PlayAllButton(enabled = rows.any { it.canOpen }, onClick = onPlayAll)
+            Spacer(modifier = Modifier.width(10.dp))
             AddButton(enabled = !full, onClick = onAdd)
         }
         Spacer(modifier = Modifier.height(14.dp))
@@ -171,6 +176,10 @@ private fun OccasionList(
         Spacer(modifier = Modifier.height(10.dp))
         if (full) {
             Text(text = stringResource(R.string.occasion_full), color = Muted, fontSize = 14.sp)
+        }
+        if (rows.any { it.canOpen }) {
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = stringResource(R.string.auto_play_hint), color = Muted, fontSize = 13.sp)
         }
         if (rows.isEmpty()) {
             Spacer(modifier = Modifier.height(28.dp))
@@ -221,6 +230,29 @@ private fun OccasionList(
     }
 }
 
+/** The main action of the page: a solid accent button, so it reads as the thing to press. */
+@Composable
+private fun PlayAllButton(enabled: Boolean, onClick: () -> Unit) {
+    val shape = RoundedCornerShape(14.dp)
+    Row(
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .glassSurface(corner = 14.dp, fill = if (enabled) UiAccentDeep else GlassFill, border = if (enabled) UiAccentDeep else GlassBorder)
+            .glassPressable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 18.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(kind = AppIconKind.Play, tint = if (enabled) androidx.compose.ui.graphics.Color.White else Muted, size = 20.dp)
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = stringResource(R.string.occasion_play_all),
+            color = if (enabled) androidx.compose.ui.graphics.Color.White else Muted,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
 @Composable
 private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
     Row(
@@ -228,8 +260,8 @@ private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
             .heightIn(min = 48.dp)
             .glassSurface(
                 corner = 14.dp,
-                fill = if (enabled) UiAccentGlassFill else GlassFill,
-                border = if (enabled) UiAccentGlassBorder else GlassBorder,
+                fill = GlassFill,
+                border = GlassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
@@ -255,47 +287,79 @@ private fun OccasionRowCard(
     } else {
         Modifier
     }
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .glassSurface(corner = 16.dp)
             .then(open)
-            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 12.dp),
+            .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            OccasionGlyph(icon = row.icon, tint = if (row.canOpen) UiAccentDeep else Muted, size = 26.dp)
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = row.title,
+                    color = if (row.canOpen) Cream else Muted,
+                    fontFamily = FontFamily.Serif,
+                    fontSize = 20.sp,
+                )
+                Spacer(modifier = Modifier.height(3.dp))
+                Text(text = row.detail, color = Info, fontSize = 14.sp)
+            }
+        }
+        Spacer(modifier = Modifier.height(10.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            RowPlayButton(enabled = row.canOpen, onClick = { onOpen(row.id) })
+            Spacer(modifier = Modifier.weight(1f))
+            IconBox(
+                icon = AppIconKind.Edit,
+                contentDescription = stringResource(R.string.occasion_edit),
+                onClick = { onEdit(row.id) },
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconBox(
+                icon = AppIconKind.Pin,
+                contentDescription = stringResource(
+                    if (row.pinned) R.string.occasion_unpin else R.string.occasion_pin,
+                ),
+                onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
+                enabled = row.pinned || row.canPin,
+                tint = if (row.pinned) UiAccentDeep else Cream,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconBox(
+                icon = AppIconKind.Trash,
+                contentDescription = stringResource(R.string.occasion_delete),
+                onClick = onDelete,
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+        }
+    }
+}
+
+/** Plays this one countdown. Labeled, so it is clear that tapping a record starts it. */
+@Composable
+private fun RowPlayButton(enabled: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .heightIn(min = 48.dp)
+            .glassSurface(
+                corner = 14.dp,
+                fill = if (enabled) UiAccentGlassFill else GlassFill,
+                border = if (enabled) UiAccentGlassBorder else GlassBorder,
+            )
+            .glassPressable(enabled = enabled, onClick = onClick)
+            .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        OccasionGlyph(icon = row.icon, tint = if (row.canOpen) UiAccentDeep else Muted, size = 26.dp)
-        Spacer(modifier = Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = row.title,
-                color = if (row.canOpen) Cream else Muted,
-                fontFamily = FontFamily.Serif,
-                fontSize = 20.sp,
-            )
-            Spacer(modifier = Modifier.height(3.dp))
-            Text(text = row.detail, color = Info, fontSize = 14.sp)
-        }
-        Spacer(modifier = Modifier.width(8.dp))
-        IconBox(
-            icon = AppIconKind.Edit,
-            contentDescription = stringResource(R.string.occasion_edit),
-            onClick = { onEdit(row.id) },
-        )
-        Spacer(modifier = Modifier.width(8.dp))
-        IconBox(
-            icon = AppIconKind.Pin,
-            contentDescription = stringResource(
-                if (row.pinned) R.string.occasion_unpin else R.string.occasion_pin,
-            ),
-            onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
-            enabled = row.pinned || row.canPin,
-            tint = if (row.pinned) UiAccentDeep else Cream,
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        IconBox(
-            icon = AppIconKind.Trash,
-            contentDescription = stringResource(R.string.occasion_delete),
-            onClick = onDelete,
+        AppIcon(kind = AppIconKind.Play, tint = if (enabled) UiAccentDeep else Muted, size = 18.dp)
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = stringResource(R.string.occasion_play),
+            color = if (enabled) Cream else Muted,
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Medium,
         )
     }
 }

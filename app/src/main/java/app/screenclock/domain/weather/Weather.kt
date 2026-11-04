@@ -78,14 +78,16 @@ private const val TEMPERATURE_MIN_C: Double = -100.0
 private const val TEMPERATURE_MAX_C: Double = 100.0
 
 /**
- * One clock line. Compact is `晴 18°`. Expanded adds today's high and low: `晴 18° · 26° / 14°`.
+ * One clock line: `晴 18°`, with today's high and low when asked: `晴 18° · 26° / 14°`.
+ * A [city] leads the line without its region: `成都 · 晴 18° · 26° / 14°`.
  * An unknown code keeps the temperature and still may show the range. Null cache hides the slot.
  */
-fun formatWeatherLine(cache: WeatherCache?, showRange: Boolean): String? {
+fun formatWeatherLine(cache: WeatherCache?, showRange: Boolean, city: String? = null): String? {
     if (cache == null) return null
     val temp = "${cache.temperatureC}°"
     val phrase = weatherPhrase(cache.code)
-    val base = if (phrase == null) temp else "$phrase $temp"
+    val reading = if (phrase == null) temp else "$phrase $temp"
+    val base = city?.let(::shortPlaceName)?.let { "$it · $reading" } ?: reading
     if (!showRange) return base
     val high = cache.highC ?: return base
     val low = cache.lowC ?: return base
@@ -143,6 +145,10 @@ fun placeLabel(name: String, admin1: String?, country: String?): String {
     val extra = region ?: nation
     return if (extra == null) place else "$place · $extra"
 }
+
+/** The clock shows the city alone: `成都 · 四川` from a search becomes `成都`. Blank gives null. */
+fun shortPlaceName(label: String): String? =
+    label.substringBefore(" · ").trim().takeIf { it.isNotEmpty() }
 
 fun coordinateOk(latitude: Double, longitude: Double): Boolean {
     return latitude.isFinite() && longitude.isFinite() &&

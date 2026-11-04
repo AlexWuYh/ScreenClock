@@ -69,6 +69,13 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import app.screenclock.data.update.UpdateChecker
+import app.screenclock.domain.update.UpdateResult
+import app.screenclock.domain.update.releasePageUrl
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -101,6 +108,7 @@ import app.screenclock.domain.time.FaceTime
 import app.screenclock.domain.time.HourMode
 import app.screenclock.domain.occasion.CeremonyLook
 import app.screenclock.domain.occasion.CeremonyStyle
+import app.screenclock.domain.occasion.AUTO_PLAY_SECONDS_CHOICES
 import app.screenclock.domain.occasion.CeremonyTone
 import app.screenclock.domain.time.showcasedThemes
 import app.screenclock.domain.weather.CityCandidate
@@ -195,6 +203,7 @@ fun SettingsScreen(
     ceremonyLook: CeremonyLook,
     onCeremonyStyle: (CeremonyStyle) -> Unit,
     onCeremonyTone: (CeremonyTone) -> Unit,
+    onAutoPlaySeconds: (Int) -> Unit,
 ) {
     BackHandler(onBack = onBack)
     // The page frame shows at once and the cards follow one per frame, so tapping Settings
@@ -441,6 +450,26 @@ fun SettingsScreen(
                                     onClick = { onCeremonyTone(CeremonyTone.Dark) },
                                 ),
                             ),
+                        )
+                        Spacer(modifier = Modifier.height(14.dp))
+                        FieldLabel(stringResource(R.string.auto_play_title))
+                        Spacer(modifier = Modifier.height(6.dp))
+                        Text(
+                            text = stringResource(R.string.auto_play_help),
+                            color = Info,
+                            fontSize = 13.sp,
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                        FieldLabel(stringResource(R.string.auto_play_dwell))
+                        Spacer(modifier = Modifier.height(8.dp))
+                        SegmentedRow(
+                            AUTO_PLAY_SECONDS_CHOICES.map { seconds ->
+                                SegmentOption(
+                                    label = stringResource(R.string.auto_play_seconds, seconds),
+                                    selected = ceremonyLook.autoPlaySeconds == seconds,
+                                    onClick = { onAutoPlaySeconds(seconds) },
+                                )
+                            },
                         )
                     }
                 }
@@ -1081,6 +1110,7 @@ private fun AboutCredit() {
         trailing = AppIconKind.Link,
         onClick = { openLink(context, "https://github.com/AlexWuYh/ScreenClock") },
     )
+    UpdateCheckRow(currentVersion = version)
 
     AboutDivider()
     Text(
@@ -1142,6 +1172,50 @@ private fun AboutCredit() {
     )
     CreditRow(R.string.credit_fonts_name, R.string.credit_fonts_detail)
     CreditRow(R.string.credit_nasa_name, R.string.credit_nasa_detail)
+}
+
+/** Manual only: nothing is requested until the row is tapped. */
+@Composable
+private fun UpdateCheckRow(currentVersion: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<UpdateResult?>(null) }
+    val status = when {
+        checking -> stringResource(R.string.update_checking)
+        result is UpdateResult.UpToDate -> stringResource(R.string.update_latest)
+        result is UpdateResult.Available ->
+            stringResource(R.string.update_available, (result as UpdateResult.Available).version)
+        result is UpdateResult.Failed -> stringResource(R.string.update_failed)
+        else -> null
+    }
+    NavRow(
+        icon = AppIconKind.Reset,
+        label = stringResource(R.string.update_check),
+        trailing = if (result is UpdateResult.Available) AppIconKind.Link else AppIconKind.ChevronRight,
+        onClick = {
+            val found = result
+            if (found is UpdateResult.Available) {
+                openLink(context, releasePageUrl(found.version))
+            } else if (!checking) {
+                checking = true
+                scope.launch {
+                    result = withContext(Dispatchers.IO) { UpdateChecker().check(currentVersion) }
+                    checking = false
+                }
+            }
+        },
+    )
+    if (status != null) {
+        Text(
+            text = status,
+            color = Muted,
+            fontSize = 13.sp,
+            modifier = Modifier
+                .padding(start = 30.dp, bottom = 4.dp)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        )
+    }
 }
 
 @Composable
