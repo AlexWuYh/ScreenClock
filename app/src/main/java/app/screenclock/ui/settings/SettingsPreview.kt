@@ -207,12 +207,6 @@ private fun ThemeTile(
     }
 }
 
-/** Mobile gets one legible preview per row; larger screens can show two. */
-internal fun themePreviewColumns(widthDp: Float): Int = if (widthDp < 360f) 1 else 2
-
-/** Preserve an image-like ratio while keeping both small and tablet cards useful. */
-internal fun themePreviewHeight(widthDp: Float): Float = (widthDp * 0.62f).coerceIn(132f, 220f)
-
 internal fun themeSubtitle(id: ClockThemeId): Int = when (id) {
     ClockThemeId.Flip -> R.string.theme_flip_desc
     ClockThemeId.Tube -> R.string.theme_tube_desc

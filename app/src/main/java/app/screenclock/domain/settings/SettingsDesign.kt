@@ -170,11 +170,14 @@ enum class SettingsPage {
     About,
 }
 
-/** Which pages sit under which home heading, in the design's order. */
-val SettingsGroups: List<Pair<String, List<SettingsPage>>> = listOf(
-    "钟面" to listOf(SettingsPage.Theme, SettingsPage.Display, SettingsPage.Layout, SettingsPage.Weather),
-    "保护与夜间" to listOf(SettingsPage.BurnIn, SettingsPage.Night),
-    "其他" to listOf(SettingsPage.Occasion, SettingsPage.About),
+/** The three home headings, in the design's order. */
+enum class SettingsGroup { Face, Protect, Other }
+
+/** Which pages sit under which home heading. */
+val SettingsGroups: List<Pair<SettingsGroup, List<SettingsPage>>> = listOf(
+    SettingsGroup.Face to listOf(SettingsPage.Theme, SettingsPage.Display, SettingsPage.Layout, SettingsPage.Weather),
+    SettingsGroup.Protect to listOf(SettingsPage.BurnIn, SettingsPage.Night),
+    SettingsGroup.Other to listOf(SettingsPage.Occasion, SettingsPage.About),
 )
 
 /** Where the window width puts the shell: a stacked index, or a list beside its detail. */
@@ -226,8 +229,6 @@ fun settingsPreviewHeight(tileWidthDp: Float, short: Boolean): Float {
     return if (short) ratio.coerceIn(96f, 120f) else ratio.coerceIn(120f, 260f)
 }
 
-/** True when a page should scroll to and highlight a specific row (the charge hint's jump). */
-data class SettingsJump(val page: SettingsPage, val key: String)
 
 // ───────────────────────── home search ─────────────────────────
 

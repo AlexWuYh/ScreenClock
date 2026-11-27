@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.liveRegion
 import app.screenclock.domain.settings.SettingsHit
 import app.screenclock.domain.settings.searchSettings
 import app.screenclock.domain.settings.settingsIndex
+import app.screenclock.domain.settings.SettingsGroup
 import app.screenclock.domain.settings.SettingsGroups
 import app.screenclock.domain.settings.SettingsPage
 import app.screenclock.domain.settings.SettingsSummaryInput
@@ -90,10 +91,10 @@ internal fun entryFor(page: SettingsPage): Entry = when (page) {
     SettingsPage.Home -> EntryTheme
 }
 
-internal fun groupTitle(page: SettingsPage): Int = when (page) {
-    SettingsPage.Theme, SettingsPage.Display, SettingsPage.Layout, SettingsPage.Weather -> R.string.settings_group_face
-    SettingsPage.BurnIn, SettingsPage.Night -> R.string.settings_group_protect
-    else -> R.string.settings_group_other
+internal fun groupTitle(group: SettingsGroup): Int = when (group) {
+    SettingsGroup.Face -> R.string.settings_group_face
+    SettingsGroup.Protect -> R.string.settings_group_protect
+    SettingsGroup.Other -> R.string.settings_group_other
 }
 
 /** The home index: a live face preview, then the grouped entries. */
@@ -199,16 +200,10 @@ internal fun HomeIndex(
                     )
                 }
             }
-            SettingsGroups.forEach { (heading, pages) ->
-                item(key = "head-$heading") {
+            SettingsGroups.forEach { (group, pages) ->
+                item(key = "head-${group.name}") {
                     Text(
-                        text = stringResource(
-                            when (heading) {
-                                "钟面" -> R.string.settings_group_face
-                                "保护与夜间" -> R.string.settings_group_protect
-                                else -> R.string.settings_group_other
-                            },
-                        ),
+                        text = stringResource(groupTitle(group)),
                         color = palette.accent,
                         fontSize = 13.sp,
                         fontWeight = FontWeight.SemiBold,

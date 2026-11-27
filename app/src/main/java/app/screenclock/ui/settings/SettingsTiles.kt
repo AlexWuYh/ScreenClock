@@ -93,17 +93,6 @@ internal fun Tile(
     )
 }
 
-/** A tile that only holds a control, without its own label. */
-@Composable
-internal fun ControlTile(
-    palette: UiPalette,
-    first: Boolean,
-    last: Boolean,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Tile(palette = palette, first = first, last = last, minHeight = 0.dp, content = content)
-}
-
 /** A tile with an optional note under the title, and a switch at the end. */
 @Composable
 internal fun SwitchTile(

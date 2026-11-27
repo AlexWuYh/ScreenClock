@@ -214,13 +214,18 @@ private fun ThemePage(
     }
 }
 
-/** One preview per frame: opening the page draws the frame, then fills the grid in. */
+/**
+ * One preview at a time: the page draws its frame first, then the grid fills in.
+ * A frame wait stalls when nothing else is invalidating, so this steps on a timer instead;
+ * it still spreads the work over frames rather than composing every preview at once.
+ */
 @Composable
 internal fun rememberThemePreviewStage(): Int {
     var ready by remember { mutableStateOf(0) }
     LaunchedEffect(Unit) {
+        withFrameNanos { }
         while (ready < showcasedThemes.size) {
-            withFrameNanos { }
+            kotlinx.coroutines.delay(16)
             ready += 1
         }
     }
