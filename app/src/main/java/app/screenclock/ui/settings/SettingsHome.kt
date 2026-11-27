@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.screenclock.R
@@ -146,20 +147,30 @@ internal fun HomeIndex(
             query = query,
             onQuery = { query = it },
         )
-        // A screen reader hears how many settings matched without reading the list.
+        // A screen reader hears how many settings matched without reading the list. A miss
+        // is centred and quiet, like an empty list rather than an error.
         if (searching) {
-            Text(
-                text = if (hits.isEmpty()) {
-                    stringResource(R.string.settings_search_empty, query.trim())
-                } else {
-                    stringResource(R.string.settings_search_count, hits.size)
-                },
-                color = palette.on3,
-                fontSize = 12.5.sp,
-                modifier = Modifier
-                    .padding(start = 28.dp, end = 28.dp, top = 2.dp, bottom = 4.dp)
-                    .semantics { liveRegion = LiveRegionMode.Polite },
-            )
+            if (hits.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.settings_search_empty, query.trim()),
+                    color = palette.on3,
+                    fontSize = 15.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(start = 28.dp, end = 28.dp, top = 44.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            } else {
+                Text(
+                    text = stringResource(R.string.settings_search_count, hits.size),
+                    color = palette.on3,
+                    fontSize = 12.5.sp,
+                    modifier = Modifier
+                        .padding(start = 28.dp, end = 28.dp, top = 2.dp, bottom = 4.dp)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
         }
         LazyColumn(
             state = scroll,
