@@ -185,4 +185,27 @@ class SettingsDesignTest {
         assertTrue(all.any { it.page == SettingsPage.Night && it.key == "charge" })
         assertTrue(all.any { it.page == SettingsPage.About })
     }
+
+    @Test
+    fun displayLeadsTheHomeListSoThemeIsNotTheDefaultWidePage() {
+        // The theme page composes a grid of live previews; opening it by default is what
+        // made a wide window look slow when entering settings.
+        assertEquals(SettingsPage.Display, SettingsEntryOrder.first())
+        assertEquals(SettingsPage.Display, SettingsDefaultPage)
+        assertEquals(SettingsPage.Theme, SettingsEntryOrder[1])
+    }
+
+    @Test
+    fun everyPageAppearsExactlyOnceAcrossTheGroups() {
+        val listed = SettingsGroups.flatMap { it.second }
+        assertEquals(listed.distinct(), listed)
+        assertEquals(SettingsPage.entries.filter { it != SettingsPage.Home }.toSet(), listed.toSet())
+        assertEquals(3, SettingsGroups.size)
+    }
+
+    @Test
+    fun theThemeEntryIsStillReachableFromTheFirstGroup() {
+        val face = SettingsGroups.first { it.first == SettingsGroup.Face }.second
+        assertTrue(SettingsPage.Theme in face)
+    }
 }

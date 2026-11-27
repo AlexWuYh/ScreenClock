@@ -44,6 +44,7 @@ import app.screenclock.R
 import app.screenclock.domain.appearance.AppearanceTone
 import app.screenclock.domain.appearance.nextAppearanceTone
 import app.screenclock.domain.settings.SETTINGS_DETAIL_MAX_DP
+import app.screenclock.domain.settings.SettingsDefaultPage
 import app.screenclock.domain.settings.SettingsPage
 import app.screenclock.domain.settings.SettingsWidth
 import app.screenclock.domain.settings.settingsIsShort
@@ -133,7 +134,8 @@ internal fun SettingsShell(ui: SettingsUi, actions: SettingsActions) {
                 )
                 Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                     SubPageTransition(
-                        page = if (page == SettingsPage.Home) SettingsPage.Theme else page,
+                        // A wide window always shows a detail column; the index itself is not one.
+                        page = if (page == SettingsPage.Home) SettingsDefaultPage else page,
                         ui = ui,
                         actions = actions,
                         onJump = jumpTo,

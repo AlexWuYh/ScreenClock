@@ -173,12 +173,22 @@ enum class SettingsPage {
 /** The three home headings, in the design's order. */
 enum class SettingsGroup { Face, Protect, Other }
 
-/** Which pages sit under which home heading. */
+/**
+ * Which pages sit under which home heading. Display leads the first group on purpose:
+ * the theme page composes a whole grid of live previews, so it must not be the page a
+ * wide layout opens by default, or entering settings looks slow on a tablet.
+ */
 val SettingsGroups: List<Pair<SettingsGroup, List<SettingsPage>>> = listOf(
-    SettingsGroup.Face to listOf(SettingsPage.Theme, SettingsPage.Display, SettingsPage.Layout, SettingsPage.Weather),
+    SettingsGroup.Face to listOf(SettingsPage.Display, SettingsPage.Theme, SettingsPage.Layout, SettingsPage.Weather),
     SettingsGroup.Protect to listOf(SettingsPage.BurnIn, SettingsPage.Night),
     SettingsGroup.Other to listOf(SettingsPage.Occasion, SettingsPage.About),
 )
+
+/** The entries in the order the home list shows them. */
+val SettingsEntryOrder: List<SettingsPage> = SettingsGroups.flatMap { it.second }
+
+/** What a wide window shows before the user picks anything: the cheapest first entry. */
+val SettingsDefaultPage: SettingsPage = SettingsEntryOrder.first()
 
 /** Where the window width puts the shell: a stacked index, or a list beside its detail. */
 enum class SettingsWidth {
