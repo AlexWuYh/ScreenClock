@@ -74,7 +74,7 @@ internal fun SettingsShell(ui: SettingsUi, actions: SettingsActions) {
     var highlight by rememberSaveable { mutableStateOf<String?>(null) }
     val jumpTo: (SettingsPage, String) -> Unit = { target, key ->
         page = target
-        highlight = key
+        highlight = key.ifBlank { null }
     }
     val animator = rememberAnimatorEnabled()
 
@@ -122,6 +122,7 @@ internal fun SettingsShell(ui: SettingsUi, actions: SettingsActions) {
                         toneLabel = toneLabel,
                         showHero = false,
                         wide = true,
+                        onSearchHit = { hit -> jumpTo(hit.page, hit.key) },
                     )
                 }
                 Box(
@@ -169,6 +170,7 @@ internal fun SettingsShell(ui: SettingsUi, actions: SettingsActions) {
                         toneLabel = toneLabel,
                         showHero = showHero,
                         wide = false,
+                        onSearchHit = { hit -> jumpTo(hit.page, hit.key) },
                     )
                 } else {
                     SubPageTransition(

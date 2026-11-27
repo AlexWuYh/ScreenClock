@@ -140,11 +140,11 @@ internal fun SubPage(
                 )
             }
             when (page) {
-                app.screenclock.domain.settings.SettingsPage.Theme -> ThemePage(ui, actions, palette)
-                app.screenclock.domain.settings.SettingsPage.Display -> DisplayPage(ui, actions, palette)
-                app.screenclock.domain.settings.SettingsPage.Layout -> LayoutPage(ui, actions, palette)
-                app.screenclock.domain.settings.SettingsPage.Weather -> WeatherPage(ui, actions, palette)
-                app.screenclock.domain.settings.SettingsPage.BurnIn -> BurnInPage(ui, actions, palette, onJump)
+                app.screenclock.domain.settings.SettingsPage.Theme -> ThemePage(ui, actions, palette, highlight, onHighlightShown)
+                app.screenclock.domain.settings.SettingsPage.Display -> DisplayPage(ui, actions, palette, highlight, onHighlightShown)
+                app.screenclock.domain.settings.SettingsPage.Layout -> LayoutPage(ui, actions, palette, highlight, onHighlightShown)
+                app.screenclock.domain.settings.SettingsPage.Weather -> WeatherPage(ui, actions, palette, highlight, onHighlightShown)
+                app.screenclock.domain.settings.SettingsPage.BurnIn -> BurnInPage(ui, actions, palette, onJump, highlight, onHighlightShown)
                 app.screenclock.domain.settings.SettingsPage.Night -> NightPage(
                     ui = ui,
                     actions = actions,
@@ -152,7 +152,13 @@ internal fun SubPage(
                     highlight = highlight,
                     onHighlightShown = onHighlightShown,
                 )
-                app.screenclock.domain.settings.SettingsPage.Occasion -> OccasionSettingsPage(ui, actions, palette)
+                app.screenclock.domain.settings.SettingsPage.Occasion -> OccasionSettingsPage(
+                    ui = ui,
+                    actions = actions,
+                    palette = palette,
+                    highlight = highlight,
+                    onHighlightShown = onHighlightShown,
+                )
                 app.screenclock.domain.settings.SettingsPage.About -> AboutPage(ui, palette)
                 app.screenclock.domain.settings.SettingsPage.Home -> Unit
             }
@@ -164,7 +170,13 @@ internal fun SubPage(
 // ───────────────────────── theme ─────────────────────────
 
 @Composable
-private fun ThemePage(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun ThemePage(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     val previews = rememberThemePreviewStage()
     ClockPreview(ui, tall = true)
     Spacer(Modifier.height(14.dp))
@@ -177,6 +189,7 @@ private fun ThemePage(ui: SettingsUi, actions: SettingsActions, palette: UiPalet
     )
     if (ui.theme == ClockThemeId.Flip) {
         Spacer(Modifier.height(16.dp))
+        HighlightTarget(palette, "colorway", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.colorway_name),
@@ -197,6 +210,7 @@ private fun ThemePage(ui: SettingsUi, actions: SettingsActions, palette: UiPalet
             first = true,
             last = true,
         )
+        }
     }
 }
 
@@ -216,10 +230,17 @@ internal fun rememberThemePreviewStage(): Int {
 // ───────────────────────── display ─────────────────────────
 
 @Composable
-private fun DisplayPage(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun DisplayPage(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     ClockPreview(ui)
     Spacer(Modifier.height(14.dp))
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        HighlightTarget(palette, "hour", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.hour_mode),
@@ -240,21 +261,39 @@ private fun DisplayPage(ui: SettingsUi, actions: SettingsActions, palette: UiPal
             first = true,
             last = false,
         )
-        SwitchTile(palette, stringResource(R.string.show_date), ui.showDate, actions.onShowDate, false, false)
-        SwitchTile(palette, stringResource(R.string.show_year), ui.showYear, actions.onShowYear, false, false, enabled = ui.showDate)
-        SwitchTile(palette, stringResource(R.string.show_weekday), ui.showWeekday, actions.onShowWeekday, false, false, enabled = ui.showDate)
-        SwitchTile(palette, stringResource(R.string.show_lunar), ui.showLunarDate, actions.onShowLunarDate, false, false, enabled = ui.showDate)
-        SwitchTile(palette, stringResource(R.string.show_holiday), ui.showHoliday, actions.onShowHoliday, false, true, enabled = ui.showDate)
+        }
+        HighlightTarget(palette, "date", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.show_date), ui.showDate, actions.onShowDate, false, false)
+        }
+        HighlightTarget(palette, "year", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.show_year), ui.showYear, actions.onShowYear, false, false, enabled = ui.showDate)
+        }
+        HighlightTarget(palette, "weekday", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.show_weekday), ui.showWeekday, actions.onShowWeekday, false, false, enabled = ui.showDate)
+        }
+        HighlightTarget(palette, "lunar", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.show_lunar), ui.showLunarDate, actions.onShowLunarDate, false, false, enabled = ui.showDate)
+        }
+        HighlightTarget(palette, "holiday", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.show_holiday), ui.showHoliday, actions.onShowHoliday, false, true, enabled = ui.showDate)
+        }
     }
 }
 
 // ───────────────────────── layout ─────────────────────────
 
 @Composable
-private fun LayoutPage(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun LayoutPage(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     ClockPreview(ui, tall = true)
     Spacer(Modifier.height(14.dp))
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        HighlightTarget(palette, "datePosition", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.date_position),
@@ -266,6 +305,8 @@ private fun LayoutPage(ui: SettingsUi, actions: SettingsActions, palette: UiPale
             first = true,
             last = false,
         )
+        }
+        HighlightTarget(palette, "digit", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.digit_size),
@@ -286,20 +327,33 @@ private fun LayoutPage(ui: SettingsUi, actions: SettingsActions, palette: UiPale
             first = false,
             last = true,
         )
+        }
     }
 }
 
 // ───────────────────────── weather ─────────────────────────
 
 @Composable
-private fun WeatherPage(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun WeatherPage(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     ClockPreview(ui)
     Spacer(Modifier.height(14.dp))
-    WeatherBody(ui, actions, palette)
+    WeatherBody(ui, actions, palette, highlight, onHighlightShown)
 }
 
 @Composable
-private fun WeatherBody(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun WeatherBody(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     val context = LocalContext.current
     val here = stringResource(R.string.weather_here)
     var query by rememberSaveable { mutableStateOf("") }
@@ -307,14 +361,16 @@ private fun WeatherBody(ui: SettingsUi, actions: SettingsActions, palette: UiPal
         if (granted) actions.onLocate(here) else actions.onLocationDenied()
     }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SwitchTile(
-            palette,
-            stringResource(R.string.show_weather),
-            ui.weatherEnabled,
-            actions.onWeatherEnabled,
-            true,
-            !ui.weatherEnabled,
-        )
+        HighlightTarget(palette, "weather", highlight, onHighlightShown) {
+            SwitchTile(
+                palette,
+                stringResource(R.string.show_weather),
+                ui.weatherEnabled,
+                actions.onWeatherEnabled,
+                true,
+                !ui.weatherEnabled,
+            )
+        }
         if (!ui.weatherEnabled) {
             NoteTile(
                 palette = palette,
@@ -334,6 +390,7 @@ private fun WeatherBody(ui: SettingsUi, actions: SettingsActions, palette: UiPal
                 }
             }
         }
+        HighlightTarget(palette, "location", highlight, onHighlightShown) {
         SwitchTile(
             palette,
             stringResource(R.string.weather_use_location),
@@ -352,6 +409,8 @@ private fun WeatherBody(ui: SettingsUi, actions: SettingsActions, palette: UiPal
             false,
             false,
         )
+        }
+        HighlightTarget(palette, "city", highlight, onHighlightShown) {
         Tile(palette = palette, first = false, last = true, minHeight = 0.dp) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 val shape = RoundedCornerShape(14.dp)
@@ -388,6 +447,7 @@ private fun WeatherBody(ui: SettingsUi, actions: SettingsActions, palette: UiPal
                 }
             }
             WeatherStatus(ui, actions, palette)
+        }
         }
     }
 }
@@ -477,17 +537,21 @@ private fun BurnInPage(
     actions: SettingsActions,
     palette: UiPalette,
     onJump: (app.screenclock.domain.settings.SettingsPage, String) -> Unit,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SwitchTile(
-            palette,
-            stringResource(R.string.burnin_enable),
-            ui.burnInEnabled,
-            actions.onBurnInEnabled,
-            true,
-            !ui.burnInEnabled && !ui.chargeKeepAwake,
-            note = stringResource(R.string.burnin_hint),
-        )
+        HighlightTarget(palette, "burnin", highlight, onHighlightShown) {
+            SwitchTile(
+                palette,
+                stringResource(R.string.burnin_enable),
+                ui.burnInEnabled,
+                actions.onBurnInEnabled,
+                true,
+                !ui.burnInEnabled && !ui.chargeKeepAwake,
+                note = stringResource(R.string.burnin_hint),
+            )
+        }
         if (ui.burnInEnabled && !ui.chargeKeepAwake) {
             Row(
                 modifier = Modifier
@@ -526,6 +590,7 @@ private fun BurnInPage(
             )
             return@Column
         }
+        HighlightTarget(palette, "screensaver", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.burnin_theme),
@@ -534,6 +599,7 @@ private fun BurnInPage(
             first = false,
             last = false,
         )
+        }
         Tile(palette = palette, first = false, last = false, minHeight = 0.dp) {
             ScreensaverPreview(ui.burnInTheme)
             if (ui.burnInTheme.isVideo) {
@@ -542,8 +608,12 @@ private fun BurnInPage(
             }
         }
         RhythmBar(ui, palette, first = false, last = false)
-        IdleDial(ui, actions, palette)
-        RunDial(ui, actions, palette, last = true)
+        HighlightTarget(palette, "idle", highlight, onHighlightShown) {
+            IdleDial(ui, actions, palette)
+        }
+        HighlightTarget(palette, "run", highlight, onHighlightShown) {
+            RunDial(ui, actions, palette, last = true)
+        }
     }
 }
 
@@ -771,40 +841,32 @@ private fun NightPage(
     highlight: String?,
     onHighlightShown: () -> Unit,
 ) {
-    // "去开启" lands on this page; the switch that was the answer lights up once.
-    var lit by remember(highlight) { mutableStateOf(highlight == "charge") }
-    LaunchedEffect(lit) {
-        if (lit) {
-            kotlinx.coroutines.delay(1_400)
-            lit = false
-            onHighlightShown()
-        }
-    }
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        SwitchTile(
-            palette,
-            stringResource(R.string.night_dim),
-            ui.nightDimEnabled,
-            actions.onNightDimEnabled,
-            true,
-            !ui.nightDimEnabled,
-            note = stringResource(R.string.night_hint),
-        )
+        HighlightTarget(palette, "night", highlight, onHighlightShown) {
+            SwitchTile(
+                palette,
+                stringResource(R.string.night_dim),
+                ui.nightDimEnabled,
+                actions.onNightDimEnabled,
+                true,
+                !ui.nightDimEnabled,
+                note = stringResource(R.string.night_hint),
+            )
+        }
         if (ui.nightDimEnabled) {
             NightBar(ui, palette)
-            HourSetter(palette, stringResource(R.string.night_start), ui.nightStartHour, actions.onNightStartHour)
-            HourSetter(palette, stringResource(R.string.night_end), ui.nightEndHour, actions.onNightEndHour, last = false)
+            HighlightTarget(palette, "start", highlight, onHighlightShown) {
+                HourSetter(palette, stringResource(R.string.night_start), ui.nightStartHour, actions.onNightStartHour)
+            }
+            HighlightTarget(palette, "end", highlight, onHighlightShown) {
+                HourSetter(palette, stringResource(R.string.night_end), ui.nightEndHour, actions.onNightEndHour, last = false)
+            }
         }
-        SwitchTile(palette, stringResource(R.string.night_warm), ui.nightWarmEnabled, actions.onNightWarmEnabled, false, false)
-        if (highlight == "charge") {
-            HighlightedSwitchTile(
-                palette = palette,
-                label = stringResource(R.string.charge_keep_awake),
-                checked = ui.chargeKeepAwake,
-                onCheckedChange = actions.onChargeKeepAwake,
-                lit = lit,
-            )
-        } else {
+        HighlightTarget(palette, "warm", highlight, onHighlightShown) {
+            SwitchTile(palette, stringResource(R.string.night_warm), ui.nightWarmEnabled, actions.onNightWarmEnabled, false, false)
+        }
+        // "去开启" on the burn-in page lands here, so the keep-awake switch is last.
+        HighlightTarget(palette, "charge", highlight, onHighlightShown) {
             SwitchTile(palette, stringResource(R.string.charge_keep_awake), ui.chargeKeepAwake, actions.onChargeKeepAwake, false, true)
         }
     }
@@ -905,7 +967,13 @@ private fun HourSetter(
 // ───────────────────────── occasion ─────────────────────────
 
 @Composable
-private fun OccasionSettingsPage(ui: SettingsUi, actions: SettingsActions, palette: UiPalette) {
+private fun OccasionSettingsPage(
+    ui: SettingsUi,
+    actions: SettingsActions,
+    palette: UiPalette,
+    highlight: String?,
+    onHighlightShown: () -> Unit,
+) {
     val dark = palette.dark
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         Tile(
@@ -930,6 +998,7 @@ private fun OccasionSettingsPage(ui: SettingsUi, actions: SettingsActions, palet
                 AppIcon(kind = AppIconKind.ChevronRight, tint = palette.on3, size = 16.dp)
             }
         }
+        HighlightTarget(palette, "style", highlight, onHighlightShown) {
         Tile(palette = palette, first = false, last = false, minHeight = 0.dp) {
             Text(text = stringResource(R.string.ceremony_style), color = palette.on, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(10.dp))
@@ -956,6 +1025,8 @@ private fun OccasionSettingsPage(ui: SettingsUi, actions: SettingsActions, palet
                 )
             }
         }
+        }
+        HighlightTarget(palette, "autoplay", highlight, onHighlightShown) {
         NoteTile(
             palette = palette,
             title = stringResource(R.string.auto_play_title),
@@ -963,6 +1034,8 @@ private fun OccasionSettingsPage(ui: SettingsUi, actions: SettingsActions, palet
             first = false,
             last = false,
         )
+        }
+        HighlightTarget(palette, "dwell", highlight, onHighlightShown) {
         SegmentedTile(
             palette = palette,
             label = stringResource(R.string.auto_play_dwell),
@@ -971,6 +1044,7 @@ private fun OccasionSettingsPage(ui: SettingsUi, actions: SettingsActions, palet
             first = false,
             last = true,
         )
+        }
     }
 }
 

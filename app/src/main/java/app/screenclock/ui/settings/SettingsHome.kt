@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
@@ -30,6 +31,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import app.screenclock.R
+import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import app.screenclock.domain.settings.SettingsHit
+import app.screenclock.domain.settings.searchSettings
+import app.screenclock.domain.settings.settingsIndex
 import app.screenclock.domain.settings.SettingsGroups
 import app.screenclock.domain.settings.SettingsPage
 import app.screenclock.domain.settings.SettingsSummaryInput
@@ -94,8 +107,15 @@ internal fun HomeIndex(
     toneLabel: String,
     showHero: Boolean,
     wide: Boolean,
+    onSearchHit: (SettingsHit) -> Unit = {},
 ) {
     val scroll = rememberLazyListState()
+    var query by rememberSaveable { mutableStateOf("") }
+    val index = buildSettingsIndex(ui)
+    val hits = remember(index, query) { searchSettings(index, query) }
+    val searching = query.isNotBlank()
+    // Back clears the query first; leaving the page is the next press's job.
+    BackHandler(enabled = searching) { query = "" }
     Column(modifier = Modifier.fillMaxSize()) {
         Row(
             modifier = Modifier
@@ -121,11 +141,43 @@ internal fun HomeIndex(
                 onToggleTone,
             )
         }
+        SearchField(
+            palette = palette,
+            query = query,
+            onQuery = { query = it },
+        )
+        // A screen reader hears how many settings matched without reading the list.
+        if (searching) {
+            Text(
+                text = if (hits.isEmpty()) {
+                    stringResource(R.string.settings_search_empty, query.trim())
+                } else {
+                    stringResource(R.string.settings_search_count, hits.size)
+                },
+                color = palette.on3,
+                fontSize = 12.5.sp,
+                modifier = Modifier
+                    .padding(start = 28.dp, end = 28.dp, top = 2.dp, bottom = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         LazyColumn(
             state = scroll,
             modifier = Modifier.fillMaxSize(),
             contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 32.dp),
         ) {
+            if (searching) {
+                items(hits, key = { it.page.name + it.key }) { hit ->
+                    SearchHitRow(
+                        palette = palette,
+                        hit = hit,
+                        first = hit === hits.first(),
+                        last = hit === hits.last(),
+                        onClick = { onSearchHit(hit) },
+                    )
+                }
+                return@LazyColumn
+            }
             if (showHero && !wide) {
                 item {
                     HeroCard(
@@ -317,3 +369,120 @@ internal fun summaryInput(ui: SettingsUi): SettingsSummaryInput = SettingsSummar
     autoPlaySeconds = ui.ceremonyLook.autoPlaySeconds,
     version = ui.version,
 )
+
+/** Builds the search index from the strings the pages already show. */
+@Composable
+internal fun buildSettingsIndex(ui: SettingsUi): List<SettingsHit> = settingsIndex(
+    themeTitle = stringResource(R.string.theme),
+    colorwayTitle = stringResource(R.string.colorway_name),
+    hourTitle = stringResource(R.string.hour_mode),
+    dateToggles = listOf(
+        stringResource(R.string.show_date),
+        stringResource(R.string.show_year),
+        stringResource(R.string.show_weekday),
+        stringResource(R.string.show_lunar),
+        stringResource(R.string.show_holiday),
+    ),
+    datePositionTitle = stringResource(R.string.date_position),
+    digitSizeTitle = stringResource(R.string.digit_size),
+    weatherTitle = stringResource(R.string.show_weather),
+    weatherLocationTitle = stringResource(R.string.weather_use_location),
+    weatherSearchTitle = stringResource(R.string.weather_search),
+    burnInTitle = stringResource(R.string.burnin_enable),
+    screensaverTitle = stringResource(R.string.burnin_theme),
+    burnInIdleTitle = stringResource(R.string.burnin_idle_short),
+    burnInRunTitle = stringResource(R.string.burnin_run_short),
+    nightDimTitle = stringResource(R.string.night_dim),
+    nightStartTitle = stringResource(R.string.night_start),
+    nightEndTitle = stringResource(R.string.night_end),
+    nightWarmTitle = stringResource(R.string.night_warm),
+    chargeTitle = stringResource(R.string.charge_keep_awake),
+    occasionTitle = stringResource(R.string.occasion),
+    ceremonyStyleTitle = stringResource(R.string.ceremony_style),
+    autoPlayTitle = stringResource(R.string.auto_play_title),
+    autoPlayDwellTitle = stringResource(R.string.auto_play_dwell),
+    updateTitle = stringResource(R.string.update_check),
+    aboutTitles = listOf(
+        stringResource(R.string.about_github),
+        stringResource(R.string.about_author_name),
+        stringResource(R.string.about_license_title),
+        stringResource(R.string.about_third_party),
+    ),
+)
+
+/** The home search box: a quiet field that hides the grouped index while it has text. */
+@Composable
+private fun SearchField(
+    palette: UiPalette,
+    query: String,
+    onQuery: (String) -> Unit,
+) {
+    val shape = RoundedCornerShape(25.dp)
+    val clearLabel = stringResource(R.string.settings_search_clear)
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 2.dp)
+            .height(50.dp)
+            .clip(shape)
+            .background(palette.field)
+            .padding(start = 16.dp, end = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        AppIcon(kind = AppIconKind.Search, tint = palette.on2, size = 18.dp)
+        Spacer(Modifier.width(10.dp))
+        Box(modifier = Modifier.weight(1f)) {
+            if (query.isEmpty()) {
+                Text(text = stringResource(R.string.settings_search_hint), color = palette.on3, fontSize = 15.sp)
+            }
+            androidx.compose.foundation.text.BasicTextField(
+                value = query,
+                onValueChange = onQuery,
+                singleLine = true,
+                textStyle = androidx.compose.ui.text.TextStyle(
+                    color = palette.on,
+                    fontSize = 15.sp,
+                ),
+                cursorBrush = androidx.compose.ui.graphics.SolidColor(palette.accent),
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        if (query.isNotEmpty()) {
+            Box(
+                modifier = Modifier
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .semantics { contentDescription = clearLabel }
+                    .glassPressable(onClick = { onQuery("") }),
+                contentAlignment = Alignment.Center,
+            ) {
+                AppIcon(kind = AppIconKind.Plus, tint = palette.on3, size = 16.dp, rotationDegrees = 45f)
+            }
+        }
+    }
+}
+
+/** One search result: the setting's name, the page it lives on, and where it goes. */
+@Composable
+private fun SearchHitRow(
+    palette: UiPalette,
+    hit: SettingsHit,
+    first: Boolean,
+    last: Boolean,
+    onClick: () -> Unit,
+) {
+    val entry = entryFor(hit.page)
+    Tile(palette = palette, first = first, last = last, onClick = onClick) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            CategoryChip(entry.color) {
+                AppIcon(kind = entry.icon, tint = entry.color, size = 20.dp)
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = hit.title, color = palette.on, fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                Text(text = stringResource(entry.title), color = palette.on3, fontSize = 13.sp)
+            }
+            AppIcon(kind = AppIconKind.ChevronRight, tint = palette.on3, size = 16.dp)
+        }
+    }
+}

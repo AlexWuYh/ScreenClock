@@ -241,4 +241,8 @@
     <string name="burnin_run_short">屏保每次持续多久</string>
     <string name="ceremony_style_card_desc">数字放进独立小卡片</string>
     <string name="ceremony_style_immersive_desc">整屏大字，背景铺满</string>
+    <string name="settings_search_hint">搜索设置</string>
+    <string name="settings_search_empty">没有找到「%1$s」</string>
+    <string name="settings_search_count">找到 %1$d 项设置</string>
+    <string name="settings_search_clear">清除</string>
 </resources>

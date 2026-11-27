@@ -125,4 +125,64 @@ class SettingsDesignTest {
         assertEquals(1, nightBarSpans(1, 5).size)
         assertTrue(nightBarSpans(8, 8).isEmpty())
     }
+
+    private fun index() = settingsIndex(
+        themeTitle = "主题",
+        colorwayTitle = "翻页配色",
+        hourTitle = "小时制",
+        dateToggles = listOf("显示日期", "显示年份", "显示星期", "显示农历", "显示节日"),
+        datePositionTitle = "日期位置",
+        digitSizeTitle = "数字大小",
+        weatherTitle = "显示天气",
+        weatherLocationTitle = "使用当前位置",
+        weatherSearchTitle = "搜索",
+        burnInTitle = "开启防烧屏",
+        screensaverTitle = "屏保主题",
+        burnInIdleTitle = "无操作多久后启动屏保",
+        burnInRunTitle = "屏保每次持续多久",
+        nightDimTitle = "夜间变暗",
+        nightStartTitle = "开始",
+        nightEndTitle = "结束",
+        nightWarmTitle = "夜间暖色",
+        chargeTitle = "充电时常亮",
+        occasionTitle = "纪念日",
+        ceremonyStyleTitle = "风格",
+        autoPlayTitle = "自动播放",
+        autoPlayDwellTitle = "到点后停留",
+        updateTitle = "检查更新",
+        aboutTitles = listOf("GitHub 仓库", "AlexWuYh", "许可", "第三方内容"),
+    )
+
+    @Test
+    fun searchingFindsASettingByNameAndSaysWhichPageItIsOn() {
+        val hits = searchSettings(index(), "暖色")
+        assertEquals(1, hits.size)
+        assertEquals(SettingsPage.Night, hits.first().page)
+        assertEquals("warm", hits.first().key)
+    }
+
+    @Test
+    fun searchingAlsoMatchesWordsAUserMightTypeInstead() {
+        // "屏保" is not in any title, but it is the word people use for the burn-in page.
+        assertTrue(searchSettings(index(), "屏保").isNotEmpty())
+        assertTrue(searchSettings(index(), "定位").any { it.page == SettingsPage.Weather })
+        assertTrue(searchSettings(index(), "24 小时").any { it.page == SettingsPage.Display })
+        assertTrue(searchSettings(index(), "字号").any { it.page == SettingsPage.Layout })
+    }
+
+    @Test
+    fun anEmptyOrUnknownQueryDoesNotClaimAMatch() {
+        assertTrue(searchSettings(index(), "").isEmpty())
+        assertTrue(searchSettings(index(), "   ").isEmpty())
+        assertTrue(searchSettings(index(), "没有这个设置").isEmpty())
+    }
+
+    @Test
+    fun everyHitPointsAtARealPageAndTheChargeJumpStillHasAKey() {
+        val all = index()
+        assertTrue(all.all { it.title.isNotBlank() })
+        assertTrue(all.any { it.page == SettingsPage.BurnIn && it.key == "burnin" })
+        assertTrue(all.any { it.page == SettingsPage.Night && it.key == "charge" })
+        assertTrue(all.any { it.page == SettingsPage.About })
+    }
 }

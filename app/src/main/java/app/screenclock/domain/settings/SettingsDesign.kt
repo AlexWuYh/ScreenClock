@@ -228,3 +228,83 @@ fun settingsPreviewHeight(tileWidthDp: Float, short: Boolean): Float {
 
 /** True when a page should scroll to and highlight a specific row (the charge hint's jump). */
 data class SettingsJump(val page: SettingsPage, val key: String)
+
+// ───────────────────────── home search ─────────────────────────
+
+/**
+ * One searchable setting. [title] and [keywords] are the entry's name plus a few words a
+ * user might type instead; [page] is where a hit goes, and [key] names the row to scroll to
+ * when the whole page is not the answer (empty means "just open the page").
+ */
+data class SettingsHit(
+    val title: String,
+    val keywords: List<String>,
+    val page: SettingsPage,
+    val key: String = "",
+)
+
+/** Builds the index from the strings the pages already show, so nothing is duplicated. */
+fun settingsIndex(
+    themeTitle: String,
+    colorwayTitle: String,
+    hourTitle: String,
+    dateToggles: List<String>,
+    datePositionTitle: String,
+    digitSizeTitle: String,
+    weatherTitle: String,
+    weatherLocationTitle: String,
+    weatherSearchTitle: String,
+    burnInTitle: String,
+    screensaverTitle: String,
+    burnInIdleTitle: String,
+    burnInRunTitle: String,
+    nightDimTitle: String,
+    nightStartTitle: String,
+    nightEndTitle: String,
+    nightWarmTitle: String,
+    chargeTitle: String,
+    occasionTitle: String,
+    ceremonyStyleTitle: String,
+    autoPlayTitle: String,
+    autoPlayDwellTitle: String,
+    updateTitle: String,
+    aboutTitles: List<String>,
+): List<SettingsHit> = buildList {
+    add(SettingsHit(themeTitle, listOf("皮肤", "翻页", "简约", "模拟", "地球", "霓虹", "灯管", "极简"), SettingsPage.Theme))
+    add(SettingsHit(colorwayTitle, listOf("墨黑", "素白", "深灰"), SettingsPage.Theme, "colorway"))
+    add(SettingsHit(hourTitle, listOf("12 小时", "24 小时", "上午", "下午"), SettingsPage.Display, "hour"))
+    dateToggles.forEachIndexed { index, title ->
+        val keys = listOf("date", "year", "weekday", "lunar", "holiday")
+        add(SettingsHit(title, emptyList(), SettingsPage.Display, keys.getOrElse(index) { "date" }))
+    }
+    add(SettingsHit(datePositionTitle, listOf("上方", "下方"), SettingsPage.Layout, "datePosition"))
+    add(SettingsHit(digitSizeTitle, listOf("紧凑", "标准", "醒目", "字号"), SettingsPage.Layout, "digit"))
+    add(SettingsHit(weatherTitle, listOf("Open-Meteo", "天气"), SettingsPage.Weather, "weather"))
+    add(SettingsHit(weatherLocationTitle, listOf("定位", "当前位置"), SettingsPage.Weather, "location"))
+    add(SettingsHit(weatherSearchTitle, listOf("城市"), SettingsPage.Weather, "city"))
+    add(SettingsHit(burnInTitle, listOf("屏保"), SettingsPage.BurnIn, "burnin"))
+    add(SettingsHit(screensaverTitle, listOf("漂移", "故障", "隧道", "暗影"), SettingsPage.BurnIn, "screensaver"))
+    add(SettingsHit(burnInIdleTitle, listOf("闲置", "分钟"), SettingsPage.BurnIn, "idle"))
+    add(SettingsHit(burnInRunTitle, listOf("时长"), SettingsPage.BurnIn, "run"))
+    add(SettingsHit(nightDimTitle, listOf("亮度"), SettingsPage.Night, "night"))
+    add(SettingsHit(nightStartTitle, listOf("夜间开始"), SettingsPage.Night, "start"))
+    add(SettingsHit(nightEndTitle, listOf("夜间结束"), SettingsPage.Night, "end"))
+    add(SettingsHit(nightWarmTitle, listOf("暖光", "护眼"), SettingsPage.Night, "warm"))
+    add(SettingsHit(chargeTitle, listOf("常亮", "不熄屏"), SettingsPage.Night, "charge"))
+    add(SettingsHit(occasionTitle, listOf("列表"), SettingsPage.Occasion))
+    add(SettingsHit(ceremonyStyleTitle, listOf("卡片", "沉浸"), SettingsPage.Occasion, "style"))
+    add(SettingsHit(autoPlayTitle, emptyList(), SettingsPage.Occasion, "autoplay"))
+    add(SettingsHit(autoPlayDwellTitle, listOf("秒"), SettingsPage.Occasion, "dwell"))
+    add(SettingsHit(updateTitle, listOf("版本"), SettingsPage.About))
+    aboutTitles.forEach { add(SettingsHit(it, listOf("作者", "许可", "第三方"), SettingsPage.About)) }
+}
+
+/** Case-insensitive substring match over the title and its keywords. */
+fun searchSettings(index: List<SettingsHit>, query: String): List<SettingsHit> {
+    val needle = query.trim()
+    if (needle.isEmpty()) return emptyList()
+    return index.filter { hit ->
+        hit.title.contains(needle, ignoreCase = true) ||
+            hit.keywords.any { it.contains(needle, ignoreCase = true) }
+    }
+}

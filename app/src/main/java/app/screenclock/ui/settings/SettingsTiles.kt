@@ -24,7 +24,13 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -479,5 +485,42 @@ internal fun HighlightedSwitchTile(
                 Switch(checked = checked, onCheckedChange = onCheckedChange, colors = tileSwitchColors(palette))
             }
         }
+    }
+}
+
+/**
+ * Scrolls a row into view and lights it for a moment when a search hit or the burn-in
+ * charge hint asks for it. The [key] is only the row's name; the flash decays on its own.
+ */
+@Composable
+internal fun HighlightTarget(
+    palette: UiPalette,
+    rowKey: String,
+    highlight: String?,
+    onShown: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    val active = highlight == rowKey
+    val requester = remember { BringIntoViewRequester() }
+    var lit by remember(active) { mutableStateOf(active) }
+    LaunchedEffect(active) {
+        if (!active) {
+            lit = false
+            return@LaunchedEffect
+        }
+        lit = true
+        requester.bringIntoView()
+        kotlinx.coroutines.delay(1_500)
+        lit = false
+        onShown()
+    }
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .bringIntoViewRequester(requester)
+            .clip(RoundedCornerShape(TileSmallRadius))
+            .background(palette.accentSoft.copy(alpha = if (lit) 0.45f else 0f)),
+    ) {
+        content()
     }
 }
