@@ -2,7 +2,6 @@ package app.screenclock.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -14,11 +13,11 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchColors
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -40,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-private val GlassText = Cream
 internal val UiAccentGlassFill = UiAccent.copy(alpha = 0.18f)
 internal val UiAccentGlassBorder = UiAccent.copy(alpha = 0.52f)
 
@@ -58,15 +56,16 @@ internal fun SectionCard(content: @Composable ColumnScope.() -> Unit) {
 
 @Composable
 internal fun SectionHeader(icon: AppIconKind, text: String) {
+    val palette = LocalUiPalette.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(bottom = 10.dp),
     ) {
-        AppIcon(kind = icon, tint = UiAccentDeep, size = 17.dp)
+        AppIcon(kind = icon, tint = palette.accent, size = 17.dp)
         Spacer(modifier = Modifier.width(10.dp))
         Text(
             text = text,
-            color = GlassText,
+            color = palette.on,
             fontSize = 15.sp,
             fontWeight = FontWeight.SemiBold,
             letterSpacing = 0.4.sp,
@@ -79,7 +78,7 @@ internal fun SectionHeader(icon: AppIconKind, text: String) {
 internal fun PageTitle(text: String) {
     Text(
         text = text,
-        color = GlassText,
+        color = LocalUiPalette.current.on,
         fontFamily = FontFamily.Serif,
         fontSize = 34.sp,
         maxLines = 2,
@@ -95,18 +94,19 @@ internal fun IconBox(
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    tint: Color = GlassText,
+    tint: Color = LocalUiPalette.current.on,
     enabled: Boolean = true,
 ) {
+    val palette = LocalUiPalette.current
     Box(
         modifier = modifier
             .size(48.dp)
-            .glassSurface(corner = 14.dp, fill = GlassFillHigh)
+            .glassSurface(corner = 14.dp, fill = palette.glassFillHigh)
             .semantics { this.contentDescription = contentDescription }
             .glassPressable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        AppIcon(kind = icon, tint = if (enabled) tint else Muted, size = 20.dp)
+        AppIcon(kind = icon, tint = if (enabled) tint else palette.on3, size = 20.dp)
     }
 }
 
@@ -118,19 +118,20 @@ internal fun ToggleRow(
     note: String? = null,
     enabled: Boolean = true,
 ) {
+    val palette = LocalUiPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .clip(RoundedCornerShape(12.dp))
-            .toggleableRow(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onCheckedChange),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = label, color = if (enabled) GlassText else Muted, fontSize = 16.sp)
+            Text(text = label, color = if (enabled) palette.on else palette.on3, fontSize = 16.sp)
             if (note != null) {
                 Spacer(modifier = Modifier.height(2.dp))
-                Text(text = note, color = Muted, fontSize = 13.sp)
+                Text(text = note, color = palette.on3, fontSize = 13.sp)
             }
         }
         Spacer(modifier = Modifier.width(12.dp))
@@ -144,24 +145,24 @@ internal fun ToggleRow(
     }
 }
 
-private fun Modifier.toggleableRow(value: Boolean, enabled: Boolean, role: Role, onValueChange: (Boolean) -> Unit) =
-    toggleable(value = value, enabled = enabled, role = role, onValueChange = onValueChange)
-
 @Composable
-internal fun appSwitchColors() = SwitchDefaults.colors(
-    checkedThumbColor = UiAccentDeep,
-    checkedTrackColor = UiAccent.copy(alpha = 0.30f),
-    checkedBorderColor = UiAccentDeep.copy(alpha = 0.70f),
-    uncheckedThumbColor = Color(0xFF6B7F8B),
-    uncheckedTrackColor = GlassFillHigh,
-    uncheckedBorderColor = Color(0xFF8FA3AE),
-)
+internal fun appSwitchColors(): SwitchColors {
+    val palette = LocalUiPalette.current
+    return SwitchDefaults.colors(
+        checkedThumbColor = if (palette.dark) palette.onAccentSoft else palette.accent,
+        checkedTrackColor = palette.accent.copy(alpha = if (palette.dark) 0.55f else 0.30f),
+        checkedBorderColor = palette.accent,
+        uncheckedThumbColor = palette.on3,
+        uncheckedTrackColor = palette.field,
+        uncheckedBorderColor = palette.outline,
+    )
+}
 
 @Composable
 internal fun appSliderColors() = SliderDefaults.colors(
-    thumbColor = UiAccentDeep,
-    activeTrackColor = UiAccent,
-    inactiveTrackColor = UiAccent.copy(alpha = 0.22f),
+    thumbColor = LocalUiPalette.current.accent,
+    activeTrackColor = LocalUiPalette.current.accent,
+    inactiveTrackColor = LocalUiPalette.current.accent.copy(alpha = 0.22f),
     activeTickColor = Color.Transparent,
     inactiveTickColor = Color.Transparent,
 )
@@ -174,14 +175,15 @@ internal fun PrimaryButton(
     enabled: Boolean = true,
     icon: AppIconKind? = null,
 ) {
-    val tint = if (enabled) UiAccentDeep else Muted
+    val palette = LocalUiPalette.current
+    val tint = if (enabled) palette.accent else palette.on3
     Box(
         modifier = modifier
             .heightIn(min = 52.dp)
             .glassSurface(
                 corner = 16.dp,
-                fill = if (enabled) UiAccentGlassFill else GlassFill,
-                border = if (enabled) UiAccentGlassBorder else GlassBorder,
+                fill = if (enabled) palette.accentSoft else palette.glassFill,
+                border = if (enabled) palette.accent else palette.glassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
@@ -193,7 +195,7 @@ internal fun PrimaryButton(
             }
             Text(
                 text = text,
-                color = if (enabled) Cream else Muted,
+                color = if (enabled) palette.on else palette.on3,
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium,
             )
@@ -208,6 +210,7 @@ internal fun TonalButton(
     modifier: Modifier = Modifier,
     icon: AppIconKind? = null,
 ) {
+    val palette = LocalUiPalette.current
     Box(
         modifier = modifier
             .heightIn(min = 52.dp)
@@ -217,10 +220,10 @@ internal fun TonalButton(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (icon != null) {
-                AppIcon(kind = icon, tint = GlassText, size = 18.dp)
+                AppIcon(kind = icon, tint = palette.on, size = 18.dp)
                 Spacer(modifier = Modifier.width(8.dp))
             }
-            Text(text = text, color = GlassText, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+            Text(text = text, color = palette.on, fontSize = 17.sp, fontWeight = FontWeight.Medium)
         }
     }
 }
@@ -255,7 +258,12 @@ internal fun StepRow(
                 .padding(vertical = 12.dp),
             contentAlignment = Alignment.Center,
         ) {
-            Text(text = value, color = GlassText, fontSize = 18.sp, fontWeight = FontWeight.Medium)
+            Text(
+                text = value,
+                color = LocalUiPalette.current.on,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Medium,
+            )
         }
         Spacer(modifier = Modifier.width(12.dp))
         IconBox(icon = AppIconKind.Plus, contentDescription = increaseLabel, onClick = onIncrease)
@@ -267,7 +275,7 @@ internal fun StepRow(
 internal fun FieldLabel(text: String) {
     Text(
         text = text,
-        color = Muted,
+        color = LocalUiPalette.current.on3,
         fontSize = 13.sp,
         letterSpacing = 0.3.sp,
     )
@@ -282,10 +290,11 @@ internal data class SegmentOption(
 /** A single-choice pill row on glass: selected blue stays separate from face amber. */
 @Composable
 internal fun SegmentedRow(options: List<SegmentOption>) {
+    val palette = LocalUiPalette.current
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .glassSurface(corner = 14.dp, fill = GlassFillHigh)
+            .glassSurface(corner = 14.dp, fill = palette.glassFillHigh)
             .selectableGroup(),
     ) {
         options.forEach { option ->
@@ -299,8 +308,8 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
                         if (option.selected) {
                             Modifier
                                 .clip(shape)
-                                .background(UiAccentGlassFill)
-                                .border(1.dp, UiAccentGlassBorder, shape)
+                                .background(palette.accentSoft)
+                                .border(1.dp, palette.accent, shape)
                         } else {
                             Modifier.clip(shape)
                         },
@@ -311,7 +320,7 @@ internal fun SegmentedRow(options: List<SegmentOption>) {
             ) {
                 Text(
                     text = option.label,
-                    color = if (option.selected) GlassText else Info,
+                    color = if (option.selected) palette.on else palette.on2,
                     fontSize = 14.sp,
                     fontWeight = if (option.selected) FontWeight.Medium else FontWeight.Normal,
                     maxLines = 2,
@@ -331,6 +340,7 @@ internal fun NavRow(
     modifier: Modifier = Modifier,
     trailing: AppIconKind = AppIconKind.ChevronRight,
 ) {
+    val palette = LocalUiPalette.current
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -339,15 +349,15 @@ internal fun NavRow(
             .glassPressable(onClick = onClick),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = icon, tint = UiAccentDeep, size = 18.dp)
+        AppIcon(kind = icon, tint = palette.accent, size = 18.dp)
         Spacer(modifier = Modifier.width(12.dp))
         Text(
             text = label,
-            color = GlassText,
+            color = palette.on,
             fontSize = 16.sp,
             modifier = Modifier.weight(1f),
         )
-        AppIcon(kind = trailing, tint = Muted, size = 18.dp)
+        AppIcon(kind = trailing, tint = palette.on3, size = 18.dp)
     }
 }
 

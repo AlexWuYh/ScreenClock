@@ -35,12 +35,14 @@ import app.screenclock.data.burnin.BurnInRepository
 import app.screenclock.data.focus.FocusRepository
 import app.screenclock.data.occasion.OccasionRepository
 import app.screenclock.data.occasion.SixTailCalendar
+import app.screenclock.data.settings.AppearanceRepository
 import app.screenclock.data.settings.CeremonyLookRepository
 import app.screenclock.data.settings.IntroHintRepository
 import app.screenclock.data.settings.SettingsRepository
 import app.screenclock.data.weather.AndroidCoarseLocator
 import app.screenclock.data.weather.OpenMeteoClient
 import app.screenclock.data.weather.WeatherRepository
+import app.screenclock.domain.appearance.AppearanceTone
 import app.screenclock.domain.bedside.BedsidePreferences
 import app.screenclock.domain.burnin.BurnInClock
 import app.screenclock.domain.burnin.BurnInPreferences
@@ -49,7 +51,6 @@ import app.screenclock.domain.focus.FocusMode
 import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.CeremonyLook
 import app.screenclock.domain.occasion.CeremonyStyle
-import app.screenclock.domain.occasion.CeremonyTone
 import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionRow
 import app.screenclock.domain.time.ClockThemeId
@@ -90,6 +91,7 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepository = SettingsRepository(application)
     private val introHintStore = IntroHintRepository(application)
     private val ceremonyLookStore = CeremonyLookRepository(application)
+    private val appearanceStore = AppearanceRepository(application)
 
     private val weatherController = WeatherController(
         scope = viewModelScope,
@@ -151,9 +153,13 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
     val focus: StateFlow<FocusUi> = focusController.state
     val occasionRows: StateFlow<List<OccasionRow>> = occasionController.occasionRows
 
-    /** The design and light/dark tone of the countdown page. */
+    /** The design of the countdown page. */
     val ceremonyLook: StateFlow<CeremonyLook> = ceremonyLookStore.look
         .stateIn(viewModelScope, SharingStarted.Eagerly, CeremonyLook())
+
+    /** The light/dark choice shared by every management page. */
+    val appearanceTone: StateFlow<AppearanceTone> = appearanceStore.tone
+        .stateIn(viewModelScope, SharingStarted.Eagerly, AppearanceTone.FollowSystem)
 
     fun setCeremonyStyle(style: CeremonyStyle) {
         viewModelScope.launchPersisting { ceremonyLookStore.setStyle(style) }
@@ -163,8 +169,9 @@ class ClockViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launchPersisting { ceremonyLookStore.setAutoPlaySeconds(seconds) }
     }
 
-    fun setCeremonyTone(tone: CeremonyTone) {
-        viewModelScope.launchPersisting { ceremonyLookStore.setTone(tone) }
+    /** The app-wide light/dark choice; the countdown and focus pages read it too. */
+    fun setAppearanceTone(tone: AppearanceTone) {
+        viewModelScope.launchPersisting { appearanceStore.setTone(tone) }
     }
     val occasionLine: StateFlow<String?> = occasionController.occasionLine
     val leapMonths: StateFlow<Set<Int>> = occasionController.leapMonths

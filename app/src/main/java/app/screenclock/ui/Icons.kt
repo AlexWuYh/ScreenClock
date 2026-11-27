@@ -46,7 +46,7 @@ internal enum class AppIconKind {
 internal fun AppIcon(
     kind: AppIconKind,
     modifier: Modifier = Modifier,
-    tint: Color = Cream,
+    tint: Color = LocalUiPalette.current.on,
     size: Dp = 22.dp,
 ) {
     Canvas(modifier.size(size)) {

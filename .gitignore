@@ -8,6 +8,7 @@ local.properties
 /build/
 **/build/
 captures/
+/data/
 .externalNativeBuild/
 .cxx/
 *.apk

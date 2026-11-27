@@ -74,8 +74,7 @@ import app.screenclock.ui.GlassFillHigh
 import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
-import app.screenclock.ui.Cream
-import app.screenclock.ui.Hairline
+import app.screenclock.ui.LocalUiPalette
 import app.screenclock.ui.IconBox
 import app.screenclock.ui.centeredPage
 import app.screenclock.ui.glassBackdrop
@@ -83,10 +82,8 @@ import app.screenclock.ui.glassPressable
 import app.screenclock.ui.glassSurface
 import app.screenclock.ui.Ink
 import app.screenclock.ui.Paper
-import app.screenclock.ui.Muted
 import app.screenclock.ui.PageTitle
 import app.screenclock.ui.Panel
-import app.screenclock.ui.Info
 import app.screenclock.ui.PrimaryButton
 import app.screenclock.ui.SegmentOption
 import app.screenclock.ui.SegmentedRow
@@ -102,6 +99,7 @@ private const val YEAR_MAX: Int = 2100
 
 @Composable
 fun OccasionScreen(viewModel: ClockViewModel) {
+    val palette = LocalUiPalette.current
     val rows by viewModel.occasionRows.collectAsStateWithLifecycle()
     var editing by rememberSaveable { mutableStateOf(false) }
     // Null while adding; the id of the occasion while changing one.
@@ -149,6 +147,7 @@ private fun OccasionList(
     onUnpin: (String) -> Unit,
     onDelete: (String) -> Unit,
 ) {
+    val palette = LocalUiPalette.current
     val full = rows.size >= OCCASION_LIMIT
     var pendingDelete by rememberSaveable { mutableStateOf<String?>(null) }
     Column(
@@ -175,15 +174,15 @@ private fun OccasionList(
         PageTitle(stringResource(R.string.occasion))
         Spacer(modifier = Modifier.height(10.dp))
         if (full) {
-            Text(text = stringResource(R.string.occasion_full), color = Muted, fontSize = 14.sp)
+            Text(text = stringResource(R.string.occasion_full), color = palette.on3, fontSize = 14.sp)
         }
         if (rows.any { it.canOpen }) {
             Spacer(modifier = Modifier.height(4.dp))
-            Text(text = stringResource(R.string.auto_play_hint), color = Muted, fontSize = 13.sp)
+            Text(text = stringResource(R.string.auto_play_hint), color = palette.on3, fontSize = 13.sp)
         }
         if (rows.isEmpty()) {
             Spacer(modifier = Modifier.height(28.dp))
-            Text(text = stringResource(R.string.occasion_empty), color = Muted, fontSize = 16.sp)
+            Text(text = stringResource(R.string.occasion_empty), color = palette.on3, fontSize = 16.sp)
         }
         rows.forEach { row ->
             Spacer(modifier = Modifier.height(10.dp))
@@ -207,8 +206,8 @@ private fun OccasionList(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             tonalElevation = 0.dp,
             shape = RoundedCornerShape(20.dp),
-            titleContentColor = Cream,
-            textContentColor = Info,
+            titleContentColor = palette.on,
+            textContentColor = palette.on2,
             title = { Text(text = stringResource(R.string.occasion_delete_title)) },
             text = { Text(text = stringResource(R.string.occasion_delete_body, row?.title ?: "")) },
             confirmButton = {
@@ -218,12 +217,12 @@ private fun OccasionList(
                         onDelete(pending)
                     },
                 ) {
-                    Text(text = stringResource(R.string.occasion_delete), color = Alert)
+                    Text(text = stringResource(R.string.occasion_delete), color = palette.alert)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { pendingDelete = null }) {
-                    Text(text = stringResource(R.string.occasion_cancel), color = Info)
+                    Text(text = stringResource(R.string.occasion_cancel), color = palette.on2)
                 }
             },
         )
@@ -233,20 +232,21 @@ private fun OccasionList(
 /** The main action of the page: a solid accent button, so it reads as the thing to press. */
 @Composable
 private fun PlayAllButton(enabled: Boolean, onClick: () -> Unit) {
+    val palette = LocalUiPalette.current
     val shape = RoundedCornerShape(14.dp)
     Row(
         modifier = Modifier
             .heightIn(min = 48.dp)
-            .glassSurface(corner = 14.dp, fill = if (enabled) UiAccentDeep else GlassFill, border = if (enabled) UiAccentDeep else GlassBorder)
+            .glassSurface(corner = 14.dp, fill = if (enabled) palette.accent else palette.glassFill, border = if (enabled) palette.accent else palette.glassBorder)
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 18.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = AppIconKind.Play, tint = if (enabled) androidx.compose.ui.graphics.Color.White else Muted, size = 20.dp)
+        AppIcon(kind = AppIconKind.Play, tint = if (enabled) androidx.compose.ui.graphics.Color.White else palette.on3, size = 20.dp)
         Spacer(modifier = Modifier.width(8.dp))
         Text(
             text = stringResource(R.string.occasion_play_all),
-            color = if (enabled) androidx.compose.ui.graphics.Color.White else Muted,
+            color = if (enabled) androidx.compose.ui.graphics.Color.White else palette.on3,
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
         )
@@ -255,6 +255,7 @@ private fun PlayAllButton(enabled: Boolean, onClick: () -> Unit) {
 
 @Composable
 private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
+    val palette = LocalUiPalette.current
     Row(
         modifier = Modifier
             .heightIn(min = 48.dp)
@@ -267,9 +268,9 @@ private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
             .padding(horizontal = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = AppIconKind.Plus, tint = if (enabled) Cream else Muted, size = 18.dp)
+        AppIcon(kind = AppIconKind.Plus, tint = if (enabled) palette.on else palette.on3, size = 18.dp)
         Spacer(modifier = Modifier.width(6.dp))
-        Text(text = stringResource(R.string.occasion_add), color = if (enabled) Cream else Muted, fontSize = 15.sp)
+        Text(text = stringResource(R.string.occasion_add), color = if (enabled) palette.on else palette.on3, fontSize = 15.sp)
     }
 }
 
@@ -282,6 +283,7 @@ private fun OccasionRowCard(
     onUnpin: (String) -> Unit,
     onDelete: () -> Unit,
 ) {
+    val palette = LocalUiPalette.current
     val open = if (row.canOpen) {
         Modifier.glassPressable { onOpen(row.id) }
     } else {
@@ -295,17 +297,17 @@ private fun OccasionRowCard(
             .padding(start = 16.dp, end = 8.dp, top = 12.dp, bottom = 8.dp),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            OccasionGlyph(icon = row.icon, tint = if (row.canOpen) UiAccentDeep else Muted, size = 26.dp)
+            OccasionGlyph(icon = row.icon, tint = if (row.canOpen) palette.accent else palette.on3, size = 26.dp)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = row.title,
-                    color = if (row.canOpen) Cream else Muted,
+                    color = if (row.canOpen) palette.on else palette.on3,
                     fontFamily = FontFamily.Serif,
                     fontSize = 20.sp,
                 )
                 Spacer(modifier = Modifier.height(3.dp))
-                Text(text = row.detail, color = Info, fontSize = 14.sp)
+                Text(text = row.detail, color = palette.on2, fontSize = 14.sp)
             }
         }
         Spacer(modifier = Modifier.height(10.dp))
@@ -325,7 +327,7 @@ private fun OccasionRowCard(
                 ),
                 onClick = { if (row.pinned) onUnpin(row.id) else onPin(row.id) },
                 enabled = row.pinned || row.canPin,
-                tint = if (row.pinned) UiAccentDeep else Cream,
+                tint = if (row.pinned) palette.accent else palette.on,
             )
             Spacer(modifier = Modifier.width(8.dp))
             IconBox(
@@ -341,23 +343,24 @@ private fun OccasionRowCard(
 /** Plays this one countdown. Labeled, so it is clear that tapping a record starts it. */
 @Composable
 private fun RowPlayButton(enabled: Boolean, onClick: () -> Unit) {
+    val palette = LocalUiPalette.current
     Row(
         modifier = Modifier
             .heightIn(min = 48.dp)
             .glassSurface(
                 corner = 14.dp,
-                fill = if (enabled) UiAccentGlassFill else GlassFill,
-                border = if (enabled) UiAccentGlassBorder else GlassBorder,
+                fill = if (enabled) palette.accentSoft else GlassFill,
+                border = if (enabled) palette.accent else GlassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        AppIcon(kind = AppIconKind.Play, tint = if (enabled) UiAccentDeep else Muted, size = 18.dp)
+        AppIcon(kind = AppIconKind.Play, tint = if (enabled) palette.accent else palette.on3, size = 18.dp)
         Spacer(modifier = Modifier.width(6.dp))
         Text(
             text = stringResource(R.string.occasion_play),
-            color = if (enabled) Cream else Muted,
+            color = if (enabled) palette.on else palette.on3,
             fontSize = 15.sp,
             fontWeight = FontWeight.Medium,
         )
@@ -371,6 +374,7 @@ private fun OccasionEditor(
     onBack: () -> Unit,
     onSaved: () -> Unit,
 ) {
+    val palette = LocalUiPalette.current
     val thisYear = LocalDate.now().year.coerceIn(YEAR_MIN, YEAR_MAX)
     val initial = remember(editId) { editId?.let(viewModel::occasionDraftOf) }
     var title by rememberSaveable { mutableStateOf(initial?.title ?: "") }
@@ -519,11 +523,11 @@ private fun OccasionEditor(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 AppIcon(
                     kind = if (canSave) AppIconKind.Check else AppIconKind.Search,
-                    tint = if (canSave) UiAccentDeep else Muted,
+                    tint = if (canSave) palette.accent else palette.on3,
                     size = 16.dp,
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(text = preview, color = Cream, fontSize = 15.sp)
+                Text(text = preview, color = palette.on, fontSize = 15.sp)
             }
             Spacer(modifier = Modifier.height(18.dp))
         }
@@ -532,7 +536,7 @@ private fun OccasionEditor(
                 text = stringResource(
                     if (title.isBlank()) R.string.occasion_need_title else R.string.occasion_need_date,
                 ),
-                color = Muted,
+                color = palette.on3,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(bottom = 10.dp),
             )
@@ -556,18 +560,18 @@ private fun OccasionEditor(
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             tonalElevation = 0.dp,
             shape = RoundedCornerShape(20.dp),
-            titleContentColor = Cream,
-            textContentColor = Info,
+            titleContentColor = palette.on,
+            textContentColor = palette.on2,
             title = { Text(text = stringResource(R.string.occasion_discard_title)) },
             text = { Text(text = stringResource(R.string.occasion_discard_body)) },
             confirmButton = {
                 TextButton(onClick = { confirmDiscard = false; onBack() }) {
-                    Text(text = stringResource(R.string.occasion_discard), color = Alert)
+                    Text(text = stringResource(R.string.occasion_discard), color = palette.alert)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { confirmDiscard = false }) {
-                    Text(text = stringResource(R.string.occasion_keep_editing), color = Info)
+                    Text(text = stringResource(R.string.occasion_keep_editing), color = palette.on2)
                 }
             },
         )
@@ -594,28 +598,30 @@ private fun OccasionEditor(
 
 @Composable
 private fun OccasionField(value: String, onValueChange: (String) -> Unit, label: String) {
+    val palette = LocalUiPalette.current
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         singleLine = true,
-        textStyle = TextStyle(color = Cream, fontSize = 17.sp),
+        textStyle = TextStyle(color = palette.on, fontSize = 17.sp),
         shape = RoundedCornerShape(14.dp),
         label = { Text(text = label) },
         colors = OutlinedTextFieldDefaults.colors(
-            focusedTextColor = Cream,
-            unfocusedTextColor = Cream,
-            focusedBorderColor = UiAccentDeep,
-            unfocusedBorderColor = Hairline,
-            cursorColor = UiAccentDeep,
-            focusedLabelColor = UiAccentDeep,
-            unfocusedLabelColor = Muted,
+            focusedTextColor = palette.on,
+            unfocusedTextColor = palette.on,
+            focusedBorderColor = palette.accent,
+            unfocusedBorderColor = palette.line,
+            cursorColor = palette.accent,
+            focusedLabelColor = palette.accent,
+            unfocusedLabelColor = palette.on3,
         ),
     )
 }
 
 @Composable
 private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit) {
+    val palette = LocalUiPalette.current
     val shape = RoundedCornerShape(14.dp)
     androidx.compose.foundation.layout.FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -628,8 +634,8 @@ private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit)
                 modifier = Modifier
                     .size(48.dp)
                     .clip(shape)
-                    .background(if (on) UiAccentGlassFill else GlassFillHigh)
-                    .border(1.dp, if (on) UiAccentGlassBorder else Hairline, shape)
+                    .background(if (on) palette.accentSoft else GlassFillHigh)
+                    .border(1.dp, if (on) palette.accent else palette.line, shape)
                     .semantics {
                         contentDescription = label
                         this.selected = on
@@ -638,7 +644,7 @@ private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit)
                     .glassPressable(role = Role.RadioButton) { onSelect(option) },
                 contentAlignment = Alignment.Center,
             ) {
-                OccasionGlyph(icon = option, tint = if (on) UiAccentDeep else Info, size = 24.dp)
+                OccasionGlyph(icon = option, tint = if (on) palette.accent else palette.on2, size = 24.dp)
             }
         }
     }
@@ -646,6 +652,7 @@ private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit)
 
 @Composable
 private fun QuickDates(onPick: (QuickDate) -> Unit) {
+    val palette = LocalUiPalette.current
     androidx.compose.foundation.layout.FlowRow(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -654,13 +661,13 @@ private fun QuickDates(onPick: (QuickDate) -> Unit) {
             val shape = RoundedCornerShape(50)
             Text(
                 text = stringResource(quickLabel(pick)),
-                color = Info,
+                color = palette.on2,
                 fontSize = 14.sp,
                 modifier = Modifier
                     .heightIn(min = 40.dp)
                     .clip(shape)
                     .background(GlassFillHigh)
-                    .border(1.dp, Hairline, shape)
+                    .border(1.dp, palette.line, shape)
                     .glassPressable { onPick(pick) }
                     .padding(horizontal = 16.dp, vertical = 9.dp),
             )

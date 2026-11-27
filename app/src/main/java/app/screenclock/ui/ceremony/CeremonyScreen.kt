@@ -1,7 +1,6 @@
 package app.screenclock.ui.ceremony
 
 import androidx.activity.compose.BackHandler
-import app.screenclock.domain.occasion.CeremonyTone
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -73,7 +72,8 @@ import app.screenclock.domain.occasion.CeremonyFace
 import app.screenclock.domain.occasion.CeremonyMode
 import app.screenclock.domain.occasion.CeremonyParts
 import app.screenclock.domain.occasion.CeremonyStyle
-import app.screenclock.domain.occasion.ceremonyIsDark
+import app.screenclock.domain.appearance.AppearanceTone
+import app.screenclock.domain.appearance.appearanceIsDark
 import app.screenclock.domain.occasion.millisUntilCeremonyTick
 import app.screenclock.domain.occasion.twoDigits
 import app.screenclock.domain.time.DateParts
@@ -94,7 +94,9 @@ private val Tabular = TextStyle(fontFeatureSettings = "tnum")
 @Composable
 fun CeremonyScreen(viewModel: ClockViewModel) {
     val look by viewModel.ceremonyLook.collectAsStateWithLifecycle()
-    val dark = ceremonyIsDark(look.tone, isSystemInDarkTheme())
+    // Light/dark is app-wide now, so this page follows the one setting in the settings shell.
+    val appearance by viewModel.appearanceTone.collectAsStateWithLifecycle()
+    val dark = appearanceIsDark(appearance, isSystemInDarkTheme())
     val palette = remember(look.style, dark) { ceremonyPalette(look.style, dark) }
     var now by remember { mutableStateOf(LocalDateTime.now()) }
     // Read so a run moving to its next countdown redraws the page.
@@ -198,7 +200,9 @@ fun CeremonyScreen(viewModel: ClockViewModel) {
             palette = palette,
             onBack = viewModel::closeCeremony,
             onToggleTone = {
-                viewModel.setCeremonyTone(if (palette.dark) CeremonyTone.Light else CeremonyTone.Dark)
+                viewModel.setAppearanceTone(
+                    if (palette.dark) AppearanceTone.Light else AppearanceTone.Dark,
+                )
             },
             onToggleStyle = {
                 viewModel.setCeremonyStyle(
