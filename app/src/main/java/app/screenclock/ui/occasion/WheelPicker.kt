@@ -44,14 +44,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import app.screenclock.R
-import app.screenclock.ui.UiAccentDeep
-import app.screenclock.ui.Cream
-import app.screenclock.ui.GlassFillHigh
+import app.screenclock.ui.LocalUiPalette
 import app.screenclock.ui.glassSurface
-import app.screenclock.ui.Info
-import app.screenclock.ui.Muted
-import app.screenclock.ui.Panel
-import app.screenclock.ui.PanelHigh
 import kotlinx.coroutines.launch
 
 private val WheelItemHeight = 44.dp
@@ -69,6 +63,7 @@ private fun WheelColumn(
     onSelected: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val palette = LocalUiPalette.current
     val start = selectedIndex.coerceIn(0, items.lastIndex.coerceAtLeast(0))
     val state = rememberLazyListState(initialFirstVisibleItemIndex = start)
     val scope = rememberCoroutineScope()
@@ -109,7 +104,7 @@ private fun WheelColumn(
                     .align(Alignment.Center)
                     .fillMaxWidth()
                     .height(WheelItemHeight)
-                    .glassSurface(corner = 12.dp, fill = GlassFillHigh),
+                    .glassSurface(corner = 12.dp, fill = palette.glassFillHigh),
             )
             LazyColumn(
                 state = state,
@@ -156,7 +151,7 @@ private fun WheelColumn(
                     ) {
                         Text(
                             text = item,
-                            color = if (index == settled) Cream else Muted,
+                            color = if (index == settled) palette.on else palette.on3,
                             fontWeight = if (index == settled) FontWeight.Medium else FontWeight.Normal,
                             fontSize = 20.sp,
                             modifier = Modifier.clearAndSetSemantics { },
@@ -166,7 +161,7 @@ private fun WheelColumn(
             }
         }
         Spacer(modifier = Modifier.height(4.dp))
-        Text(text = label, color = Info, fontSize = 14.sp, modifier = Modifier.clearAndSetSemantics { })
+        Text(text = label, color = palette.on2, fontSize = 14.sp, modifier = Modifier.clearAndSetSemantics { })
     }
 }
 
@@ -186,6 +181,7 @@ internal fun DateWheelDialog(
     onPick: (year: Int, month: Int, day: Int) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val palette = LocalUiPalette.current
     var pickedYear by remember { mutableIntStateOf(initialYear) }
     var pickedMonth by remember { mutableIntStateOf(initialMonth) }
     var pickedDay by remember { mutableIntStateOf(initialDay) }
@@ -196,12 +192,12 @@ internal fun DateWheelDialog(
     Dialog(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier
-                .glassSurface(corner = 22.dp, fill = GlassFillHigh)
+                .glassSurface(corner = 22.dp, fill = palette.glassFillHigh)
                 .padding(horizontal = 20.dp, vertical = 20.dp)
                 .widthIn(min = 240.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(text = title, color = Cream, fontSize = 18.sp)
+            Text(text = title, color = palette.on, fontSize = 18.sp)
             Spacer(modifier = Modifier.height(16.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 if (showYear) {
@@ -233,7 +229,7 @@ internal fun DateWheelDialog(
                 horizontalArrangement = Arrangement.End,
             ) {
                 TextButton(onClick = onDismiss) {
-                    Text(text = stringResource(R.string.occasion_cancel), color = Info, fontSize = 16.sp)
+                    Text(text = stringResource(R.string.occasion_cancel), color = palette.on2, fontSize = 16.sp)
                 }
                 TextButton(
                     onClick = {
@@ -242,7 +238,7 @@ internal fun DateWheelDialog(
                 ) {
                     Text(
                         text = stringResource(R.string.occasion_done),
-                        color = UiAccentDeep,
+                        color = palette.accent,
                         fontSize = 16.sp,
                         fontWeight = FontWeight.Medium,
                     )

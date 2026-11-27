@@ -101,11 +101,12 @@ import app.screenclock.domain.focus.remainingMillis
 import app.screenclock.domain.focus.todayFocusMillis
 import app.screenclock.domain.focus.totalMillis
 import app.screenclock.domain.occasion.CeremonyStyle
-import app.screenclock.domain.occasion.CeremonyTone
-import app.screenclock.domain.occasion.ceremonyIsDark
+import app.screenclock.domain.appearance.AppearanceTone
+import app.screenclock.domain.appearance.appearanceIsDark
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
 import app.screenclock.ui.ceremony.CeremonyPalette
+import app.screenclock.ui.rememberAnimatorEnabled
 import app.screenclock.ui.ceremony.PageControls
 import app.screenclock.ui.ceremony.ceremonyPalette
 import app.screenclock.ui.ceremony.rememberAutoHideControls
@@ -120,9 +121,10 @@ private val Tabular = TextStyle(fontFeatureSettings = "tnum")
 @Composable
 fun FocusScreen(viewModel: ClockViewModel) {
     val ui by viewModel.focus.collectAsStateWithLifecycle()
-    val look by viewModel.ceremonyLook.collectAsStateWithLifecycle()
+
     val generation by viewModel.wallClockGeneration.collectAsStateWithLifecycle()
-    val dark = ceremonyIsDark(look.tone, isSystemInDarkTheme())
+    val appearance by viewModel.appearanceTone.collectAsStateWithLifecycle()
+    val dark = appearanceIsDark(appearance, isSystemInDarkTheme())
     // The focus page wears the immersive design of the countdown page, in the same tone.
     val palette = remember(dark) { ceremonyPalette(CeremonyStyle.Immersive, dark) }
     val context = LocalContext.current
@@ -269,7 +271,9 @@ fun FocusScreen(viewModel: ClockViewModel) {
             palette = palette,
             onBack = viewModel::closeFocus,
             onToggleTone = {
-                viewModel.setCeremonyTone(if (palette.dark) CeremonyTone.Light else CeremonyTone.Dark)
+                viewModel.setAppearanceTone(
+                    if (palette.dark) AppearanceTone.Light else AppearanceTone.Dark,
+                )
             },
         )
     }
@@ -580,32 +584,4 @@ private fun DialogButton(label: String, fill: Color, textColor: Color, border: C
     }
 }
 
-/** One setting observer per visible page, with a resume read for missed changes. */
-@Composable
-private fun rememberAnimatorEnabled(): Boolean {
-    val context = LocalContext.current
-    val owner = LocalLifecycleOwner.current
-    val resolver = context.contentResolver
-    var enabled by remember(resolver) {
-        mutableStateOf(Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f)
-    }
-    DisposableEffect(resolver, owner) {
-        val refresh = {
-            enabled = Settings.Global.getFloat(resolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
-        }
-        val observer = object : ContentObserver(Handler(Looper.getMainLooper())) {
-            override fun onChange(selfChange: Boolean) = refresh()
-        }
-        val lifecycleObserver = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) refresh()
-        }
-        resolver.registerContentObserver(Settings.Global.getUriFor(Settings.Global.ANIMATOR_DURATION_SCALE), false, observer)
-        owner.lifecycle.addObserver(lifecycleObserver)
-        refresh()
-        onDispose {
-            owner.lifecycle.removeObserver(lifecycleObserver)
-            resolver.unregisterContentObserver(observer)
-        }
-    }
-    return enabled
-}
+

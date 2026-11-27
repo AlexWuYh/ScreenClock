@@ -16,20 +16,8 @@ enum class CeremonyStyle {
     }
 }
 
-enum class CeremonyTone {
-    FollowSystem,
-    Light,
-    Dark,
-    ;
-
-    companion object {
-        fun fromStored(value: String?): CeremonyTone = entries.firstOrNull { it.name == value } ?: FollowSystem
-    }
-}
-
 data class CeremonyLook(
     val style: CeremonyStyle = CeremonyStyle.Card,
-    val tone: CeremonyTone = CeremonyTone.FollowSystem,
     /** Seconds a finished countdown stays up before auto play moves on. */
     val autoPlaySeconds: Int = AUTO_PLAY_DEFAULT_SECONDS,
 )
@@ -42,12 +30,6 @@ val AUTO_PLAY_SECONDS_CHOICES: List<Int> = listOf(5, 10, 20, 30, 60)
 /** A stored value that is not one of the choices falls back to the default. */
 fun normalizeAutoPlaySeconds(value: Int?): Int =
     if (value != null && value in AUTO_PLAY_SECONDS_CHOICES) value else AUTO_PLAY_DEFAULT_SECONDS
-
-fun ceremonyIsDark(tone: CeremonyTone, systemDark: Boolean): Boolean = when (tone) {
-    CeremonyTone.FollowSystem -> systemDark
-    CeremonyTone.Light -> false
-    CeremonyTone.Dark -> true
-}
 
 /** The quick-pick buttons of the editor. */
 enum class QuickDate {

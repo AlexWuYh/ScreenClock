@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import app.screenclock.domain.occasion.CeremonyLook
 import app.screenclock.domain.occasion.CeremonyStyle
-import app.screenclock.domain.occasion.CeremonyTone
 import app.screenclock.domain.occasion.normalizeAutoPlaySeconds
 import java.io.IOException
 import kotlinx.coroutines.flow.Flow
@@ -15,16 +14,17 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 private val StyleKey = stringPreferencesKey("ceremony_style")
-private val ToneKey = stringPreferencesKey("ceremony_tone")
 private val AutoPlayKey = intPreferencesKey("ceremony_auto_play_seconds")
 
-/** Which design and which light/dark tone the countdown page uses. */
+/**
+ * The countdown page's own look: which design, and how long a finished countdown stays
+ * up. Light and dark moved to [AppearanceRepository], which is app-wide.
+ */
 class CeremonyLookRepository(private val context: Context) {
     val look: Flow<CeremonyLook> = context.clockSettingsStore.data
         .map { prefs ->
             CeremonyLook(
                 style = CeremonyStyle.fromStored(prefs[StyleKey]),
-                tone = CeremonyTone.fromStored(prefs[ToneKey]),
                 autoPlaySeconds = normalizeAutoPlaySeconds(prefs[AutoPlayKey]),
             )
         }
@@ -38,9 +38,5 @@ class CeremonyLookRepository(private val context: Context) {
     suspend fun setAutoPlaySeconds(seconds: Int) {
         val safe = normalizeAutoPlaySeconds(seconds)
         context.clockSettingsStore.edit { prefs -> prefs[AutoPlayKey] = safe }
-    }
-
-    suspend fun setTone(tone: CeremonyTone) {
-        context.clockSettingsStore.edit { prefs -> prefs[ToneKey] = tone.name }
     }
 }

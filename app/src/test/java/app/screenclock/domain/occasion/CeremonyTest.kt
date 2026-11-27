@@ -3,9 +3,7 @@ package app.screenclock.domain.occasion
 import java.time.LocalDate
 import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class CeremonyTest {
@@ -85,18 +83,9 @@ class CeremonyTest {
     }
 
     @Test
-    fun theLookFollowsTheSystemOnlyWhenAsked() {
-        assertTrue(ceremonyIsDark(CeremonyTone.FollowSystem, systemDark = true))
-        assertFalse(ceremonyIsDark(CeremonyTone.FollowSystem, systemDark = false))
-        assertFalse(ceremonyIsDark(CeremonyTone.Light, systemDark = true))
-        assertTrue(ceremonyIsDark(CeremonyTone.Dark, systemDark = false))
-    }
-
-    @Test
     fun storedLookAndIconFallBackToDefaults() {
         assertEquals(CeremonyStyle.Card, CeremonyStyle.fromStored(null))
         assertEquals(CeremonyStyle.Immersive, CeremonyStyle.fromStored("Immersive"))
-        assertEquals(CeremonyTone.FollowSystem, CeremonyTone.fromStored("sepia"))
         assertEquals(OccasionIcon.Default, OccasionIcon.fromStored("Dragon"))
         assertEquals(OccasionIcon.Plane, OccasionIcon.fromStored("Plane"))
     }

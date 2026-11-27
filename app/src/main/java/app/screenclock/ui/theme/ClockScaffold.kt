@@ -148,7 +148,7 @@ internal fun ClockScaffold(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             if (dateLine != null && !dateBelow) {
-                DateLine(dateLine, infoSize, infoColor, boardWidth)
+                DateLine(dateLine, infoSize, infoColor, boardWidth, preview)
                 Spacer(modifier = Modifier.height(lineGap))
             }
             if (face.meridiem != null && meridiemBelow) {
@@ -186,7 +186,7 @@ internal fun ClockScaffold(
             }
             if (dateLine != null && dateBelow) {
                 Spacer(modifier = Modifier.height(lineGap))
-                DateLine(dateLine, infoSize, infoColor, boardWidth)
+                DateLine(dateLine, infoSize, infoColor, boardWidth, preview)
             }
             if (footer != null) {
                 Spacer(modifier = Modifier.height(lineGap))
@@ -311,7 +311,23 @@ internal fun fitDateLine(
  */
 @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun DateLine(text: String, size: TextUnit, infoColor: Color, maxLineWidth: Dp) {
+private fun DateLine(text: String, size: TextUnit, infoColor: Color, maxLineWidth: Dp, preview: Boolean) {
+    // A thumbnail has room for one short line only. Wrapping the chips there would push the
+    // digits out of the box they were measured into, so the preview drops the chips instead.
+    if (preview) {
+        Text(
+            text = text,
+            color = infoColor,
+            fontFamily = FontFamily.SansSerif,
+            fontSize = size,
+            maxLines = 1,
+            softWrap = false,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(maxLineWidth),
+            textAlign = TextAlign.Center,
+        )
+        return
+    }
     val measurer = rememberTextMeasurer()
     val density = androidx.compose.ui.platform.LocalDensity.current
     BoxWithConstraints(modifier = Modifier.width(maxLineWidth), contentAlignment = Alignment.Center) {

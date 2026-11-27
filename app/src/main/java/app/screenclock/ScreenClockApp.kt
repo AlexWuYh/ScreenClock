@@ -11,8 +11,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalView
@@ -29,17 +31,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.screenclock.domain.bedside.keepScreenOn
 import app.screenclock.domain.bedside.nightDimActive
 import app.screenclock.domain.bedside.warmActive
-import app.screenclock.domain.time.ClockThemeId
-import app.screenclock.domain.time.ColorwayId
-import app.screenclock.domain.time.DatePosition
-import app.screenclock.domain.time.DigitSize
-import app.screenclock.domain.time.HourMode
 import app.screenclock.ui.ChromeBar
 import app.screenclock.ui.Cream
+import app.screenclock.ui.Info
 import app.screenclock.ui.UiAccentDeep
 import app.screenclock.domain.focus.focusKeepsScreen
-import app.screenclock.domain.occasion.ceremonyIsDark
+import app.screenclock.domain.appearance.appearanceIsDark
+import app.screenclock.ui.DarkUiPalette
 import app.screenclock.ui.Ink
+import app.screenclock.ui.LightUiPalette
+import app.screenclock.ui.LocalUiPalette
 import app.screenclock.ui.Paper
 import app.screenclock.ui.NIGHT_DIM_BRIGHTNESS
 import app.screenclock.ui.ceremony.CeremonyScreen
@@ -49,12 +50,13 @@ import app.screenclock.ui.clock.ClockViewModel
 import app.screenclock.ui.focus.FocusScreen
 import app.screenclock.ui.nightWarmTint
 import app.screenclock.ui.occasion.OccasionScreen
-import app.screenclock.ui.settings.SettingsScreen
+import app.screenclock.ui.settings.SettingsPage
 
 @Composable
 fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
     val destination by viewModel.destination.collectAsStateWithLifecycle()
     val ceremonyLook by viewModel.ceremonyLook.collectAsStateWithLifecycle()
+    val appearanceTone by viewModel.appearanceTone.collectAsStateWithLifecycle()
     val systemDark = androidx.compose.foundation.isSystemInDarkTheme()
     val clock by viewModel.clock.collectAsStateWithLifecycle()
     val weatherPanel by viewModel.weatherPanel.collectAsStateWithLifecycle()
@@ -148,10 +150,9 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
         onDispose { activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
     }
     // Bars are hidden, but a swipe reveals them briefly: icons must read on the page behind.
-    val lightPage = destination == AppDestination.Settings ||
-        (destination == AppDestination.Occasions) ||
-        (destination == AppDestination.Focus && !ceremonyIsDark(ceremonyLook.tone, systemDark)) ||
-        (destination == AppDestination.Ceremony && !ceremonyIsDark(ceremonyLook.tone, systemDark))
+    // The clock face keeps its own dark colours, so it always wants light bar icons.
+    val darkPages = appearanceIsDark(appearanceTone, systemDark)
+    val lightPage = !darkPages && focus.known && destination != AppDestination.Clock
     val barView = LocalView.current
     SideEffect {
         val window = (barView.context as? android.app.Activity)?.window ?: return@SideEffect
@@ -159,91 +160,52 @@ fun ScreenClockApp(viewModel: ClockViewModel = viewModel()) {
         controller.isAppearanceLightStatusBars = lightPage
         controller.isAppearanceLightNavigationBars = lightPage
     }
-    MaterialTheme(
-        colorScheme = lightColorScheme(
+    val palette = if (darkPages) DarkUiPalette else LightUiPalette
+    val scheme = if (darkPages) {
+        darkColorScheme(
+            background = palette.backdropMid,
+            surface = palette.tile,
+            primary = palette.accent,
+            onPrimary = palette.backdropMid,
+            onBackground = palette.on,
+            onSurface = palette.on,
+            onSurfaceVariant = palette.on2,
+            outline = palette.outline,
+            error = palette.alert,
+        )
+    } else {
+        lightColorScheme(
             background = Paper,
             surface = ChromeBar,
             primary = UiAccentDeep,
             onPrimary = Paper,
             onBackground = Cream,
             onSurface = Cream,
-        ),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .then(if (warmOn) Modifier.nightWarmTint() else Modifier),
-        ) {
-            if (!focus.known) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Ink),
-                )
-            } else when (destination) {
-                AppDestination.Clock -> ClockShell(viewModel)
-                AppDestination.Focus -> FocusScreen(viewModel)
-                AppDestination.Occasions -> OccasionScreen(viewModel)
-                AppDestination.Ceremony -> CeremonyScreen(viewModel)
-                AppDestination.Settings -> SettingsScreen(
-                    face = clock?.face,
-                    dateLine = clock?.dateLine,
-                    hourMode = clock?.hourMode ?: HourMode.FollowSystem,
-                    theme = clock?.theme ?: ClockThemeId.Flip,
-                    colorway = clock?.colorway ?: ColorwayId.InkBlack,
-                    datePosition = clock?.datePosition ?: DatePosition.Above,
-                    digitSize = clock?.digitSize ?: DigitSize.Regular,
-                    showDate = clock?.showDate ?: true,
-                    showYear = clock?.showYear ?: true,
-                    showWeekday = clock?.showWeekday ?: true,
-                    showLunarDate = clock?.showLunarDate ?: true,
-                    showHoliday = clock?.showHoliday ?: true,
-                    onHourMode = viewModel::setHourMode,
-                    onTheme = viewModel::setTheme,
-                    onColorway = viewModel::setColorway,
-                    onDatePosition = viewModel::setDatePosition,
-                    onDigitSize = viewModel::setDigitSize,
-                    onShowDate = viewModel::setShowDate,
-                    onShowYear = viewModel::setShowYear,
-                    onShowWeekday = viewModel::setShowWeekday,
-                    onShowLunarDate = viewModel::setShowLunarDate,
-                    onShowHoliday = viewModel::setShowHoliday,
-                    onBack = viewModel::closeSettings,
-                    weatherEnabled = clock?.weatherEnabled ?: false,
-                    useLocation = clock?.useLocation ?: false,
-                    cityLabel = clock?.cityLabel,
-                    weather = clock?.weather,
-                    panel = weatherPanel,
-                    onWeatherEnabled = viewModel::setWeatherEnabled,
-                    onUseLocation = viewModel::setUseLocation,
-                    onLocate = viewModel::useCurrentLocation,
-                    onLocationDenied = viewModel::onLocationDenied,
-                    onSearch = viewModel::searchCity,
-                    onSelectCity = viewModel::selectCity,
-                    burnInEnabled = burnIn.enabled,
-                    burnInTheme = burnIn.theme,
-                    burnInIdleMillis = burnIn.idleMillis,
-                    burnInRunMillis = burnIn.runMillis,
-                    onBurnInEnabled = viewModel::setBurnInEnabled,
-                    onBurnInTheme = viewModel::setBurnInTheme,
-                    onBurnInIdleMillis = viewModel::setBurnInIdleMillis,
-                    onBurnInRunMillis = viewModel::setBurnInRunMillis,
-                    nightDimEnabled = bedside.dimEnabled,
-                    nightStartHour = bedside.startHour,
-                    nightEndHour = bedside.endHour,
-                    nightWarmEnabled = bedside.warmEnabled,
-                    chargeKeepAwake = bedside.chargeKeepAwake,
-                    onNightDimEnabled = viewModel::setNightDimEnabled,
-                    onNightStartHour = viewModel::setNightStartHour,
-                    onNightEndHour = viewModel::setNightEndHour,
-                    onNightWarmEnabled = viewModel::setNightWarmEnabled,
-                    onChargeKeepAwake = viewModel::setChargeKeepAwake,
-                    ceremonyLook = ceremonyLook,
-                    onCeremonyStyle = viewModel::setCeremonyStyle,
-                    onCeremonyTone = viewModel::setCeremonyTone,
-                    onAutoPlaySeconds = viewModel::setAutoPlaySeconds,
-                    onOpenOccasions = { viewModel.openOccasions(fromSettings = true) },
-                )
+            onSurfaceVariant = Info,
+            outline = palette.outline,
+            error = palette.alert,
+        )
+    }
+    CompositionLocalProvider(LocalUiPalette provides palette) {
+        MaterialTheme(colorScheme = scheme) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .then(if (warmOn) Modifier.nightWarmTint() else Modifier),
+            ) {
+                if (!focus.known) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(Ink),
+                    )
+                } else when (destination) {
+                    AppDestination.Clock -> ClockShell(viewModel)
+                    AppDestination.Focus -> FocusScreen(viewModel)
+                    AppDestination.Occasions -> OccasionScreen(viewModel)
+                    AppDestination.Ceremony -> CeremonyScreen(viewModel)
+                    AppDestination.Settings -> SettingsPage(viewModel)
+                }
             }
         }
     }

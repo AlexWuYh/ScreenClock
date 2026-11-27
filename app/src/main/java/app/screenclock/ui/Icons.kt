@@ -12,6 +12,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.scale
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -46,10 +47,15 @@ internal enum class AppIconKind {
 internal fun AppIcon(
     kind: AppIconKind,
     modifier: Modifier = Modifier,
-    tint: Color = Cream,
+    tint: Color = LocalUiPalette.current.on,
     size: Dp = 22.dp,
+    rotationDegrees: Float = 0f,
 ) {
-    Canvas(modifier.size(size)) {
+    Canvas(
+        Modifier
+            .size(size)
+            .then(if (rotationDegrees != 0f) Modifier.graphicsLayer { rotationZ = rotationDegrees } else Modifier),
+    ) {
         val unit = this.size.minDimension / 24f
         scale(scaleX = unit, scaleY = unit, pivot = Offset.Zero) {
             val line = Stroke(width = 2f, cap = StrokeCap.Round, join = StrokeJoin.Round)
