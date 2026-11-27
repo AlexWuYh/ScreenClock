@@ -66,11 +66,6 @@ import app.screenclock.domain.occasion.OccasionDraft
 import app.screenclock.domain.occasion.OccasionKind
 import app.screenclock.domain.occasion.occasionDayMax
 import app.screenclock.ui.Alert
-import app.screenclock.ui.UiAccentGlassBorder
-import app.screenclock.ui.UiAccentGlassFill
-import app.screenclock.ui.GlassBorder
-import app.screenclock.ui.GlassFill
-import app.screenclock.ui.GlassFillHigh
 import app.screenclock.ui.UiAccentDeep
 import app.screenclock.ui.AppIcon
 import app.screenclock.ui.AppIconKind
@@ -202,7 +197,7 @@ private fun OccasionList(
         val row = rows.find { it.id == pending }
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            modifier = Modifier.glassSurface(corner = 20.dp, fill = GlassFillHigh),
+            modifier = Modifier.glassSurface(corner = 20.dp, fill = palette.glassFillHigh),
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             tonalElevation = 0.dp,
             shape = RoundedCornerShape(20.dp),
@@ -261,8 +256,8 @@ private fun AddButton(enabled: Boolean, onClick: () -> Unit) {
             .heightIn(min = 48.dp)
             .glassSurface(
                 corner = 14.dp,
-                fill = GlassFill,
-                border = GlassBorder,
+                fill = palette.glassFill,
+                border = palette.glassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 14.dp),
@@ -349,8 +344,8 @@ private fun RowPlayButton(enabled: Boolean, onClick: () -> Unit) {
             .heightIn(min = 48.dp)
             .glassSurface(
                 corner = 14.dp,
-                fill = if (enabled) palette.accentSoft else GlassFill,
-                border = if (enabled) palette.accent else GlassBorder,
+                fill = if (enabled) palette.accentSoft else palette.glassFill,
+                border = if (enabled) palette.accent else palette.glassBorder,
             )
             .glassPressable(enabled = enabled, onClick = onClick)
             .padding(horizontal = 16.dp),
@@ -556,7 +551,7 @@ private fun OccasionEditor(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            modifier = Modifier.glassSurface(corner = 20.dp, fill = GlassFillHigh),
+            modifier = Modifier.glassSurface(corner = 20.dp, fill = palette.glassFillHigh),
             containerColor = androidx.compose.ui.graphics.Color.Transparent,
             tonalElevation = 0.dp,
             shape = RoundedCornerShape(20.dp),
@@ -634,7 +629,7 @@ private fun IconPicker(selected: OccasionIcon, onSelect: (OccasionIcon) -> Unit)
                 modifier = Modifier
                     .size(48.dp)
                     .clip(shape)
-                    .background(if (on) palette.accentSoft else GlassFillHigh)
+                    .background(if (on) palette.accentSoft else palette.glassFillHigh)
                     .border(1.dp, if (on) palette.accent else palette.line, shape)
                     .semantics {
                         contentDescription = label
@@ -666,7 +661,7 @@ private fun QuickDates(onPick: (QuickDate) -> Unit) {
                 modifier = Modifier
                     .heightIn(min = 40.dp)
                     .clip(shape)
-                    .background(GlassFillHigh)
+                    .background(palette.glassFillHigh)
                     .border(1.dp, palette.line, shape)
                     .glassPressable { onPick(pick) }
                     .padding(horizontal = 16.dp, vertical = 9.dp),
